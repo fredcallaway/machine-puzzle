@@ -1,0 +1,8 @@
+__pycache__
+.project_id
+.prolific_token
+server.log
+participants.db
+.database_url
+data
+env

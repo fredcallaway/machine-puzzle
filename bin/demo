@@ -1,0 +1,6 @@
+version=${1:-demo}
+dest="www.fredcallaway.com/docs/expdemo/blocks/$version/"
+ssh simcoe "mkdir -p '$dest'"
+scp templates/exp.html simcoe:$dest/index.html
+rsync -av static/ simcoe:$dest/static
+echo https://www.fredcallaway.com/expdemo/blocks/$version
