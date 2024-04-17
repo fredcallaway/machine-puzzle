@@ -28,14 +28,15 @@ async function runExperiment() {
       height: 70,
       width: 1150,
       help: `
-        Write some help text here.
+        Click a medicine (colorful circles at bottom) to fill the cauldron. Then click
+        an herb (gray boxes) to attempt to make a new medicine.
       `
     }).prependTo(DISPLAY)
 
     let workspace = $('<div>').appendTo(DISPLAY)
 
     for (let trial of [1]) {
-      new AlchemyPuzzle().run(workspace)
+      new MachinePuzzle().run(workspace)
       await make_promise()
       top.incrementCounter()
       saveData()
@@ -78,7 +79,7 @@ async function runExperiment() {
   }
 
   await runTimeline(
-    instructions,
+    // instructions,
     main,
     debrief
   )

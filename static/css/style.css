@@ -1,11 +1,51 @@
+.recipe-column {
+  float: left;
+  margin: 10px;
+/*  border: thin red solid;*/
+}
+.recipe > span {
+  font-size: 20pt;
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.machine-div {
+    position: relative;
+    text-align: center;
+    width: 1000px;
+    height: 600px;
+    margin: auto;
+}
+
+.recipe-book {
+  /*text-align: left;
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 80%;*/
+  margin-top: 20px;
+  height: 200px;
+  background: white;
+  border: thick black solid;
+}
+
+.small {
+  transform: scale(0.5);
+  font-size: 16pt;
+  margin: 3px !important;
+}
+
 .spell {
+  text-align: center;
   width: 50px;
   height: 50px;
-  line-height: 50px;
+  line-height: 40px;
   display: inline-block;
   margin: 10px;
   background: #D8D8D8;
   border: medium black solid;
+  font-weight: bold;
+
 }
 
 .active {
@@ -14,21 +54,41 @@
   box-shadow: 0px 0px 30px #FFE200;
 }
 
-.potion {
+.chemical {
+  text-align: center;
   width: 50px;
   height: 50px;
-  line-height: 50px;
+  line-height: 40px;
   display: inline-block;
   margin: 10px;
   border-radius: 100%;
   background: white;
   color: black;
+  font-weight: bold;
   border: medium black solid;
 }
 
 .potion.active {
   border: medium #FFE622 solid;
 }
+
+.machine {
+  position: relative;
+  margin: 50px;
+  width: 500px;
+  height: 150px;
+  border: medium black solid;
+}
+
+.box {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border: medium black solid;
+}
+
+
+/* GENERAL PURPOSE  */
 
 .text {
   margin: auto;
