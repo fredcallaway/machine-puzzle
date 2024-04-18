@@ -20,7 +20,9 @@ class MachinePuzzle {
       nSpell: 8,
       nPotion: 4,
       transitions: [{"5":2,"0":3,"7":1},{"0":3,"4":0,"3":2},{"6":1,"7":3,"1":0},{"5":1,"4":2,"1":0}],
-      recipes: [[0, 5, 2], [0, 0, 3]]
+      recipes: [[0, 5, 2], [0, 0, 3]],
+      goal: 1,
+      start: 0,
     })
     window.AP = this
     Object.assign(this, options)
@@ -32,6 +34,7 @@ class MachinePuzzle {
     this.activeChemical = null
     this.activeSpell = null
     this.ready = false
+    this.done = make_promise()
   }
 
   attach(display) {
@@ -44,7 +47,8 @@ class MachinePuzzle {
     logEvent('machine.run')
     if (display) this.attach(display)
     this.build()
-    this.addPotion(0)
+    this.addPotion(this.start)
+    await this.done
   }
 
   build() {
@@ -58,6 +62,30 @@ class MachinePuzzle {
       // 'height': '200px'
     })
     .appendTo(this.div)
+
+    this.goalBox = $("<div>")
+    .css({
+      position: 'absolute',
+      left: 50,
+      top: 50,
+      width: 100,
+      height: 100,
+      border: 'thick black solid'
+    })
+    .append(
+      $('<p>').text("GOAL").css({marginTop: -30, fontWeight: "bold", fontSize: 22})
+    )
+    .append(
+      $('<div>')
+      .addClass('chemical')
+      .css({
+        backgroundColor: COLORS[this.goal],
+        transform: 'scale(1.5)',
+        marginTop: 13
+      })
+      .text(this.chemicalNames[this.goal])
+    )
+    .appendTo(this.workspace)
 
     this.machineWrapper = $('<div>')
     .css({position: 'relative'})
@@ -178,13 +206,18 @@ class MachinePuzzle {
     this.book = $('<div>')
     .addClass('recipe-book')
     .appendTo(this.div)
+    .append(
+      $('<p>').text("MANUAL").css({marginTop: -30, fontWeight: "bold", fontSize: 22})
+    )
+
+
 
     this.recipes.forEach((recipe) => this.addRecipe(...recipe, true))
   }
 
   addRecipe(chemical, spell, result, init=false) {
     if (!init) {
-      let old = _(this.recipes).some(([c,s,r]) => c == chemical && s == spell && r == recpie)
+      let old = _(this.recipes).some(([c,s,r]) => c == chemical && s == spell && r == result)
       if (old) return
       this.recipes.push([chemical, spell, result])
     }
@@ -193,6 +226,7 @@ class MachinePuzzle {
     .appendTo(this.book)
 
     $("<button>")
+    .prop('disabled', true)
     .addClass('chemical small')
     .text(this.chemicalNames[chemical])
     .appendTo(recipe)
@@ -203,6 +237,7 @@ class MachinePuzzle {
     .appendTo(recipe)
 
     $("<button>")
+    .prop('disabled', true)
     .addClass('spell small')
     .text(this.spellNames[spell])
     .appendTo(recipe)
@@ -212,6 +247,7 @@ class MachinePuzzle {
     .appendTo(recipe)
 
     $("<button>")
+    .prop('disabled', true)
     .addClass('chemical small')
     .text(this.chemicalNames[result])
     .appendTo(recipe)
@@ -228,6 +264,37 @@ class MachinePuzzle {
       })
       el.prop('disabled', !on)
     })
+    if (i == this.goal) {
+      this.victory()
+    }
+  }
+
+  async victory() {
+    // checkmark on goal
+    $("<p>").html("&#x2713")
+    .css({
+      position: 'absolute',
+      fontSize: 200,
+      top: -140,
+      // marginTop: -200,
+      zIndex: 5,
+    })
+    .appendTo(this.goalBox)
+
+    // party parrot
+    $("<img>", {src: "static/img/parrot.gif"})
+    .css({
+      position: 'absolute',
+      left: 0,
+      top: -53,
+      width: 50,
+      zIndex: 10,
+    })
+    .appendTo(this.goalBox)
+
+    await alert_success()
+    this.done.resolve()
+
   }
 
   async activateChemical(a) {
@@ -324,5 +391,6 @@ class MachinePuzzle {
     this.activeChemical = null
     this.activeSpell = null
     $('.active').removeClass('active')
+    $('.spell:not(.small)').prop('disabled', false)
   }
 }
