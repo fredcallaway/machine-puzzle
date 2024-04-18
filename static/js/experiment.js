@@ -10,7 +10,7 @@ psiturk.recordUnstructuredData('params', PARAMS);
 async function runExperiment() {
   // stimuli = await $.getJSON(`static/json/${CONDITION}.json`)
   logEvent('experiment.initialize', {CONDITION, PARAMS})
-  enforceScreenSize(1200, 750)
+  // enforceScreenSize(1200, 750)
 
   async function instructions() {
     logEvent('experiment.instructions')

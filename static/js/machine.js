@@ -1,5 +1,5 @@
 const COLORS = [
-  "#e41a1c",
+  // "#e41a1c",
   "#377eb8",
   "#4daf4a",
   "#984ea3",
@@ -26,11 +26,12 @@ class MachinePuzzle {
     this.state = 0
     this.div = $("<div>").addClass('machine-div')
     this.chemicalNames = alphabet.slice(0, this.nPotion)
-    this.spellNames = alphabet.slice(-this.nSpell)
+    this.spellNames = _.range(1, this.nSpell + 1)
     this.state = Array(this.nPotion).fill(false)
-    this.activePotion = null
+    this.activeChemical = null
     this.activeSpell = null
     this.recipes = this.transitions
+    this.ready = false
   }
 
   attach(display) {
@@ -47,18 +48,6 @@ class MachinePuzzle {
   }
 
   build() {
-    let $spells = $("<div>").appendTo(this.div)
-    this.spellEls = []
-    this.spellNames.forEach((name, i) => {
-      let el = $('<button>')
-      .addClass('spell')
-      .text(name)
-      .appendTo($spells)
-      .on('click', () => this.castSpell(i))
-      .prop('disabled', true)
-      this.spellEls.push(el)
-    })
-
     this.workspace = $("<div>")
     .css({
       'display': 'flex',
@@ -70,10 +59,45 @@ class MachinePuzzle {
     })
     .appendTo(this.div)
 
-    this.machine = $('<div>')
-    .addClass('machine')
+    this.machineWrapper = $('<div>')
+    .css({position: 'relative'})
+    // .css('border', 'thin red solid')
     .appendTo(this.workspace)
 
+    this.machine = $('<div>')
+    .addClass('machine')
+    .appendTo(this.machineWrapper)
+
+    let addPanel = (top, left, width, height) => {
+      $('<div>')
+      .addClass('machine-panel')
+      .css({top, left, width, height})
+      .appendTo(this.machine)
+    }
+    addPanel(0, 0, 500, 50)
+    addPanel(100, 0, 500, 100)
+    addPanel(50, 0, 50, 50)
+    addPanel(50, 449, 51, 50)
+    addPanel(50, 100, 300, 50)
+
+    let $spells = $("<div>")
+    .css({
+      position: 'relative',
+      marginTop: 120,
+      'z-index': 2,
+    })
+    .appendTo(this.machine)
+
+    this.spellEls = []
+    this.spellNames.forEach((name, i) => {
+      let el = $('<button>')
+      .addClass('spell')
+      .text(name)
+      .appendTo($spells)
+      .on('click', () => this.activateSpell(i))
+      // .prop('disabled', true)
+      this.spellEls.push(el)
+    })
 
     this.inbox = $('<div>')
     .css({
@@ -97,6 +121,49 @@ class MachinePuzzle {
     )
     .appendTo(this.machine)
 
+    // Create the lever
+    this.lever = $('<div>').css({
+        width: '100px',
+        height: '10px',
+        backgroundColor: 'gray',
+        position: 'absolute',
+        transform: 'rotate(-30deg)',
+        transition: 'transform 0.5s ease',
+        // marginLeft: 500,
+        // zIndex: -1,
+        right: -95,
+        top: 75,
+        transformOrigin: 'left center'
+    })
+    .appendTo(this.machineWrapper)
+
+    // Create the handle
+    $('<div>').css({
+        width: '20px',
+        height: '20px',
+        borderRadius: '50%',
+        backgroundColor: "#EB0506",
+        position: 'absolute',
+        right: -2,
+        top: '-5px'
+    }).appendTo(this.lever)
+
+    this.lever.on('click', () => {
+      this.clickLever()
+    });
+
+    this.progressButton = $('<div>')
+    .css({
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      width: 15,
+      height: 15,
+      zIndex: 10,
+    })
+    .addClass('progress-button')
+    .appendTo(this.machine)
+
     let $chemicals = $("<div>").appendTo(this.div)
     this.chemicalEls = []
     this.chemicalNames.forEach((name, i) => {
@@ -104,7 +171,7 @@ class MachinePuzzle {
       .addClass('chemical')
       .text(name)
       .appendTo($chemicals)
-      .on('click', () => this.activatePotion(i))
+      .on('click', () => this.activateChemical(i))
       this.chemicalEls.push(el)
     })
 
@@ -120,7 +187,7 @@ class MachinePuzzle {
         .addClass('recipe')
         .appendTo(col)
 
-        $("<span>")
+        $("<button>")
         .addClass('chemical small')
         .text(this.chemicalNames[chemical])
         .appendTo(recipe)
@@ -130,16 +197,16 @@ class MachinePuzzle {
         .text('+')
         .appendTo(recipe)
 
-        $("<span>")
+        $("<button>")
         .addClass('spell small')
         .text(this.spellNames[spell])
         .appendTo(recipe)
 
         $("<span>")
-        .text('=')
+        .html('&#8594;')
         .appendTo(recipe)
 
-        $("<span>")
+        $("<button>")
         .addClass('chemical small')
         .text(this.chemicalNames[result])
         .appendTo(recipe)
@@ -160,21 +227,105 @@ class MachinePuzzle {
     })
   }
 
-  async activatePotion(a) {
-    $('.spell').prop('disabled', false)
-    logEvent('machine.activatePotion', {a})
-    this.activePotion = a
-    // $('.chemical').removeClass('active')
-    await gsap.to(this.cauldron, {backgroundColor: a == null ? 'white' : COLORS[a], duration: .5}).play()
+  async activateChemical(a) {
+    // $('.spell').prop('disabled', false)
+    $('.staged').remove()
+    if (a == null) return
+    logEvent('machine.activateChemical', {a})
+    this.activeChemical = a
+    let el = $('<div>')
+    .addClass('chemical staged')
+    .text(this.chemicalNames[a])
+    .appendTo(this.machine)
+    .css({
+      backgroundColor: COLORS[a],
+      position: 'absolute',
+      left: 45,
+      top: 52,
+    })
+    this.checkReady()
   }
 
+  activateSpell(i) {
+    logEvent('machine.activateSpell', {i})
+    this.activeSpell = i
+    $('.active').removeClass('active')
+    this.spellEls[i].addClass('active')
+    this.checkReady()
+  }
+
+  checkReady() {
+    this.ready = this.activeSpell != null && this.activeChemical != null
+    console.log('this.ready', this.ready)
+  }
+
+  async clickLever() {
+    if (!this.ready) return
+    logEvent('machine.run', {chemical: this.activateChemical, spell: this.activeSpell})
+
+    // don't allow repeated pulls
+    this.ready = false
+    $('button').prop('disabled', true)
+
+    // animate lever
+    this.lever.css({transform: 'rotate(30deg)'})
+    await sleep(500)
+
+    // animate sliding into machine
+    $('.staged').css({
+      transform: 'translate(50px)',
+      transition: 'transform 1s ease-in',
+    })
+    await sleep(1000)
+
+    // create result chemical
+    let result = this.transitions[this.activeChemical][this.activeSpell]
+    let el = $('<div>')
+    .addClass('chemical foobar')
+    .text(this.chemicalNames[result] ?? '')
+    .appendTo(this.machine)
+    .css({
+      backgroundColor: COLORS[result] ?? "#4B5702",
+      position: 'absolute',
+      left: 345,
+      top: 52,
+    })
+
+    // delay, flashing light
+    let elapsed = 0
+    while (elapsed < 3000) {
+      elapsed += 1000
+      this.progressButton.addClass('red')
+      await sleep(500)
+      this.progressButton.removeClass('red')
+      await sleep(500)
+    }
+    this.progressButton.addClass(result == null ? "red" : "green")
+
+    // new chemical appears
+    el.css({
+      transform: 'translate(50px)',
+      transition: 'transform 1s ease-in',
+    })
+    await sleep(2000)
+
+    this.progressButton.removeClass('red green')
+    this.lever.css({transform: 'rotate(-30deg)'})
+    await sleep(500)
+
+    el.remove()
+    this.addPotion(result)
+    this.activeChemical = null
+    this.activeSpell = null
+    $('.active').removeClass('active')
+  }
 
   async castSpell(spell) {
     $('button').prop('disabled', true)
 
     logEvent('machine.castSpell', {spell})
-    assert(this.activePotion != null)
-    let result = this.transitions[this.activePotion][spell]
+    assert(this.activeChemical != null)
+    let result = this.transitions[this.activeChemical][spell]
     console.log('result', result)
 
     let duration = 3
@@ -196,19 +347,11 @@ class MachinePuzzle {
     }
     await gsap.to(this.cauldron, {backgroundColor: 'white', duration: .5}).play()
 
-    this.activePotion = null
+    this.activeChemical = null
     this.state.forEach((on, i) => {
       let el = this.chemicalEls[i]
       el.prop('disabled', !on)
     })
-
-
-
-    // await this.cauldron.css({ backgroundColor: COLORS[result]});
-
-  //   console.log('result', result)
-  //   this.addPotion(result)
-  //   this.activatePotion(null)
 
   }
 

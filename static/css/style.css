@@ -30,41 +30,47 @@
 }
 
 .small {
-  transform: scale(0.5);
-  font-size: 16pt;
-  margin: 3px !important;
+  transform: scale(0.8);
+/*  font-size: 16pt;*/
+  margin: 6px !important;
 }
 
 .spell {
+  position: relative;
   text-align: center;
-  width: 50px;
-  height: 50px;
-  line-height: 40px;
+  width: 30px;
+  height: 30px;
+  line-height: 20px;
   display: inline-block;
   margin: 10px;
-  background: #D8D8D8;
+  background: #E1E1E1;
   border: medium black solid;
   font-weight: bold;
+  font-size: 12pt;
+  z-index: 10;
+/*  border-radius: 100%;*/
+
 
 }
 
 .active {
-  border: medium #FFE622 solid;
-/*  background: #FFF28D;*/
-  box-shadow: 0px 0px 30px #FFE200;
+/*  border: medium #DCC91D solid;*/
+  background: #FFF28D;
+  box-shadow: 0px 0px 5px #FFE200;
 }
 
 .chemical {
   text-align: center;
-  width: 50px;
-  height: 50px;
-  line-height: 40px;
+  width: 40px;
+  height: 40px;
+  line-height: 30px;
   display: inline-block;
   margin: 10px;
   border-radius: 100%;
   background: white;
   color: black;
   font-weight: bold;
+  font-size: 16pt;
   border: medium black solid;
 }
 
@@ -72,12 +78,43 @@
   border: medium #FFE622 solid;
 }
 
+
+/*.pulled {
+  transform: rotate(30deg);
+  transition: transform 0.5s ease;
+}*/
+
+
+.progress-button {
+  background-color: #F1F1F1;
+  border: 2px #191919 solid;
+  border-radius: 100%;
+}
+
+.progress-button.red {
+  background-color: #EE000B;
+  border: 2px #920806 solid;
+  box-shadow: 0px 0px 6px #EE000B;
+}
+.progress-button.green {
+  background-color: #25F905;
+  border: 2px #189A02 solid;
+  box-shadow: 0px 0px 6px #25F905;
+}
+
 .machine {
   position: relative;
-  margin: 50px;
-  width: 500px;
-  height: 150px;
-  border: medium black solid;
+  width: 507px;
+  height: 207px;
+  border: 4px black solid;
+  background-color: white;
+  z-index: 3;
+}
+.machine-panel {
+  background-color: gray;
+/*  opacity: 0.5;*/
+  position: absolute;
+  z-index: 1;
 }
 
 .box {
@@ -85,6 +122,7 @@
   width: 50px;
   height: 50px;
   border: medium black solid;
+  z-index: 2;
 }
 
 
