@@ -19,7 +19,8 @@ class MachinePuzzle {
     _.defaults(options, {
       nSpell: 8,
       nPotion: 4,
-      transitions: [{"5":2,"0":3,"7":1},{"0":3,"4":0,"3":2},{"6":1,"7":3,"1":0},{"5":1,"4":2,"1":0}]
+      transitions: [{"5":2,"0":3,"7":1},{"0":3,"4":0,"3":2},{"6":1,"7":3,"1":0},{"5":1,"4":2,"1":0}],
+      recipes: [[0, 5, 2], [0, 0, 3], [0, 0, 3], [0, 0, 3], [0, 0, 3]]
     })
     window.AP = this
     Object.assign(this, options)
@@ -30,7 +31,6 @@ class MachinePuzzle {
     this.state = Array(this.nPotion).fill(false)
     this.activeChemical = null
     this.activeSpell = null
-    this.recipes = this.transitions
     this.ready = false
   }
 
@@ -179,40 +179,38 @@ class MachinePuzzle {
     .addClass('recipe-book')
     .appendTo(this.div)
 
-    this.recipes.forEach((recipes, chemical) => {
-      let col = $('<div>').addClass('recipe-column').appendTo(this.book)
+    this.recipes.forEach((recipe) => this.addRecipe(...recipe))
+  }
 
-      for (let [spell, result] of Object.entries(recipes)) {
-        let recipe = $('<div>')
-        .addClass('recipe')
-        .appendTo(col)
+  addRecipe(chemical, spell, result) {
+    let recipe = $('<div>')
+    .addClass('recipe')
+    .appendTo(this.book)
 
-        $("<button>")
-        .addClass('chemical small')
-        .text(this.chemicalNames[chemical])
-        .appendTo(recipe)
-        .css({backgroundColor: COLORS[chemical]})
+    $("<button>")
+    .addClass('chemical small')
+    .text(this.chemicalNames[chemical])
+    .appendTo(recipe)
+    .css({backgroundColor: COLORS[chemical]})
 
-        $("<span>")
-        .text('+')
-        .appendTo(recipe)
+    $("<span>")
+    .text('+')
+    .appendTo(recipe)
 
-        $("<button>")
-        .addClass('spell small')
-        .text(this.spellNames[spell])
-        .appendTo(recipe)
+    $("<button>")
+    .addClass('spell small')
+    .text(this.spellNames[spell])
+    .appendTo(recipe)
 
-        $("<span>")
-        .html('&#8594;')
-        .appendTo(recipe)
+    $("<span>")
+    .html('&#8594;')
+    .appendTo(recipe)
 
-        $("<button>")
-        .addClass('chemical small')
-        .text(this.chemicalNames[result])
-        .appendTo(recipe)
-        .css({backgroundColor: COLORS[result]})
-      }
-    })
+    $("<button>")
+    .addClass('chemical small')
+    .text(this.chemicalNames[result])
+    .appendTo(recipe)
+    .css({backgroundColor: COLORS[result]})
   }
 
   addPotion(i) {
@@ -319,40 +317,4 @@ class MachinePuzzle {
     this.activeSpell = null
     $('.active').removeClass('active')
   }
-
-  async castSpell(spell) {
-    $('button').prop('disabled', true)
-
-    logEvent('machine.castSpell', {spell})
-    assert(this.activeChemical != null)
-    let result = this.transitions[this.activeChemical][spell]
-    console.log('result', result)
-
-    let duration = 3
-    gsap.fromTo(this.cauldron, {rotation: 0}, {
-      rotation: 5*duration*360,
-      duration,
-      ease: "power1.inOut",
-    });
-
-    await sleep(1000 * (duration - 1))
-    let backgroundColor = COLORS[result] ?? "#4B5702"
-    await gsap.to(this.cauldron, {backgroundColor, duration: 1}).play()
-    await sleep(1000)
-
-    if (result != null) {
-      this.state[result] = true
-      gsap.to(this.chemicalEls[result], {backgroundColor, duration: .5})
-      this.chemicalEls[result]?.prop('disabled', false)
-    }
-    await gsap.to(this.cauldron, {backgroundColor: 'white', duration: .5}).play()
-
-    this.activeChemical = null
-    this.state.forEach((on, i) => {
-      let el = this.chemicalEls[i]
-      el.prop('disabled', !on)
-    })
-
-  }
-
 }

@@ -1,8 +1,9 @@
-.recipe-column {
+
+.recipe {
   float: left;
-  margin: 10px;
-/*  border: thin red solid;*/
+  margin-left: 15px;
 }
+
 .recipe > span {
   font-size: 20pt;
   margin-left: -8px;
@@ -23,6 +24,7 @@
   top: 10%;
   left: 10%;
   width: 80%;*/
+  text-align: left;
   margin-top: 20px;
   height: 200px;
   background: white;
