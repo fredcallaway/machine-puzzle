@@ -20,7 +20,7 @@ class MachinePuzzle {
       nSpell: 8,
       nPotion: 4,
       transitions: [{"5":2,"0":3,"7":1},{"0":3,"4":0,"3":2},{"6":1,"7":3,"1":0},{"5":1,"4":2,"1":0}],
-      recipes: [[0, 5, 2], [0, 0, 3], [0, 0, 3], [0, 0, 3], [0, 0, 3]]
+      recipes: [[0, 5, 2], [0, 0, 3]]
     })
     window.AP = this
     Object.assign(this, options)
@@ -179,10 +179,15 @@ class MachinePuzzle {
     .addClass('recipe-book')
     .appendTo(this.div)
 
-    this.recipes.forEach((recipe) => this.addRecipe(...recipe))
+    this.recipes.forEach((recipe) => this.addRecipe(...recipe, true))
   }
 
-  addRecipe(chemical, spell, result) {
+  addRecipe(chemical, spell, result, init=false) {
+    if (!init) {
+      let old = _(this.recipes).some(([c,s,r]) => c == chemical && s == spell && r == recpie)
+      if (old) return
+      this.recipes.push([chemical, spell, result])
+    }
     let recipe = $('<div>')
     .addClass('recipe')
     .appendTo(this.book)
@@ -312,7 +317,10 @@ class MachinePuzzle {
     await sleep(500)
 
     el.remove()
-    this.addPotion(result)
+    if (result != null) {
+      this.addPotion(result)
+      this.addRecipe(this.activeChemical, this.activeSpell, result)
+    }
     this.activeChemical = null
     this.activeSpell = null
     $('.active').removeClass('active')
