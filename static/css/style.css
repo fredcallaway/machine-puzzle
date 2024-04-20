@@ -74,6 +74,7 @@
   font-weight: bold;
   font-size: 16pt;
   border: medium black solid;
+/*  transition: background-color 0s;*/
 }
 
 .potion.active {

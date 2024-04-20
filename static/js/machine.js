@@ -1,12 +1,9 @@
 const COLORS = [
-  // "#e41a1c",
-  "#377eb8",
-  "#4daf4a",
-  "#984ea3",
-  "#ff7f00",
-  "#FFEF33",
-  "#f781bf",
-  "#a65628",
+  "#FB887F",
+  "#6CADE3",
+  "#7ADB74",
+  "#C971E4",
+  "#EECC59",
 ]
 
 const isEven = (x) => x % 2 == 0
@@ -18,15 +15,15 @@ class MachinePuzzle {
   constructor(options = {}) {
     _.defaults(options, {
       nSpell: 8,
-      nPotion: 4,
+      nPotion: 5,
       transitions: [{"5":2,"0":3,"7":1},{"0":3,"4":0,"3":2},{"6":1,"7":3,"1":0},{"5":1,"4":2,"1":0}],
       recipes: [[0, 5, 2], [0, 0, 3]],
       goal: 1,
       start: 0,
+      delaySeconds: 1
     })
     window.AP = this
     Object.assign(this, options)
-    this.state = 0
     this.div = $("<div>").addClass('machine-div')
     this.chemicalNames = alphabet.slice(0, this.nPotion)
     this.spellNames = _.range(1, this.nSpell + 1)
@@ -48,10 +45,19 @@ class MachinePuzzle {
     if (display) this.attach(display)
     this.build()
     this.addPotion(this.start)
+    // this.activateChemical(0)
+    // this.activateSpell(0)
+    // this.clickLever()
     await this.done
   }
 
   build() {
+    this.div.css({
+      // border: 'thin white solid', // fixes things for some bizarre reason
+      transform: 'scale(1.2)',
+      marginTop: 50
+    })
+
     this.workspace = $("<div>")
     .css({
       'display': 'flex',
@@ -104,9 +110,9 @@ class MachinePuzzle {
     }
     addPanel(0, 0, 500, 50)
     addPanel(100, 0, 500, 100)
-    addPanel(50, 0, 50, 50)
-    addPanel(50, 449, 51, 50)
-    addPanel(50, 100, 300, 50)
+    addPanel(49, 0, 50, 52)
+    addPanel(49, 449, 51, 52)
+    addPanel(49, 100, 300, 52)
 
     let $spells = $("<div>")
     .css({
@@ -210,8 +216,6 @@ class MachinePuzzle {
       $('<p>').text("MANUAL").css({marginTop: -30, fontWeight: "bold", fontSize: 22})
     )
 
-
-
     this.recipes.forEach((recipe) => this.addRecipe(...recipe, true))
   }
 
@@ -254,16 +258,16 @@ class MachinePuzzle {
     .css({backgroundColor: COLORS[result]})
   }
 
-  addPotion(i) {
+  async addPotion(i) {
+    if (this.state[i]) return
     logEvent('machine.addPotion', {i})
     this.state[i] = true
-    this.state.forEach((on, i) => {
-      let el = this.chemicalEls[i]
-      el.css({
-        'background': on ? COLORS[i] : 'white',
-      })
-      el.prop('disabled', !on)
-    })
+
+    this.chemicalEls[i]
+      .addClass('acquired')
+      .css({'background': COLORS[i]})
+      .prop('disabled', false)
+
     if (i == this.goal) {
       this.victory()
     }
@@ -363,7 +367,7 @@ class MachinePuzzle {
 
     // delay, flashing light
     let elapsed = 0
-    while (elapsed < 3000) {
+    while (elapsed < 1000 * this.delaySeconds) {
       elapsed += 1000
       this.progressButton.addClass('red')
       await sleep(500)
@@ -392,5 +396,7 @@ class MachinePuzzle {
     this.activeSpell = null
     $('.active').removeClass('active')
     $('.spell:not(.small)').prop('disabled', false)
+    $('.acquired').prop('disabled', false)
+
   }
 }
