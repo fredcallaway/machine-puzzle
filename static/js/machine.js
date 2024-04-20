@@ -198,13 +198,13 @@ class MachinePuzzle {
     .addClass('progress-button')
     .appendTo(this.machine)
 
-    let $chemicals = $("<div>").appendTo(this.div)
+    this.chemicalDiv = $("<div>").appendTo(this.div)
     this.chemicalEls = []
     this.chemicalNames.forEach((name, i) => {
       let el = $('<button>')
       .addClass('chemical')
       .text(name)
-      .appendTo($chemicals)
+      .appendTo(this.chemicalDiv)
       .on('click', () => this.activateChemical(i))
       this.chemicalEls.push(el)
     })
@@ -260,7 +260,7 @@ class MachinePuzzle {
 
   async addPotion(i) {
     if (this.state[i]) return
-    logEvent('machine.addPotion', {i})
+    logEvent(`machine.addPotion.${i}`)
     this.state[i] = true
 
     this.chemicalEls[i]
@@ -305,7 +305,7 @@ class MachinePuzzle {
     // $('.spell').prop('disabled', false)
     $('.staged').remove()
     if (a == null) return
-    logEvent('machine.activateChemical', {a})
+    logEvent(`machine.activateChemical.${a}`)
     this.activeChemical = a
     let el = $('<div>')
     .addClass('chemical staged')
@@ -321,7 +321,7 @@ class MachinePuzzle {
   }
 
   activateSpell(i) {
-    logEvent('machine.activateSpell', {i})
+    logEvent(`machine.activateSpell.${i}`)
     this.activeSpell = i
     $('.active').removeClass('active')
     this.spellEls[i].addClass('active')
@@ -331,11 +331,12 @@ class MachinePuzzle {
   checkReady() {
     this.ready = this.activeSpell != null && this.activeChemical != null
     console.log('this.ready', this.ready)
+    this.lever.css('cursor', this.ready ? 'pointer' : '')
   }
 
   async clickLever() {
     if (!this.ready) return
-    logEvent('machine.run', {chemical: this.activateChemical, spell: this.activeSpell})
+    logEvent('machine.execute', {chemical: this.activateChemical, spell: this.activeSpell})
 
     // don't allow repeated pulls
     this.ready = false
@@ -397,6 +398,7 @@ class MachinePuzzle {
     $('.active').removeClass('active')
     $('.spell:not(.small)').prop('disabled', false)
     $('.acquired').prop('disabled', false)
-
+    this.checkReady()
+    logEvent('machine.result', {result})
   }
 }

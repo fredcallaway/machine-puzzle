@@ -1,7 +1,7 @@
 using StatsBase
 using JSON
 
-n_potion = 4
+n_potion = 5
 n_spell = 8
 
 potions = 0:n_potion-1

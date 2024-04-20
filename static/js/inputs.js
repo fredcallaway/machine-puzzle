@@ -62,7 +62,7 @@ class TextBox extends Input {
 
 
 class RadioButtons extends Input {
-  constructor({prompt='', choices=['yes', 'no']}) {
+  constructor({prompt='', choices=['yes', 'no']} = {}) {
     super()
     this.prompt = $("<p>")
     .css('margin-top', 20)

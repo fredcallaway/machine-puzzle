@@ -15,7 +15,7 @@ async function runExperiment() {
   async function instructions() {
     logEvent('experiment.instructions')
     let trials = []
-    await new ExampleInstructions(trials).run(DISPLAY)
+    await new MachineInstructions(trials).run(DISPLAY)
   }
 
 
@@ -79,7 +79,7 @@ async function runExperiment() {
   }
 
   await runTimeline(
-    // instructions,
+    instructions,
     main,
     debrief
   )
