@@ -156,8 +156,15 @@
   font-weight: bold; /* Bold text */
 }
 
+.swal2-modal {
+  width: 400px !important;
+}
+
 .swal2-html-container {
-  font-size: 10pt !important;
+  font-size: 14pt !important;
+}
+.swal2-title {
+  font-size: 20pt !important;
 }
 
 button.btn:disabled {

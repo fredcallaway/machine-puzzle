@@ -28,8 +28,10 @@ async function runExperiment() {
       height: 70,
       width: 1150,
       help: `
-        Click a medicine (colorful circles at bottom) to fill the cauldron. Then click
-        an herb (gray boxes) to attempt to make a new medicine.
+        Create the goal chemical to move on to the next round.
+        Click on a chemical (colorful cricles) to place it in the machine.
+        Click a numbered box to activate a mode. Then click the lever to
+        activate the machine.
       `
     }).prependTo(DISPLAY)
 
