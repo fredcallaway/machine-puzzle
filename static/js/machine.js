@@ -19,10 +19,10 @@ class MachinePuzzle {
       nSpell: 8,
       nPotion: 5,
       transitions: [{"5":2,"0":3,"7":1},{"0":3,"4":0,"3":2},{"6":1,"7":3,"1":0},{"5":1,"4":2,"1":0}],
-      recipes: [[0, 5, 2], [0, 0, 3]],
-      goal: 1,
-      start: 0,
-      delaySeconds: 1
+      recipes: [],
+      goal: null,
+      start: null,
+      delaySeconds: 2
     })
     window.AP = this
     Object.assign(this, options)
@@ -34,6 +34,7 @@ class MachinePuzzle {
     this.activeSpell = null
     this.ready = false
     this.done = make_promise()
+    this.build()
   }
 
   attach(display) {
@@ -44,9 +45,8 @@ class MachinePuzzle {
 
   async run(display) {
     logEvent('machine.run')
-    if (display) this.attach(display)
-    this.build()
     this.addPotion(this.start)
+    if (display) this.attach(display)
     // this.activateChemical(0)
     // this.activateSpell(0)
     // this.clickLever()
