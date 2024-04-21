@@ -16,6 +16,7 @@
     width: 1000px;
     height: 600px;
     margin: auto;
+
 }
 
 .recipe-book {
@@ -75,6 +76,10 @@
   font-size: 16pt;
   border: medium black solid;
 /*  transition: background-color 0s;*/
+}
+
+.chemical.unavailable {
+  opacity: 0.2;
 }
 
 .potion.active {

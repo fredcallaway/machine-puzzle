@@ -1,10 +1,12 @@
 const COLORS = [
-  "#FB887F",
-  "#6CADE3",
-  "#7ADB74",
-  "#C971E4",
-  "#EECC59",
+  "#ff91d3",
+  "#ad97ff",
+  "#44ecff",
+  "#71ffa0",
+  "#fee95d",
 ]
+
+const TRASH_COLOR = "#4E6220"
 
 const isEven = (x) => x % 2 == 0
 
@@ -202,7 +204,7 @@ class MachinePuzzle {
     this.chemicalEls = []
     this.chemicalNames.forEach((name, i) => {
       let el = $('<button>')
-      .addClass('chemical')
+      .addClass('chemical unavailable')
       .text(name)
       .appendTo(this.chemicalDiv)
       .on('click', () => this.activateChemical(i))
@@ -265,6 +267,7 @@ class MachinePuzzle {
 
     this.chemicalEls[i]
       .addClass('acquired')
+      .removeClass('unavailable')
       .css({'background': COLORS[i]})
       .prop('disabled', false)
 
@@ -356,11 +359,11 @@ class MachinePuzzle {
     // create result chemical
     let result = this.transitions[this.activeChemical][this.activeSpell]
     let el = $('<div>')
-    .addClass('chemical foobar')
+    .addClass('chemical staged')
     .text(this.chemicalNames[result] ?? '')
     .appendTo(this.machine)
     .css({
-      backgroundColor: COLORS[result] ?? "#4B5702",
+      backgroundColor: COLORS[result] ?? TRASH_COLOR,
       position: 'absolute',
       left: 345,
       top: 52,

@@ -60,14 +60,14 @@ class Instructions {
 
     this.prompt = $('<div>').css({
       'max-width': 700,
-      'height': 100,
+      'min-height': 120,
       'margin': 'auto',
       'margin-bottom': 50,
     }).appendTo(this.div)
 
     this.content = $('<div>')
     .appendTo(this.div)
-    .css('border', 'thin white solid')  // why why why
+    .css('float', 'left')
 
     this.stage = 0
     this.maxStage = 0
@@ -181,6 +181,8 @@ class Quiz {
   attach(div) {
     div.empty()
     this.div.appendTo(div)
+    // not sure why we need to rebind this
+    this.button.click(() => this.check())
   }
 
   async run(div) {
@@ -272,6 +274,7 @@ class MachineInstructions extends Instructions {
       Put chemical B in the machine by clicking on it.
     `)
     await eventPromise('machine.activateChemical.1')
+    $('.chemical').prop('disabled', true)
 
     this.instruct(`
       The machine has several different operation modes. Try activating **mode
@@ -359,24 +362,23 @@ class MachineInstructions extends Instructions {
     this.instruct(`
       Before moving on, let's make sure you understand how the machine works.
     `)
-    let quiz = new Quiz([
-      ['To complete each round, you need to create the specified goal chemical' , ['true', 'false'], 'true'],
-      ['You must create the chemical directly from your starting chemical' , ['true', 'false'], 'false'],
-      ['Every chemical can be transformed into every other chemical' , ['true', 'false'], 'true'],
-      ['A given mode always produces the same chemical, regardless of the input chemical' , ['true', 'false'], 'false'],
+    this.quiz = this.quiz ?? new Quiz([  // use pre-existing quiz so answers are saved
+      ['To complete each round, you need to create the specified goal chemical.' , ['true', 'false'], 'true'],
+      ['What is the goal chemical on the previous screen? (You can check!)' , ['A', 'B', 'C', 'D', 'E'], 'D'],
+      ['According to the manual, in mode 6 the machine will turn chemical A into which chemical?', ['A', 'B', 'C', 'D', 'E'], 'C'],
+      ['You must create the goal chemical directly from your starting chemical.' , ['true', 'false'], 'false'],
+      ['Every chemical can be directly transformed into every other chemical.' , ['true', 'false'], 'true'],
+      ['A given mode always produces the same chemical, regardless of the input chemical.' , ['true', 'false'], 'false'],
     ])
-    await quiz.run($("<div>").appendTo(this.prompt))
+    await this.quiz.run($("<div>").appendTo(this.prompt))
   }
 
   async stage_final() {
-    // I suggest keeping something like this here to warn participants to not refresh
-
     this.instruct(`
       That's it! In the rest of the experiment, you will
       complete 10 rounds of chemical synthesis. Try to complete the experiment
       as quickly as you can. Good luck!
 
-      <br><br>
       <div class="alert alert-danger">
         <b>Warning!</b><br>
         Once you complete the instructions, <strong>you cannot refresh the page</strong>.
