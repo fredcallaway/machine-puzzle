@@ -44,7 +44,7 @@ class MachinePuzzle {
   }
 
   async run(display) {
-    logEvent('machine.run')
+    logEvent('machine.run', _.pick(this, ['goal', 'start', 'recipes', 'transitions']))
     console.log('this.start', this.start)
     this.addPotion(this.start)
     if (display) this.attach(display)
@@ -340,7 +340,7 @@ class MachinePuzzle {
 
   async clickLever() {
     if (!this.ready) return
-    logEvent('machine.execute', {chemical: this.activateChemical, spell: this.activeSpell})
+    logEvent('machine.execute', {chemical: this.activeChemical, spell: this.activeSpell})
 
     // don't allow repeated pulls
     this.ready = false
@@ -397,12 +397,12 @@ class MachinePuzzle {
       this.addPotion(result)
       this.addRecipe(this.activeChemical, this.activeSpell, result)
     }
+    logEvent('machine.result', {chemical: this.activeChemical, spell: this.activeSpell, result})
     this.activeChemical = null
     this.activeSpell = null
     $('.active').removeClass('active')
     $('.spell:not(.small)').prop('disabled', false)
     $('.acquired').prop('disabled', false)
     this.checkReady()
-    logEvent('machine.result', {result})
   }
 }

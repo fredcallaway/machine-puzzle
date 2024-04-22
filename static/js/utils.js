@@ -80,6 +80,19 @@ function enforceScreenSize(width, height, display='#display') {
   return enforcer
 }
 
+async function runTimeline(...blocks) {
+  let start = _.map(blocks, 'name').indexOf(urlParams.block)
+  if (start != -1) {
+    blocks = blocks.slice(start)
+  }
+  for (const block of blocks) {
+    logEvent('timeline.start.' + block.name)
+    await block()
+    logEvent('timeline.end.' + block.name)
+  }
+}
+
+
 
 function make_promise() {
   let resolve, reject;

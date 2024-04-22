@@ -13,7 +13,7 @@ async function runExperiment() {
   _.extend(PARAMS, config)
 
   logEvent('experiment.initialize', {CONDITION, PARAMS})
-  // enforceScreenSize(1200, 750)
+  enforceScreenSize(1200, 750)
 
   async function instructions() {
     logEvent('experiment.instructions')
@@ -69,16 +69,6 @@ async function runExperiment() {
       difficulty: difficulty.val(),
       feedback: feedback.val(),
     })
-  }
-
-  async function runTimeline(...blocks) {
-    let start = _.map(blocks, 'name').indexOf(urlParams.block)
-    if (start != -1) {
-      blocks = blocks.slice(start)
-    }
-    for (const block of blocks) {
-      await block()
-    }
   }
 
   await runTimeline(
