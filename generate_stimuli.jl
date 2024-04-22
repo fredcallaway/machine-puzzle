@@ -27,7 +27,7 @@ all_tasks = filter(collect(Iterators.product(potions, potions))[:]) do (a, b)
     a != b
 end
 mkpath("static/json")
-foreach(1:10) do i
+foreach(1:30) do i
     write("static/json/$i.json", json((;
         transitions,
         tasks = sample(all_tasks, n_task, replace=false),
