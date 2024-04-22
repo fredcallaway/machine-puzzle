@@ -411,7 +411,7 @@ class MachineInstructions extends Instructions {
   async stage_final() {
     this.instruct(`
       That's it! In the rest of the experiment, you will
-      complete 10 rounds of chemical synthesis. Try to complete the experiment
+      complete ${this.params.tasks.length} rounds of chemical synthesis. Try to complete the experiment
       as quickly as you can. Good luck!
 
       <div class="alert alert-danger">

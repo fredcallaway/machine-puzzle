@@ -9,6 +9,7 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 async function runExperiment() {
   let config = await $.getJSON(`static/json/${CONDITION+1}.json`)
+  window.config = config
   _.extend(PARAMS, config)
 
   logEvent('experiment.initialize', {CONDITION, PARAMS})
@@ -25,7 +26,7 @@ async function runExperiment() {
     DISPLAY.empty()
 
     let top = new TopBar({
-      nTrial: 10,
+      nTrial: PARAMS.tasks.length,
       height: 70,
       width: 1150,
       help: `
@@ -38,9 +39,8 @@ async function runExperiment() {
 
     let workspace = $('<div>').appendTo(DISPLAY)
 
-    for (let trial of [1]) {
-      new MachinePuzzle().run(workspace)
-      await make_promise()
+    for (let [start, goal] of config.tasks) {
+      await new MachinePuzzle({...PARAMS, start, goal}).run(workspace)
       top.incrementCounter()
       saveData()
     }

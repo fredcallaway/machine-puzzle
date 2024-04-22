@@ -45,6 +45,7 @@ class MachinePuzzle {
 
   async run(display) {
     logEvent('machine.run')
+    console.log('this.start', this.start)
     this.addPotion(this.start)
     if (display) this.attach(display)
     // this.activateChemical(0)
