@@ -26,6 +26,7 @@ class MachinePuzzle {
     })
     window.AP = this
     Object.assign(this, options)
+    this.trialId = randomUUID()
     this.div = $("<div>").addClass('machine-div')
     this.chemicalNames = alphabet.slice(0, this.nPotion)
     this.spellNames = _.range(1, this.nSpell + 1)
@@ -37,6 +38,11 @@ class MachinePuzzle {
     this.build()
   }
 
+  logEvent(event, info={}) {
+    info.trialId = this.trialId
+    logEvent(event, info)
+  }
+
   attach(display) {
     display.empty()
     this.div.appendTo(display)
@@ -44,7 +50,7 @@ class MachinePuzzle {
   }
 
   async run(display) {
-    logEvent('machine.run', _.pick(this, ['goal', 'start', 'recipes', 'transitions']))
+    this.logEvent('machine.run', _.pick(this, ['goal', 'start', 'recipes', 'transitions']))
     console.log('this.start', this.start)
     this.addPotion(this.start)
     if (display) this.attach(display)
@@ -263,7 +269,7 @@ class MachinePuzzle {
 
   async addPotion(i) {
     if (this.state[i]) return
-    logEvent(`machine.addPotion.${i}`)
+    this.logEvent(`machine.addPotion.${i}`)
     this.state[i] = true
 
     this.chemicalEls[i]
@@ -309,7 +315,7 @@ class MachinePuzzle {
     // $('.spell').prop('disabled', false)
     $('.staged').remove()
     if (a == null) return
-    logEvent(`machine.activateChemical.${a}`)
+    this.logEvent(`machine.activateChemical.${a}`)
     this.activeChemical = a
     let el = $('<div>')
     .addClass('chemical staged')
@@ -325,7 +331,7 @@ class MachinePuzzle {
   }
 
   activateSpell(i) {
-    logEvent(`machine.activateSpell.${i}`)
+    this.logEvent(`machine.activateSpell.${i}`)
     this.activeSpell = i
     $('.active').removeClass('active')
     this.spellEls[i].addClass('active')
@@ -340,7 +346,7 @@ class MachinePuzzle {
 
   async clickLever() {
     if (!this.ready) return
-    logEvent('machine.execute', {chemical: this.activeChemical, spell: this.activeSpell})
+    this.logEvent('machine.execute', {chemical: this.activeChemical, spell: this.activeSpell})
 
     // don't allow repeated pulls
     this.ready = false
@@ -397,7 +403,7 @@ class MachinePuzzle {
       this.addPotion(result)
       this.addRecipe(this.activeChemical, this.activeSpell, result)
     }
-    logEvent('machine.result', {chemical: this.activeChemical, spell: this.activeSpell, result})
+    this.logEvent('machine.result', {chemical: this.activeChemical, spell: this.activeSpell, result})
     this.activeChemical = null
     this.activeSpell = null
     $('.active').removeClass('active')
