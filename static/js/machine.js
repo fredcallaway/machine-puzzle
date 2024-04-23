@@ -284,6 +284,7 @@ class MachinePuzzle {
   }
 
   async victory() {
+    this.logEvent('machine.victory')
     // checkmark on goal
     $("<p>").html("&#x2713")
     .css({
