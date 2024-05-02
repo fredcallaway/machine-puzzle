@@ -1,10 +1,11 @@
-const COLORS = [
-  "#ff91d3",
-  "#ad97ff",
-  "#44ecff",
-  "#71ffa0",
-  "#fee95d",
-]
+// fbf8cc-fde4cf-ffcfd2-f1c0e8-cfbaf0-a3c4f3-90dbf4-8eecf5-98f5e1-b9fbc0
+// ffadad-ffd6a5-fdffb6-caffbf-9bf6ff-a0c4ff-bdb2ff-ffc6ff-fffffc
+// ff91d3-ad97ff-44ecff-71ffa0-fee95d
+
+
+// const COLORS = "fbf8cc-fde4cf-ffcfd2-f1c0e8-cfbaf0-a3c4f3-90dbf4-8eecf5-98f5e1-b9fbc0"
+const COLORS = "3BAEE9-52e3e1-a0e426-fdf148-ffab00-f77976-f050ae-d883ff-927FFF"
+  .split("-").map(x=>"#"+x)
 
 const TRASH_COLOR = "#4E6220"
 
@@ -26,6 +27,7 @@ class MachinePuzzle {
     })
     window.AP = this
     Object.assign(this, options)
+    this.nPotion = this.transitions.length
     this.trialId = randomUUID()
     this.div = $("<div>").addClass('machine-div')
     this.chemicalNames = alphabet.slice(0, this.nPotion)
@@ -51,7 +53,6 @@ class MachinePuzzle {
 
   async run(display) {
     this.logEvent('machine.run', _.pick(this, ['goal', 'start', 'recipes', 'transitions']))
-    console.log('this.start', this.start)
     this.addPotion(this.start)
     if (display) this.attach(display)
     // this.activateChemical(0)
@@ -341,7 +342,6 @@ class MachinePuzzle {
 
   checkReady() {
     this.ready = this.activeSpell != null && this.activeChemical != null
-    console.log('this.ready', this.ready)
     this.lever.css('cursor', this.ready ? 'pointer' : '')
   }
 

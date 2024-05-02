@@ -218,37 +218,14 @@ class MachineInstructions extends Instructions {
 
     let mp = new MachinePuzzle(this.params)
 
-    this.chooseExamples(mp)
-    Object.assign(this, {
-      cn1: mp.chemicalNames[this.chem1],
-      cn2: mp.chemicalNames[this.chem2],
-      sn: mp.spellNames[this.spell]
-    })
-  }
 
-  chooseExamples(mp) {
-    for (let [chem1, spell, chem2] of mp.recipes) {
-      if (mp.transitions[chem2][spell] == undefined) {
-        Object.assign(this, {chem1, spell, chem2})
-        logEvent('instruct.example.recipe', {chem1, spell, chem2})
-        return;
-      }
-    }
-    if (this.chem1 == undefined) {
-      logEvent('WARNING: no suitable example in recipes!')
-      for (let chem1 of _.range(mp.nPotion)) {
-        for (let spell of Object.keys(mp.transitions[chem1])) {
-          let chem2 = mp.transitions[chem1][spell]
-          if (mp.transitions[chem2][spell] == undefined) {
-              Object.assign(this, {chem1, spell, chem2})
-              logEvent("instruct.example.alt", {chem1, spell, chem2})
-              return
-          }
-        }
-      }
-    }
-    alert("The experiment is broken. Please submit without a code and message us on Prolific!")
-    assert(false)
+    let [chem1, spell, chem2] = mp.recipes[0]
+    Object.assign(this, {
+      chem1, spell, chem2,
+      cn1: mp.chemicalNames[chem1],
+      cn2: mp.chemicalNames[chem2],
+      sn: mp.spellNames[spell]
+    })
   }
 
   getPuzzle(opts={}) {
@@ -274,30 +251,32 @@ class MachineInstructions extends Instructions {
     `)
   }
 
-  async stage_1() {
+  async stage_intro() {
     let mp = this.getPuzzle()
-    for (let i of _.range(5)) {
+    for (let i of _.range(mp.nPotion)) {
       mp.addPotion(i)
     }
+    $('.machine-div button').prop('disabled', true)
+
     mp.chemicalDiv.show()
 
     this.instruct(`
-      There are 5 different chemicals, labeled A-E.
+      There are ${mp.nPotion} different chemicals, labeled A-${_.last(mp.chemicalNames)}.
     `)
   }
 
-  async stage_2() {
+  async stage_stock() {
     let mp = this.getPuzzle()
     mp.addPotion(this.chem1)
     mp.chemicalDiv.show()
-
+    $('.machine-div button').prop('disabled', true)
 
     this.instruct(`
       But on each round, you will start with only one chemical in stock.
     `)
   }
 
-  async stage_3() {
+  async stage_example() {
     let mp = this.getPuzzle()
     mp.addPotion(this.chem1)
     mp.chemicalDiv.show()
@@ -314,7 +293,7 @@ class MachineInstructions extends Instructions {
       The machine has several different operation modes. Try activating **mode
       ${this.sn}** by clicking on the button labeled ${this.sn}.
     `)
-    $('.spell').prop('disabled', false)
+    mp.spellEls[this.spell].prop('disabled', false)
     await eventPromise(`machine.activateSpell.${this.spell}`)
 
     this.instruct('Great! The machine is now ready to run. Pull the lever!')
@@ -325,7 +304,7 @@ class MachineInstructions extends Instructions {
     this.instruct('Amazing! You synthesized a new chemical! It has been added to your stock.')
   }
 
-  async stage_4() {
+  async stage_example2() {
     let mp = this.getPuzzle()
     mp.addPotion(this.chem1)
     mp.addPotion(this.chem2)
@@ -334,11 +313,10 @@ class MachineInstructions extends Instructions {
     this.instruct(`Lets try another one. Add chemical ${this.cn2} to the machine.`)
     await eventPromise(`machine.activateChemical.${this.chem2}`)
     $('.chemical').prop('disabled', true)
-    $('.spell').prop('disabled', false)
 
     this.instruct(`Now activate **mode ${this.sn}** again.`)
+    mp.spellEls[this.spell].prop('disabled', false)
     await eventPromise(`machine.activateSpell.${this.spell}`)
-    $('.spell').prop('disabled', true)
 
     this.instruct('Pull that lever!')
     await eventPromise('machine.result')
@@ -349,16 +327,14 @@ class MachineInstructions extends Instructions {
     `)
   }
 
-  async stage_5() {
+  async stage_manual() {
     this.instruct(`
       But there's good news! The last machine operator created a
-      complete manual for operating the machine! It turns out that **you
-      can turn any chemcial into any other chemical**—you just have to know
-      the right mode to set the machine to.
+      complete manual for operating the machine!
     `)
   }
 
-  async stage_6() {
+  async stage_manual2() {
     let mp = this.getPuzzle()
     mp.machineWrapper.hide()
     mp.book.show()
@@ -372,7 +348,7 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_7() {
-    let mp = this.getPuzzle({start: 0, goal: 2})
+    let mp = this.getPuzzle({start: 0, goal: 6})
     mp.addPotion(0)
     mp.goalBox.show()
     mp.chemicalDiv.show()
@@ -381,8 +357,8 @@ class MachineInstructions extends Instructions {
 
     this.instruct(`
       On each round, your task is to create a goal chemical starting with
-      some other chemical. You can do it one step or multiple steps, for example,
-      first creating chemical B and then transforming it into chemical C.
+      some other chemical. You can do it one step or multiple steps
+      (first creating some other chemcial and then transforming it into chemical G).
     `)
   }
 
@@ -397,12 +373,13 @@ class MachineInstructions extends Instructions {
     let cn2 = mp.chemicalNames[c2]
     let sn = mp.spellNames[s]
 
+
     this.quiz = this.quiz ?? new Quiz([  // use pre-existing quiz so answers are saved
       ['To complete each round, you need to create the specified goal chemical.' , ['true', 'false'], 'true'],
-      ['What is the goal chemical on the previous screen? (You can check!)' , ['A', 'B', 'C', 'D', 'E'], 'C'],
-      [`According to the manual, in mode ${sn} the machine will turn chemical ${cn1} into which chemical?`, ['A', 'B', 'C', 'D', 'E'], cn2],
+      ['What is the goal chemical on the previous screen? (You can check!)' , mp.chemicalNames, 'G'],
+      [`According to the manual, in mode ${sn} the machine will turn chemical ${cn1} into which chemical?`, mp.chemicalNames, cn2],
       ['You must create the goal chemical directly from your starting chemical.' , ['true', 'false'], 'false'],
-      ['Every chemical can be directly transformed into every other chemical.' , ['true', 'false'], 'true'],
+      // ['Every chemical can be directly transformed into every other chemical.' , ['true', 'false'], 'true'],
       ['A given mode always produces the same chemical, regardless of the input chemical.' , ['true', 'false'], 'false'],
     ])
     await this.quiz.run($("<div>").appendTo(this.prompt))
