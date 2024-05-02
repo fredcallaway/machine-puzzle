@@ -77,6 +77,8 @@ class Instructions {
 
     this.completed = make_promise()
 
+    this.promises = []
+
   }
 
   attach(display) {
@@ -92,6 +94,22 @@ class Instructions {
     }
     this.runStage(stage ?? 1)
     await this.completed
+  }
+
+  registerPromise(promise) {
+    this.promises.push(promise)
+    return promise
+  }
+
+  eventPromise(...args) {
+    return this.registerPromise(eventPromise(...args))
+  }
+
+  rejectPromises() {
+    for (const promise of this.promises) {
+      promise.reject()
+    }
+    this.promises = []
   }
 
   sleep(ms) {
@@ -286,7 +304,7 @@ class MachineInstructions extends Instructions {
       The machine can transform each chemical to any other chemical.
       Put chemical ${this.cn1} in the machine by clicking on it.
     `)
-    await eventPromise(`machine.activateChemical.${this.chem1}`)
+    await this.eventPromise(`machine.activateChemical.${this.chem1}`)
     $('.chemical').prop('disabled', true)
 
     this.instruct(`
@@ -294,12 +312,12 @@ class MachineInstructions extends Instructions {
       ${this.sn}** by clicking on the button labeled ${this.sn}.
     `)
     mp.spellEls[this.spell].prop('disabled', false)
-    await eventPromise(`machine.activateSpell.${this.spell}`)
+    await this.eventPromise(`machine.activateSpell.${this.spell}`)
 
     this.instruct('Great! The machine is now ready to run. Pull the lever!')
     $('.spell').prop('disabled', true)
 
-    await eventPromise('machine.addPotion')
+    await this.eventPromise('machine.addPotion')
 
     this.instruct('Amazing! You synthesized a new chemical! It has been added to your stock.')
   }
@@ -311,15 +329,15 @@ class MachineInstructions extends Instructions {
     mp.chemicalDiv.show()
 
     this.instruct(`Lets try another one. Add chemical ${this.cn2} to the machine.`)
-    await eventPromise(`machine.activateChemical.${this.chem2}`)
+    await this.eventPromise(`machine.activateChemical.${this.chem2}`)
     $('.chemical').prop('disabled', true)
 
     this.instruct(`Now activate **mode ${this.sn}** again.`)
     mp.spellEls[this.spell].prop('disabled', false)
-    await eventPromise(`machine.activateSpell.${this.spell}`)
+    await this.eventPromise(`machine.activateSpell.${this.spell}`)
 
     this.instruct('Pull that lever!')
-    await eventPromise('machine.result')
+    await this.eventPromise('machine.result')
 
     this.instruct(`
       Oh... yuck. That didn't look good. It seems like you need to be careful
@@ -348,7 +366,7 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_7() {
-    let mp = this.getPuzzle({start: 0, goal: 6})
+    let mp = this.getPuzzle({start: 0, goal: PARAMS.nPotion-1})
     mp.addPotion(0)
     mp.goalBox.show()
     mp.chemicalDiv.show()
@@ -358,7 +376,7 @@ class MachineInstructions extends Instructions {
     this.instruct(`
       On each round, your task is to create a goal chemical starting with
       some other chemical. You can do it one step or multiple steps
-      (first creating some other chemcial and then transforming it into chemical G).
+      (first creating some other chemcial and then transforming it into chemical ${_.last(mp.chemicalNames)}).
     `)
   }
 
@@ -376,13 +394,13 @@ class MachineInstructions extends Instructions {
 
     this.quiz = this.quiz ?? new Quiz([  // use pre-existing quiz so answers are saved
       ['To complete each round, you need to create the specified goal chemical.' , ['true', 'false'], 'true'],
-      ['What is the goal chemical on the previous screen? (You can check!)' , mp.chemicalNames, 'G'],
+      ['What is the goal chemical on the previous screen? (You can check!)' , mp.chemicalNames, _.last(mp.chemicalNames)],
       [`According to the manual, in mode ${sn} the machine will turn chemical ${cn1} into which chemical?`, mp.chemicalNames, cn2],
       ['You must create the goal chemical directly from your starting chemical.' , ['true', 'false'], 'false'],
       // ['Every chemical can be directly transformed into every other chemical.' , ['true', 'false'], 'true'],
       ['A given mode always produces the same chemical, regardless of the input chemical.' , ['true', 'false'], 'false'],
     ])
-    await this.quiz.run($("<div>").appendTo(this.prompt))
+    await this.registerPromise(this.quiz.run($("<div>").appendTo(this.prompt)))
   }
 
   async stage_final() {
