@@ -216,6 +216,8 @@ class MachinePuzzle {
       .text(name)
       .appendTo(this.chemicalDiv)
       .on('click', () => this.activateChemical(i))
+      .prop('disabled', true)
+
       this.chemicalEls.push(el)
     })
 
