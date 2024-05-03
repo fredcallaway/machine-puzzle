@@ -18,9 +18,9 @@ table_name = participants
 [Prolific]
 name = Mystery Machine
 project_name = machine
-reward = 300
-total_available_places = 15
-estimated_completion_time = 15
+reward = 250
+total_available_places = 3
+estimated_completion_time = 12
 description =
     In this study, you will solve a series of puzzles that involve synthesizing
     chemicals with a mysterious machine.
