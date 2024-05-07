@@ -38,7 +38,7 @@
   margin: 6px !important;
 }
 
-.spell {
+.mode {
   position: relative;
   text-align: center;
   width: 30px;
@@ -51,9 +51,21 @@
   font-weight: bold;
   font-size: 12pt;
   z-index: 10;
-/*  border-radius: 100%;*/
+}
 
-
+.target {
+  position: relative;
+  text-align: center;
+  width: 30px;
+  height: 30px;
+  line-height: 20px;
+  display: inline-block;
+  margin: 10px;
+  background: #E1E1E1;
+  border: medium black solid;
+  font-weight: bold;
+  font-size: 12pt;
+  z-index: 10;
 }
 
 .active {
@@ -82,7 +94,7 @@
   opacity: 0.2;
 }
 
-.potion.active {
+.chemical.active {
   border: medium #FFE622 solid;
 }
 

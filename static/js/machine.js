@@ -17,24 +17,23 @@ const alphabet = Array.from(Array(26)).map((e, i) => i + 65).map((x) => String.f
 class MachinePuzzle {
   constructor(options = {}) {
     _.defaults(options, {
-      nSpell: 8,
-      nPotion: 5,
-      transitions: [{"5":2,"0":3,"7":1},{"0":3,"4":0,"3":2},{"6":1,"7":3,"1":0},{"5":1,"4":2,"1":0}],
+      nMode: null,
+      transitions: null,
       recipes: [],
       goal: null,
       start: null,
       delaySeconds: 2
     })
-    window.AP = this
+    window.mp = this
     Object.assign(this, options)
-    this.nPotion = this.transitions.length
+    this.nChemical = this.transitions.length
     this.trialId = randomUUID()
     this.div = $("<div>").addClass('machine-div')
-    this.chemicalNames = alphabet.slice(0, this.nPotion)
-    this.spellNames = _.range(1, this.nSpell + 1)
-    this.state = Array(this.nPotion).fill(false)
+    this.chemicalNames = alphabet.slice(0, this.nChemical)
+    this.modeNames = _.range(1, this.nMode + 1)
+    this.state = Array(this.nChemical).fill(false)
     this.activeChemical = null
-    this.activeSpell = null
+    this.activeMode = null
     this.ready = false
     this.done = make_promise()
     this.build()
@@ -53,10 +52,10 @@ class MachinePuzzle {
 
   async run(display) {
     this.logEvent('machine.run', _.pick(this, ['goal', 'start', 'recipes', 'transitions']))
-    this.addPotion(this.start)
+    this.addChemical(this.start)
     if (display) this.attach(display)
     // this.activateChemical(0)
-    // this.activateSpell(0)
+    // this.activateMode(0)
     // this.clickLever()
     await this.done
   }
@@ -124,23 +123,37 @@ class MachinePuzzle {
     addPanel(49, 449, 51, 52)
     addPanel(49, 100, 300, 52)
 
-    let $spells = $("<div>")
+    let $targets = $("<div>")
     .css({
       position: 'relative',
-      marginTop: 120,
+      marginTop: 100,
+      'z-index': 2,
+    })
+    .appendTo(this.machine)
+    this.targetEls = this.chemicalNames.map((name, i) => {
+      return $('<button>')
+      .addClass('target')
+      .text(name)
+      .appendTo($targets)
+      .on('click', () => this.activateTarget(i))
+      // .prop('disabled', true)
+    })
+
+    let $modes = $("<div>")
+    .css({
+      position: 'relative',
+      marginTop: -10,
       'z-index': 2,
     })
     .appendTo(this.machine)
 
-    this.spellEls = []
-    this.spellNames.forEach((name, i) => {
-      let el = $('<button>')
-      .addClass('spell')
+    this.modeEls = this.modeNames.map((name, i) => {
+      return $('<button>')
+      .addClass('mode')
       .text(name)
-      .appendTo($spells)
-      .on('click', () => this.activateSpell(i))
+      .appendTo($modes)
+      .on('click', () => this.activateMode(i))
       // .prop('disabled', true)
-      this.spellEls.push(el)
     })
 
     this.inbox = $('<div>')
@@ -231,11 +244,11 @@ class MachinePuzzle {
     this.recipes.forEach((recipe) => this.addRecipe(...recipe, true))
   }
 
-  addRecipe(chemical, spell, result, init=false) {
+  addRecipe(chemical, mode, result, init=false) {
     if (!init) {
-      let old = _(this.recipes).some(([c,s,r]) => c == chemical && s == spell && r == result)
+      let old = _(this.recipes).some(([c,s,r]) => c == chemical && s == mode && r == result)
       if (old) return
-      this.recipes.push([chemical, spell, result])
+      this.recipes.push([chemical, mode, result])
     }
     let recipe = $('<div>')
     .addClass('recipe')
@@ -254,8 +267,8 @@ class MachinePuzzle {
 
     $("<button>")
     .prop('disabled', true)
-    .addClass('spell small')
-    .text(this.spellNames[spell])
+    .addClass('mode small')
+    .text(this.modeNames[mode])
     .appendTo(recipe)
 
     $("<span>")
@@ -270,9 +283,9 @@ class MachinePuzzle {
     .css({backgroundColor: COLORS[result]})
   }
 
-  async addPotion(i) {
+  async addChemical(i) {
     if (this.state[i]) return
-    this.logEvent(`machine.addPotion.${i}`)
+    this.logEvent(`machine.addChemical.${i}`)
     this.state[i] = true
 
     this.chemicalEls[i]
@@ -316,7 +329,7 @@ class MachinePuzzle {
   }
 
   async activateChemical(a) {
-    // $('.spell').prop('disabled', false)
+    // $('.mode').prop('disabled', false)
     $('.staged').remove()
     if (a == null) return
     this.logEvent(`machine.activateChemical.${a}`)
@@ -334,26 +347,34 @@ class MachinePuzzle {
     this.checkReady()
   }
 
-  activateSpell(i) {
-    this.logEvent(`machine.activateSpell.${i}`)
-    this.activeSpell = i
-    $('.active').removeClass('active')
-    this.spellEls[i].addClass('active')
+  activateTarget(i) {
+    this.logEvent(`machine.activateTarget.${i}`)
+    this.activeTarget = i
+    $('.target.active').removeClass('active')
+    this.targetEls[i].addClass('active')
+    this.checkReady()
+  }
+
+  activateMode(i) {
+    this.logEvent(`machine.activateMode.${i}`)
+    this.activeMode = i
+    $('.mode.active').removeClass('active')
+    this.modeEls[i].addClass('active')
     this.checkReady()
   }
 
   checkReady() {
-    this.ready = this.activeSpell != null && this.activeChemical != null
+    this.ready = this.activeMode != null && this.activeChemical != null
     this.lever.css('cursor', this.ready ? 'pointer' : '')
   }
 
   async clickLever() {
     if (!this.ready) return
-    this.logEvent('machine.execute', {chemical: this.activeChemical, spell: this.activeSpell})
+    this.logEvent('machine.execute', {chemical: this.activeChemical, mode: this.activeMode})
 
     // don't allow repeated pulls
     this.ready = false
-    $('button').prop('disabled', true)
+    $('.machine-div button').prop('disabled', true)
 
     // animate lever
     this.lever.css({transform: 'rotate(30deg)'})
@@ -367,7 +388,7 @@ class MachinePuzzle {
     await sleep(1000)
 
     // create result chemical
-    let result = this.transitions[this.activeChemical][this.activeSpell]
+    let result = this.transitions[this.activeChemical][this.activeTarget] == this.activeMode ? this.activeTarget : null
     let el = $('<div>')
     .addClass('chemical staged')
     .text(this.chemicalNames[result] ?? '')
@@ -403,14 +424,15 @@ class MachinePuzzle {
 
     el.remove()
     if (result != null) {
-      this.addPotion(result)
-      this.addRecipe(this.activeChemical, this.activeSpell, result)
+      this.addChemical(result)
+      this.addRecipe(this.activeChemical, this.activeMode, result)
     }
-    this.logEvent('machine.result', {chemical: this.activeChemical, spell: this.activeSpell, result})
+    this.logEvent('machine.result', {chemical: this.activeChemical, mode: this.activeMode, result})
     this.activeChemical = null
-    this.activeSpell = null
+    this.activeMode = null
     $('.active').removeClass('active')
-    $('.spell:not(.small)').prop('disabled', false)
+    $('.mode:not(.small)').prop('disabled', false)
+    $('.target:not(.small)').prop('disabled', false)
     $('.acquired').prop('disabled', false)
     this.checkReady()
   }
