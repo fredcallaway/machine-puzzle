@@ -10,14 +10,16 @@ Random.seed!(hash("v1.1"))
 
 
 transitions = rand(1:n_mode, (n_chemical, n_chemical))
+for c in 1:n_chemical
+    transitions[c, c] = 0
+end
 
 all_tasks = filter(collect(Iterators.product(1:n_chemical, 1:n_chemical))[:]) do (a, b)
     a != b
 end
 
-flat_transitions = map(CartesianIndices(transitions)) do i
-    a, b = Tuple(i)
-    [a, transitions[i], b]
+flat_transitions = map(all_tasks) do (a, b)
+    [a, transitions[a, b], b]
 end
 
 function rejection_sample(generate, condition; max_try=10000)
@@ -75,7 +77,6 @@ foreach(1:30) do i
         r in flat_transitions &&
         transitions[r[1], r[3]] == r[2]
     end
-    @infiltrate i == 3
     zero_index(recipes)[1]
     zero_index(transitions)[3, 5]
 
