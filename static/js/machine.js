@@ -357,7 +357,7 @@ class MachinePuzzle {
   }
 
   checkReady() {
-    this.ready = this.activeMode != null && this.activeChemical != null
+    this.ready = this.activeMode != null && this.activeChemical != null && this.activeTarget != null
     this.lever.css('cursor', this.ready ? 'pointer' : '')
   }
 
@@ -420,7 +420,7 @@ class MachinePuzzle {
       this.addChemical(result)
       this.addRecipe(this.activeChemical, this.activeMode, result)
     }
-    this.logEvent('machine.result', {chemical: this.activeChemical, mode: this.activeMode, result})
+    this.logEvent('machine.result', {chemical: this.activeChemical, mode: this.activeMode, result, target: this.activeTarget})
     this.activeChemical = null
     this.activeMode = null
     $('.active').removeClass('active')
