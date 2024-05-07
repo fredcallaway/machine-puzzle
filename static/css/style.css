@@ -1,13 +1,13 @@
 
 .recipe {
   float: left;
-  margin-left: 15px;
+  margin-left: 5px;
 }
 
-.recipe > span {
-  font-size: 20pt;
-  margin-left: -8px;
-  margin-right: -8px;
+.recipe .mode {
+  margin-left: -10px !important;
+  margin-right: -10px !important;
+  translate: 0 -2px;
 }
 
 .machine-div {
@@ -33,7 +33,8 @@
 }
 
 .small {
-  transform: scale(0.8);
+/*  border-width: 2px !important;*/
+  scale: 0.8;
 /*  font-size: 16pt;*/
   margin: 6px !important;
 }

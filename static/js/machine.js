@@ -261,18 +261,10 @@ class MachinePuzzle {
     .appendTo(recipe)
     .css({backgroundColor: COLORS[chemical]})
 
-    $("<span>")
-    .text('+')
-    .appendTo(recipe)
-
     $("<button>")
     .prop('disabled', true)
     .addClass('mode small')
     .text(this.modeNames[mode])
-    .appendTo(recipe)
-
-    $("<span>")
-    .html('&#8594;')
     .appendTo(recipe)
 
     $("<button>")
@@ -281,6 +273,7 @@ class MachinePuzzle {
     .text(this.chemicalNames[result])
     .appendTo(recipe)
     .css({backgroundColor: COLORS[result]})
+
   }
 
   async addChemical(i) {
