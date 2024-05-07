@@ -6,7 +6,7 @@ n_chemical = 6
 n_mode = 8
 n_task = 10
 
-Random.seed!(hash("v1.1"))
+Random.seed!(hash("v2.0"))
 
 
 transitions = rand(1:n_mode, (n_chemical, n_chemical))
