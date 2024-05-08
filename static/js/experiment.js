@@ -1,14 +1,20 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
-const PARAMS = conditionParameters(CONDITION, {
-
-})
+const PARAMS = {
+  middle: false
+}
 
 updateExisting(PARAMS, urlParams)
 psiturk.recordUnstructuredData('params', PARAMS);
 
 
 async function runExperiment() {
-  let config = await $.getJSON(`static/json/${CONDITION+1}.json`)
+  let config
+  if (PARAMS.middle) {
+    console.log('MIDDLE NODE VERSION')
+    config = await $.getJSON(`static/json/middle-${CONDITION+1}.json`)
+  } else {
+    config = await $.getJSON(`static/json/${CONDITION+1}.json`)
+  }
   window.config = config
   _.extend(PARAMS, config)
 

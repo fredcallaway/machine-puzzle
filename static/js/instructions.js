@@ -337,16 +337,16 @@ class MachineInstructions extends Instructions {
     mp.addChemical(this.chem2)
     mp.chemicalDiv.show()
 
-    this.instruct(`Lets try another one. Add **chemical ${this.cn2}** to the machine.`)
-    await this.eventPromise(`machine.activateChemical.${this.chem2}`)
+    this.instruct(`Lets try another one. Add **chemical ${this.cn1}** to the machine.`)
+    await this.eventPromise(`machine.activateChemical.${this.chem1}`)
     $('.chemical').prop('disabled', true)
 
-    this.instruct(`Try to synthesize **chemical ${this.cn3}**`)
+    this.instruct(`Now try to synthesize **chemical ${this.cn3}**`)
     $('.target').prop('disabled', false)
     await this.eventPromise(`machine.activateTarget.${this.chem3}`)
     $('.target').prop('disabled', true)
 
-    this.instruct(`Now enter **operation code ${this.mn}** again.`)
+    this.instruct(`Enter **operation code ${this.mn}** again.`)
     mp.modeEls[this.mode].prop('disabled', false)
     await this.eventPromise(`machine.activateMode.${this.mode}`)
 
