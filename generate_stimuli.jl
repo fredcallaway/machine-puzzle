@@ -66,7 +66,7 @@ zero_index(x::AbstractArray) = map(zero_index, x)
 zero_index(x::Tuple) = map(zero_index, x)
 
 
-info_types = ["random", "ring", "hub"]
+info_types = ["random"]
 
 foreach(1:30) do i
     information_type = info_types[mod1(i, length(info_types))]
