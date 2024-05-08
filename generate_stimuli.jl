@@ -76,8 +76,6 @@ foreach(1:30) do i
         r in flat_transitions &&
         transitions[r[1], r[3]] == r[2]
     end
-    zero_index(recipes)[1]
-    zero_index(transitions)[3, 5]
 
     write("static/json/$i.json", json((;
         transitions = zero_index(transpose(transitions)),

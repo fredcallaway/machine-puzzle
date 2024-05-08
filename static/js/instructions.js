@@ -237,11 +237,12 @@ class MachineInstructions extends Instructions {
     let mp = new MachinePuzzle(this.params)
 
 
-    let [chem1, mode, chem2] = mp.recipes[0]
+    let {chem1, mode, chem2, chem3} = this.params.example
     Object.assign(this, {
-      chem1, mode, chem2,
+      chem1, mode, chem2, chem3,
       cn1: mp.chemicalNames[chem1],
       cn2: mp.chemicalNames[chem2],
+      cn3: mp.chemicalNames[chem3],
       mn: mp.modeNames[mode]
     })
   }
@@ -340,9 +341,10 @@ class MachineInstructions extends Instructions {
     await this.eventPromise(`machine.activateChemical.${this.chem2}`)
     $('.chemical').prop('disabled', true)
 
-    this.instruct(`Enter any chemical you'd like to synthesize.`)
+    this.instruct(`Try to synthesize **chemical ${this.cn3}**`)
     $('.target').prop('disabled', false)
-    await this.eventPromise(`machine.activateTarget`)
+    await this.eventPromise(`machine.activateTarget.${this.chem3}`)
+    $('.target').prop('disabled', true)
 
     this.instruct(`Now enter **operation code ${this.mn}** again.`)
     mp.modeEls[this.mode].prop('disabled', false)
