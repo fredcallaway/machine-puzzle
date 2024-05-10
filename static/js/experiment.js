@@ -1,6 +1,6 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
-  middle: false
+  middle: true
 }
 
 updateExisting(PARAMS, urlParams)
@@ -23,7 +23,62 @@ async function runExperiment() {
 
   async function instructions() {
     logEvent('experiment.instructions')
-    await new MachineInstructions(PARAMS).run(DISPLAY)
+    await new MachineInstructions({
+      ...PARAMS,
+      colors: ['#FB9C9C', '#FAFB9C', '#A9D2FB'],
+      chemicalNames: ['X', 'Y', 'Z'],
+      nMode: 4,
+      start: 0,
+      goal: null,
+      manualHeight: 150,
+      transitions: [
+        [-1, 0, -1],
+        [0, -1, 2],
+        [1, 1, -1]
+      ],
+      recipes: [[0, 0, 1], [1, 2, 2]]
+    }).run(DISPLAY)
+  }
+
+  async function social() {
+    let workspace = $('<div>').appendTo(DISPLAY)
+
+    logEvent('experiment.main')
+    let prompt = $('<div>').css({
+      'max-width': 700,
+      'min-height': 200,
+      'margin': 'auto',
+      'margin-bottom': 50,
+    }).appendTo(workspace)
+    .html(markdown(`
+      # A new machine
+
+      For the rest of the experiment, you'll be working on this more complex machine.
+      It operates in the same way as the previous one, but it has more modes
+      and works on different chemicals.
+    `))
+
+    let mp = new MachinePuzzle({...PARAMS, manualHeight: 150}).attach( $('<div>').appendTo(workspace))
+    mp.goalBox.hide()
+    mp.book.hide()
+    await button(prompt).promise()
+
+    prompt.html(markdown(`
+      # A new machine
+
+      Fortunately, we were able to scrap together some notes from the last operator of the machine.
+      Hopefully, they will come in handy.
+    `))
+    mp.book.show()
+    await button(prompt).promise()
+
+
+    prompt.html(markdown(`
+      # A new machine
+
+      OK, that's it! You will complete a total of 10 rounds. Good luck!
+    `))
+    await button(prompt, 'begin').promise()
   }
 
 
@@ -79,6 +134,7 @@ async function runExperiment() {
 
   await runTimeline(
     instructions,
+    social,
     main,
     debrief
   )

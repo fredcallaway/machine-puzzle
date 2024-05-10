@@ -4,15 +4,12 @@
 
 
 // const COLORS = "fbf8cc-fde4cf-ffcfd2-f1c0e8-cfbaf0-a3c4f3-90dbf4-8eecf5-98f5e1-b9fbc0"
-const COLORS = "3BAEE9-52e3e1-a0e426-fdf148-ffab00-f77976-f050ae-d883ff-927FFF"
-  .split("-").map(x=>"#"+x)
-
+const DEFAULT_COLORS = "3BAEE9-52e3e1-a0e426-fdf148-ffab00-f77976-f050ae-d883ff-927FFF".split("-").map(x=>"#"+x)
 const TRASH_COLOR = "#4E6220"
+const ALPHABET = Array.from(Array(26)).map((e, i) => i + 65).map((x) => String.fromCharCode(x));
 
 const isEven = (x) => x % 2 == 0
 
-
-const alphabet = Array.from(Array(26)).map((e, i) => i + 65).map((x) => String.fromCharCode(x));
 
 class MachinePuzzle {
   constructor(options = {}) {
@@ -22,15 +19,19 @@ class MachinePuzzle {
       recipes: [],
       goal: null,
       start: null,
-      delaySeconds: 2
+      delaySeconds: 2,
+      colors: DEFAULT_COLORS,
+      chemicalNames: ALPHABET,
+      manualHeight: 250,
+      modeNames: _.range(1, 30),
+      trialID: randomUUID()
     })
     window.mp = this
     Object.assign(this, options)
     this.nChemical = this.transitions.length
-    this.trialId = randomUUID()
     this.div = $("<div>").addClass('machine-div')
-    this.chemicalNames = alphabet.slice(0, this.nChemical)
-    this.modeNames = _.range(1, this.nMode + 1)
+    this.chemicalNames = this.chemicalNames.slice(0, this.nChemical)
+    this.modeNames = this.modeNames.slice(0, this.nMode)
     this.state = Array(this.nChemical).fill(false)
     this.activeChemical = null
     this.activeMode = null
@@ -94,7 +95,7 @@ class MachinePuzzle {
       $('<div>')
       .addClass('chemical')
       .css({
-        backgroundColor: COLORS[this.goal],
+        backgroundColor: this.colors[this.goal],
         transform: 'scale(1.5)',
         marginTop: 13
       })
@@ -237,6 +238,7 @@ class MachinePuzzle {
     this.book = $('<div>')
     .addClass('recipe-book')
     .appendTo(this.div)
+    .css('height', this.manualHeight)
     .append(
       $('<p>').text("MANUAL").css({marginTop: -30, fontWeight: "bold", fontSize: 22})
     )
@@ -259,7 +261,7 @@ class MachinePuzzle {
     .addClass('chemical small')
     .text(this.chemicalNames[chemical])
     .appendTo(recipe)
-    .css({backgroundColor: COLORS[chemical]})
+    .css({backgroundColor: this.colors[chemical]})
 
     $("<button>")
     .prop('disabled', true)
@@ -272,7 +274,7 @@ class MachinePuzzle {
     .addClass('chemical small')
     .text(this.chemicalNames[result])
     .appendTo(recipe)
-    .css({backgroundColor: COLORS[result]})
+    .css({backgroundColor: this.colors[result]})
 
   }
 
@@ -284,7 +286,7 @@ class MachinePuzzle {
     this.chemicalEls[i]
       .addClass('acquired')
       .removeClass('unavailable')
-      .css({'background': COLORS[i]})
+      .css({'background': this.colors[i]})
       .prop('disabled', false)
 
     if (i == this.goal) {
@@ -332,7 +334,7 @@ class MachinePuzzle {
     .text(this.chemicalNames[a])
     .appendTo(this.machine)
     .css({
-      backgroundColor: COLORS[a],
+      backgroundColor: this.colors[a],
       position: 'absolute',
       left: 45,
       top: 52,
@@ -387,7 +389,7 @@ class MachinePuzzle {
     .text(this.chemicalNames[result] ?? '')
     .appendTo(this.machine)
     .css({
-      backgroundColor: COLORS[result] ?? TRASH_COLOR,
+      backgroundColor: this.colors[result] ?? TRASH_COLOR,
       position: 'absolute',
       left: 345,
       top: 52,

@@ -34,6 +34,9 @@ class Button extends Input {
   css(...args) {
     this.button.css(...args)
   }
+  promise() {
+    return this.clicked
+  }
 }
 
 
