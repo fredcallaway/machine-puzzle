@@ -87,16 +87,19 @@ class Instructions {
     return this
   }
 
-  async run(display, stage) {
+  run(display, stage) {
     if (display) this.attach(display)
     if (stage == undefined && urlParams.instruct) {
       stage = parseInt(urlParams.instruct)
     }
     this.runStage(stage ?? 1)
-    await this.completed
+    return this.completed
   }
 
   registerPromise(promise) {
+    if (!promise.reject) {
+      assert(false, "promise must have reject method")
+    }
     this.promises.push(promise)
     return promise
   }
@@ -136,6 +139,7 @@ class Instructions {
   }
 
   async runStage(n) {
+    this.rejectPromises()
     this._sleep?.reject()
     this.prompt.empty()
     this.content.empty()
@@ -203,9 +207,9 @@ class Quiz {
     this.button.click(() => this.check())
   }
 
-  async run(div) {
+  run(div) {
     this.attach(div)
-    await this.done
+    return this.done
   }
 
   check() {
@@ -233,16 +237,15 @@ class MachineInstructions extends Instructions {
     super()
     this.params = _.cloneDeep(params)
     window.instruct = this
-
-    let mp = new MachinePuzzle(this.params)
   }
 
   getPuzzle(opts={}) {
-    let mp = new MachinePuzzle({...this.params, ...opts})
-    mp.attach(this.content)
+    console.log('WHAT', this.params, opts)
+    let mp = new MachinePuzzle({disableInvalid: false, ...this.params, ...opts })
     mp.book.hide()
     mp.goalBox.hide()
     mp.chemicalDiv.hide()
+    mp.attach(this.content)
     $('.machine-div button').prop('disabled', true)
     return mp
   }
@@ -342,7 +345,7 @@ class MachineInstructions extends Instructions {
 
     this.instruct(`
       To help you remember what you've learned about the machine, we'll keep an updated **manual** for you.
-      Every time you discover a new synthesis, we'll add it to the manual (we gave you an extra one for free!)
+      Every time you discover a new transformation, we'll add it to the manual (we gave you an extra one for free).
     `)
   }
 
@@ -377,13 +380,13 @@ class MachineInstructions extends Instructions {
     $('.machine-div button').prop('disabled', true)
   }
 
-
   async stage_example2() {
     let mp = this.getPuzzle({start: 0, goal: 2, trialID: 'example-twostep'})
     mp.addChemical(0)
     mp.chemicalDiv.show()
     mp.goalBox.show()
     mp.book.show()
+
 
     this.instruct(`
       Maybe it will be easier to do this one in two steps.
@@ -414,6 +417,25 @@ class MachineInstructions extends Instructions {
     this.instruct('Beautiful!')
   }
 
+  async stage_invalid() {
+    let mp = this.getPuzzle({start: 0, goal: 0, trialID: 'example-twostep', disableInvalid: true})
+    mp.addChemical(2)
+    mp.chemicalDiv.show()
+    mp.goalBox.show()
+    mp.book.show()
+
+    this.instruct(`
+      One last thing. There are some chemical transformations that the machine just can't perform.
+      Try adding **chemical Z** to the machine.
+    `)
+    await this.eventPromise('machine.activateChemical.2')
+    this.instruct(`
+      You can see that the X and Y buttons are grayed out. This means it's not possible to synthesize
+      chemical X or Y directly from chemical Z.
+    `)
+
+  }
+
   async stage_quiz() {
     this.instruct(`
       Before moving on, let's make sure you understand how the machine works.
@@ -428,10 +450,11 @@ class MachineInstructions extends Instructions {
 
     this.quiz = this.quiz ?? new Quiz([  // use pre-existing quiz so answers are saved
       ['To complete each round, you need to synthesize the specified goal chemical.' , ['true', 'false'], 'true'],
-      ['What is the goal chemical on the previous screen? (You can check!)', ['X', 'Y', 'Z'], 'Z'],
+      ['What is the goal chemical on the previous screen? (You can check!)', ['X', 'Y', 'Z'], 'X'],
       // [`According to the manual, in mode ${mn} the machine will turn chemical ${cn1} into which chemical?`, mp.chemicalNames, cn2],
       [`According to the manual, which operation code should you enter to turn chemical Y into chemical Z?`, mp.modeNames, 3],
       ['You must synthesize the goal chemical directly from your starting chemical.' , ['true', 'false'], 'false'],
+      ['The manual includes all possible chemical transformations.' , ['true', 'false'], 'false'],
       // ['Every chemical can be directly transformed into every other chemical.' , ['true', 'false'], 'true'],
       // ['A given mode always produces the same chemical, regardless of the input chemical.' , ['true', 'false'], 'false'],
     ])

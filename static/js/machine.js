@@ -13,7 +13,9 @@ const isEven = (x) => x % 2 == 0
 
 class MachinePuzzle {
   constructor(options = {}) {
-    _.defaults(options, {
+    console.log('options', options)
+
+    _.assign(this, {
       nMode: null,
       transitions: null,
       recipes: [],
@@ -24,10 +26,11 @@ class MachinePuzzle {
       chemicalNames: ALPHABET,
       manualHeight: 250,
       modeNames: _.range(1, 30),
-      trialID: randomUUID()
-    })
+      trialID: randomUUID(),
+      disableInvalid: true
+    }, options)
+
     window.mp = this
-    Object.assign(this, options)
     this.nChemical = this.transitions.length
     this.div = $("<div>").addClass('machine-div')
     this.chemicalNames = this.chemicalNames.slice(0, this.nChemical)
@@ -345,7 +348,15 @@ class MachinePuzzle {
   }
 
   disableInvalidTargets() {
-    let c = this.activeChemical
+    if (!this.disableInvalid) return
+    let c = this.activeChemical, t = this.activeTarget
+    if (t != null && c != null && this.transitions[c][t] == -1) {
+      logEvent('machine.invalid', {chemical: this.activeChemical, mode: this.activeMode, target: this.activeTarget})
+      this.activeTarget = null
+      this.targetEls[t].removeClass('active')
+      // sleep(500).then(()=> el.removeClass('active invalid'))
+      // this.activateMode(null)
+    }
     if (c == null) return
     this.targetEls.map((el, i) => {
       if (this.transitions[c][i] == -1) {
@@ -373,16 +384,6 @@ class MachinePuzzle {
   }
 
   async checkState() {
-    if (this.activeTarget != null && this.activeChemical != null &&
-        this.transitions[this.activeChemical][this.activeTarget] == -1) {
-      logEvent('machine.invalid', {chemical: this.activeChemical, mode: this.activeMode, target: this.activeTarget})
-      let el = this.targetEls[this.activeTarget]
-      // el.addClass('invalid')
-      this.activeTarget = null
-      el.removeClass('active')
-      // sleep(500).then(()=> el.removeClass('active invalid'))
-      // this.activateMode(null)
-    }
     this.disableInvalidTargets()
     this.ready = this.activeMode != null && this.activeChemical != null && this.activeTarget != null
     this.lever.css('cursor', this.ready ? 'pointer' : '')
