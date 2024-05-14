@@ -41,6 +41,8 @@ class MachinePuzzle {
     this.ready = false
     this.done = make_promise()
     this.build()
+
+    this.nPull = 0
   }
 
   logEvent(event, info={}) {
@@ -391,6 +393,7 @@ class MachinePuzzle {
 
   async clickLever() {
     if (!this.ready) return
+    this.nPull += 1
     this.logEvent('machine.execute', {chemical: this.activeChemical, mode: this.activeMode, target: this.activeTarget})
 
     // don't allow repeated pulls
@@ -457,5 +460,8 @@ class MachinePuzzle {
     $('.target:not(.small)').prop('disabled', false)
     $('.acquired').prop('disabled', false)
     this.checkState()
+    if (result != this.goal && this.nPull >= 10) {
+      logEvent('machine.struggling')
+    }
   }
 }

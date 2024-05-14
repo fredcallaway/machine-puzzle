@@ -217,12 +217,7 @@ class TopBar {
       .text('?')
       .click(async () => {
         logEvent('topbar.help')
-        await Swal.fire({
-            title: this.helpTitle,
-            html: this.help,
-            icon: 'question',
-            confirmButtonText: 'Got it!',
-          })
+        await this.showHelp()
       })
     }
     // this.prompt = $('<div>').css({
@@ -230,6 +225,15 @@ class TopBar {
     //   'height': 120,
     //   'margin': 'auto',
     // }).appendTo(this.div)
+  }
+
+  showHelp() {
+    return Swal.fire({
+      title: this.helpTitle,
+      html: this.help,
+      icon: 'question',
+      confirmButtonText: 'Got it!',
+    })
   }
 
   prependTo(display) {

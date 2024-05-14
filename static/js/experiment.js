@@ -99,6 +99,12 @@ async function runExperiment() {
       `
     }).prependTo(DISPLAY)
 
+    registerEventCallback((info) => {
+      if (info.event == "machine.struggling") {
+        top.showHelp()
+      }
+    })
+
     let workspace = $('<div>').appendTo(DISPLAY)
 
     for (let [start, goal] of config.tasks) {
