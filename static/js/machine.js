@@ -54,6 +54,7 @@ class MachinePuzzle {
   async run(display) {
     this.logEvent('machine.run', _.pick(this, ['goal', 'start', 'recipes', 'transitions']))
     this.addChemical(this.start)
+    // this.addChemical(7)
     if (display) this.attach(display)
     // this.activateChemical(0)
     // this.activateMode(0)
@@ -339,7 +340,7 @@ class MachinePuzzle {
       left: 45,
       top: 52,
     })
-    this.checkReady()
+    this.checkState()
   }
 
   activateTarget(i) {
@@ -347,7 +348,7 @@ class MachinePuzzle {
     this.activeTarget = i
     $('.target.active').removeClass('active')
     this.targetEls[i].addClass('active')
-    this.checkReady()
+    this.checkState()
   }
 
   activateMode(i) {
@@ -355,17 +356,26 @@ class MachinePuzzle {
     this.activeMode = i
     $('.mode.active').removeClass('active')
     this.modeEls[i].addClass('active')
-    this.checkReady()
+    this.checkState()
   }
 
-  checkReady() {
+  async checkState() {
+    if (this.activeTarget != null && this.activeChemical != null &&
+        this.transitions[this.activeChemical][this.activeTarget] == -1) {
+      logEvent('machine.invalid', {chemical: this.activeChemical, mode: this.activeMode, target: this.activeTarget})
+      let el = this.targetEls[this.activeTarget]
+      el.addClass('invalid')
+      this.activeTarget = null
+      sleep(500).then(()=> el.removeClass('active invalid'))
+      // this.activateMode(null)
+    }
     this.ready = this.activeMode != null && this.activeChemical != null && this.activeTarget != null
     this.lever.css('cursor', this.ready ? 'pointer' : '')
   }
 
   async clickLever() {
     if (!this.ready) return
-    this.logEvent('machine.execute', {chemical: this.activeChemical, mode: this.activeMode})
+    this.logEvent('machine.execute', {chemical: this.activeChemical, mode: this.activeMode, target: this.activeTarget})
 
     // don't allow repeated pulls
     this.ready = false
@@ -425,10 +435,11 @@ class MachinePuzzle {
     this.logEvent('machine.result', {chemical: this.activeChemical, mode: this.activeMode, result, target: this.activeTarget})
     this.activeChemical = null
     this.activeMode = null
+    this.activeTarget = null
     $('.active').removeClass('active')
     $('.mode:not(.small)').prop('disabled', false)
     $('.target:not(.small)').prop('disabled', false)
     $('.acquired').prop('disabled', false)
-    this.checkReady()
+    this.checkState()
   }
 }
