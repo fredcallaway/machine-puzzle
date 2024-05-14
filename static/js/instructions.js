@@ -342,7 +342,7 @@ class MachineInstructions extends Instructions {
 
     this.instruct(`
       To help you remember what you've learned about the machine, we'll keep an updated **manual** for you.
-      Every time you discover a new synthesis, we'll add to to the manual (we gave you an extra one for free!)
+      Every time you discover a new synthesis, we'll add it to the manual (we gave you an extra one for free!)
     `)
   }
 

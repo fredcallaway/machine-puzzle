@@ -76,7 +76,7 @@ async function runExperiment() {
     prompt.html(markdown(`
       # A new machine
 
-      OK, that's it! You will complete a total of 10 rounds. Good luck!
+      OK, that's it! You will complete a total of ${PARAMS.tasks.length} rounds. Good luck!
     `))
     await button(prompt, 'begin').promise()
   }

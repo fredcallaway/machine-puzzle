@@ -183,11 +183,13 @@ async function showCompletionScreen() {
 
 
 function handleError(e) {
-  logEvent('experiment.error', e)
   let msg = e.stack?.length > 10 ? e.stack : `${e}`;
   const workerIdMessage = typeof workerId !== "undefined" && workerId !== null ? workerId : 'N/A';
+  logEvent('experiment.error', {
+    name: error.name, message: error.message, stack: error.stack,
+  })
   const message = `Prolific Id: ${workerIdMessage}\n${msg}`;
-  const link = `<a href="mailto:fredcallaway@princeton.edu?subject=ERROR in experiment&body=${encodeURIComponent(message)}">Click here</a> to report the error by email.`;
+  const link = `<a href="mailto:${ERROR_EMAIL}?subject=ERROR in experiment&body=${encodeURIComponent(message)}">Click here</a> to report the error by email.`;
 
   $('#display').html(`
     <h1>The experiment encountered an error!</h1>

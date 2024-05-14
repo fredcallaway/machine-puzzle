@@ -41,7 +41,7 @@ class MachinePuzzle {
   }
 
   logEvent(event, info={}) {
-    info.trialId = this.trialId
+    info.trialID = this.trialID
     logEvent(event, info)
   }
 
@@ -391,7 +391,7 @@ class MachinePuzzle {
     .css({
       backgroundColor: this.colors[result] ?? TRASH_COLOR,
       position: 'absolute',
-      left: 345,
+      left: 344,
       top: 52,
     })
 
