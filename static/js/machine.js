@@ -59,7 +59,6 @@ class MachinePuzzle {
   async run(display) {
     this.logEvent('machine.run', _.pick(this, ['goal', 'start', 'recipes', 'transitions']))
     this.addChemical(this.start)
-    this.addChemical(7)
     if (display) this.attach(display)
     // this.activateChemical(0)
     // this.activateMode(0)
