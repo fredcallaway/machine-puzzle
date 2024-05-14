@@ -94,6 +94,8 @@ def write_data(version, mode):
                 d.get('event', '').startswith('blocks.keydown')
             )]
 
+        meta['complete'] = any(e['event'] == "experiment.complete" for e in trialdata)
+
         with open(f'data/raw/{version}/events/{wid}.json', 'w') as f:
             json.dump(trialdata, f)
 
@@ -102,7 +104,7 @@ def write_data(version, mode):
     with open(f'data/raw/{version}/identifiers.json', 'w') as f:
         json.dump(anonymize.mapping, f)
 
-    print(len(participants), 'participants')
+    print(len(participants), 'participants', sum(p['complete'] for p in participants), 'complete')
     print(f'data/raw/{version}/participants.csv')
 
 if __name__ == "__main__":
