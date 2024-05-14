@@ -458,7 +458,7 @@ class MachineInstructions extends Instructions {
       // ['Every chemical can be directly transformed into every other chemical.' , ['true', 'false'], 'true'],
       // ['A given mode always produces the same chemical, regardless of the input chemical.' , ['true', 'false'], 'false'],
     ])
-    await this.registerPromise(this.quiz.run($("<div>").appendTo(this.prompt)))
+    await this.quiz.run($("<div>").appendTo(this.prompt))
   }
 
   async stage_final() {
