@@ -183,6 +183,7 @@ class TopBar {
       width: 1100,
       height: 100,
       help: '',
+      helpTitle: 'Instructions',
     })
     Object.assign(this, options)
 
@@ -215,10 +216,11 @@ class TopBar {
       .addClass('btn-help right')
       .text('?')
       .click(async () => {
+        logEvent('topbar.help')
         await Swal.fire({
-            title: 'Instructions',
+            title: this.helpTitle,
             html: this.help,
-            icon: 'info',
+            icon: 'question',
             confirmButtonText: 'Got it!',
           })
       })

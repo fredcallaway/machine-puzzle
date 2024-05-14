@@ -90,11 +90,12 @@ async function runExperiment() {
       nTrial: PARAMS.tasks.length,
       height: 70,
       width: 1150,
+      helpTitle: 'Feeling stuck?',
       help: `
-        Create the goal chemical to move on to the next round.
-        Click on a chemical (colorful cricles) to place it in the machine.
-        Click a numbered box to activate a mode. Then click the lever to
-        activate the machine.
+        If you can't find a solution in the manual, you can always synthesize the goal
+        chemical by brute force. Configure the machine to produce the goal chemical by
+        clicking the corresponding button (with the same letter). Then try the operation
+        modes one by one until you find the one that works.
       `
     }).prependTo(DISPLAY)
 
