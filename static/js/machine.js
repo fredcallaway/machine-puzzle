@@ -54,7 +54,7 @@ class MachinePuzzle {
   async run(display) {
     this.logEvent('machine.run', _.pick(this, ['goal', 'start', 'recipes', 'transitions']))
     this.addChemical(this.start)
-    // this.addChemical(7)
+    this.addChemical(7)
     if (display) this.attach(display)
     // this.activateChemical(0)
     // this.activateMode(0)
@@ -66,7 +66,8 @@ class MachinePuzzle {
     this.div.css({
       // border: 'thin white solid', // fixes things for some bizarre reason
       transform: 'scale(1.2)',
-      marginTop: 50
+      marginTop: 50,
+      userSelect: 'none',
     })
 
     this.workspace = $("<div>")
@@ -343,6 +344,18 @@ class MachinePuzzle {
     this.checkState()
   }
 
+  disableInvalidTargets() {
+    let c = this.activeChemical
+    if (c == null) return
+    this.targetEls.map((el, i) => {
+      if (this.transitions[c][i] == -1) {
+        el.prop('disabled', true).addClass('disabled')
+      } else {
+        el.prop('disabled', false).removeClass('disabled')
+      }
+    })
+  }
+
   activateTarget(i) {
     this.logEvent(`machine.activateTarget.${i}`)
     this.activeTarget = i
@@ -364,11 +377,13 @@ class MachinePuzzle {
         this.transitions[this.activeChemical][this.activeTarget] == -1) {
       logEvent('machine.invalid', {chemical: this.activeChemical, mode: this.activeMode, target: this.activeTarget})
       let el = this.targetEls[this.activeTarget]
-      el.addClass('invalid')
+      // el.addClass('invalid')
       this.activeTarget = null
-      sleep(500).then(()=> el.removeClass('active invalid'))
+      el.removeClass('active')
+      // sleep(500).then(()=> el.removeClass('active invalid'))
       // this.activateMode(null)
     }
+    this.disableInvalidTargets()
     this.ready = this.activeMode != null && this.activeChemical != null && this.activeTarget != null
     this.lever.css('cursor', this.ready ? 'pointer' : '')
   }
