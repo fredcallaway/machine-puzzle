@@ -338,69 +338,89 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_recipes() {
-    let mp = this.getPuzzle()
+    let mp = this.getPuzzle({recipes: [[0, 0, 1]]})
     // mp.machineWrapper.hide()
     mp.chemicalDiv.show()
     mp.book.show()
 
     this.instruct(`
       To help you remember what you've learned about the machine, we'll keep an updated **manual** for you.
-      Every time you discover a new transformation, we'll add it to the manual (we gave you an extra one for free).
+      Every time you discover a new transformation, we'll add it to the manual.
     `)
   }
 
-
-  async stage_example_failure() {
-    let mp = this.getPuzzle({start: 0, goal: 2, trialID: 'example-failure'})
-    mp.addChemical(0)
+  async stage_example_brute() {
+    let mp = this.getPuzzle({start: 1, goal: 2, trialID: 'example-brute', recipes: [[0, 0, 1]]})
+    mp.addChemical(1)
     mp.chemicalDiv.show()
     mp.goalBox.show()
     mp.book.show()
 
-    this.instruct(`Let's try another one. Add **chemical X** to the machine.`)
-    await this.eventPromise(`machine.activateChemical.0`)
-    $('.chemical').prop('disabled', true)
+    this.instruct(`Let's try another one. Add **chemical Y** to the machine.`)
+    await this.eventPromise(`machine.activateChemical.1`)
+
 
     this.instruct(`Now try to synthesize **chemical Z**`)
-    $('.target').prop('disabled', false)
-    await this.eventPromise(`machine.activateTarget.2`)
     $('.target').prop('disabled', true)
+    mp.targetEls[2].prop('disabled', false)
+    await this.eventPromise(`machine.activateTarget.2`)
 
-    this.instruct(`Pick any **operation code**.`)
-    $('.mode').prop('disabled', false)
-    await this.eventPromise(`machine.activateMode`)
+    this.instruct(`Try **operation code 1** again.`)
+    $('.mode').prop('disabled', true)
+    mp.modeEls[0].prop('disabled', false)
+    await this.eventPromise(`machine.activateMode.0`)
 
     this.instruct('Pull that lever!')
     await this.eventPromise('machine.result')
 
     this.instruct(`
-      Oh... yuck. That didn't look good. It seems like you need to be careful
-      about which operation mode you use.
+      Oh... yuck. That didn't look good. What about **operation code 2**?
     `)
+
+    $('.target').prop('disabled', true)
+    mp.targetEls[2].prop('disabled', false)
+    $('.mode').prop('disabled', true)
+    mp.modeEls[1].prop('disabled', false)
+    await this.eventPromise('machine.result')
+
+    this.instruct(`
+      OK, I'm feeling really good about **operation code 3**.
+    `)
+
+    $('.target').prop('disabled', true)
+    mp.targetEls[2].prop('disabled', false)
+    $('.mode').prop('disabled', true)
+    mp.modeEls[2].prop('disabled', false)
+    await this.eventPromise('machine.result')
+
     $('.machine-div button').prop('disabled', true)
+
+    this.instruct(`
+      Third time's the charm! We've added this transformation to the manual.
+    `)
   }
 
-  async stage_example2() {
-    let mp = this.getPuzzle({start: 0, goal: 2, trialID: 'example-twostep'})
+  async stage_example_twostep() {
+    let mp = this.getPuzzle({start: 0, goal: 2, recipes: [[0, 0, 1], [1, 2, 2]], trialID: 'example-twostep'})
     mp.addChemical(0)
     mp.chemicalDiv.show()
     mp.goalBox.show()
     mp.book.show()
 
-
     this.instruct(`
-      Maybe it will be easier to do this one in two steps.
-      Start by adding **chemical X** to the machine again.
+      Let's try one more. We need to turn chemical X into chemical Z.
+      Start by adding **chemical X** to the machine.
     `)
     await this.eventPromise(`machine.activateChemical.0`)
     $('.chemical').prop('disabled', true)
 
     this.instruct(`
-      Now see if you can synthesize **chemical Y**.
+      This one might be easier to do in two steps. Try to synthesize **chemical Y**.
 
       *psst: don't forget about the manual!*
     `)
-    $('.target').prop('disabled', false)
+    $('.target').prop('disabled', true)
+    mp.targetEls[1].prop('disabled', false)
     $('.mode').prop('disabled', false)
     await this.eventPromise('machine.addChemical.1')
 
@@ -418,7 +438,7 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_invalid() {
-    let mp = this.getPuzzle({start: 0, goal: 0, trialID: 'example-twostep', disableInvalid: true})
+    let mp = this.getPuzzle({start: 0, goal: 0, recipes: [[0, 0, 1], [1, 2, 2]], trialID: 'example-invalid', disableInvalid: true})
     mp.addChemical(2)
     mp.chemicalDiv.show()
     mp.goalBox.show()
@@ -441,18 +461,12 @@ class MachineInstructions extends Instructions {
       Before moving on, let's make sure you understand how the machine works.
     `)
 
-    let mp = new MachinePuzzle(this.params)
-    let [c1, s, c2] = mp.recipes[0]
-    let cn1 = mp.chemicalNames[c1]
-    let cn2 = mp.chemicalNames[c2]
-    let mn = mp.modeNames[s]
-
 
     this.quiz = this.quiz ?? new Quiz([  // use pre-existing quiz so answers are saved
       ['To complete each round, you need to synthesize the specified goal chemical.' , ['true', 'false'], 'true'],
       ['What is the goal chemical on the previous screen? (You can check!)', ['X', 'Y', 'Z'], 'X'],
       // [`According to the manual, in mode ${mn} the machine will turn chemical ${cn1} into which chemical?`, mp.chemicalNames, cn2],
-      [`According to the manual, which operation code should you enter to turn chemical Y into chemical Z?`, mp.modeNames, 3],
+      [`According to the manual, which operation code should you enter to turn chemical Y into chemical Z?`, [1,2,3], 3],
       ['You must synthesize the goal chemical directly from your starting chemical.' , ['true', 'false'], 'false'],
       ['The manual includes all possible chemical transformations.' , ['true', 'false'], 'false'],
       // ['Every chemical can be directly transformed into every other chemical.' , ['true', 'false'], 'true'],
