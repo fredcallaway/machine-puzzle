@@ -74,26 +74,15 @@ def write_data(version, mode):
     for p in ps:
         if p.datastring is None:
             continue
-        try:
-            datastring = json.loads(p.datastring)
-        except:
-            import IPython, time; IPython.embed(); time.sleep(0.5)
+        datastring = json.loads(p.datastring)
         meta = pick(datastring, metakeys)
         meta['wid'] = anonymize(p.workerid)
-
+        meta['start_time'] = p.beginhit
         participants.append(meta)
 
         # datastring['eventdata']
         trialdata = [d['trialdata'] for d in datastring['data']]
         wid = anonymize(p.workerid)
-
-        if version == 'v1.0':
-            # remove extraneous data we shouldn't have collected
-            trialdata = [d for d in trialdata if not (
-                d.get('event', '').startswith('blocks.mouse') or
-                d.get('event', '').startswith('blocks.keydown')
-            )]
-
         meta['complete'] = any(e['event'] == "experiment.complete" for e in trialdata)
 
         with open(f'data/raw/{version}/events/{wid}.json', 'w') as f:
