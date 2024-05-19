@@ -31,7 +31,7 @@ $(window).on('load', async () => {
     } else {
       $('#load-icon').hide();
     }
-    logEvent('experiment.begin')
+    logEvent('experiment.begin', {timestring: (new Date).toTimeString()})
     $('#display').empty()
     try {
       await runExperiment()
