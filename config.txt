@@ -19,7 +19,7 @@ table_name = participants
 name = Mystery Machine
 project_name = machine
 reward = 300
-total_available_places = 10
+total_available_places = 11
 estimated_completion_time = 15
 description =
     In this study, you will solve a series of puzzles that involve synthesizing
@@ -43,7 +43,7 @@ secret_key = 'this is my secret key which is hard to guess, i should change this
 adserver_revproxy_host = memorygame29.herokuapp.com
 
 [Task Parameters]
-experiment_code_version = vM4.1g8
+experiment_code_version = vM4.1g9
 num_conds = 30
 num_counters = 1
 
