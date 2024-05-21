@@ -377,8 +377,6 @@ class MachineInstructions extends Instructions {
       Oh... yuck. That didn't look good. What about **operation code 2**?
     `)
 
-    $('.target').prop('disabled', true)
-    mp.targetEls[2].prop('disabled', false)
     $('.mode').prop('disabled', true)
     mp.modeEls[1].prop('disabled', false)
     await this.eventPromise('machine.result')
