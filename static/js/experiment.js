@@ -115,15 +115,23 @@ async function runExperiment() {
     logEvent('experiment.debrief')
     DISPLAY.empty()
     let div = $('<div>').appendTo(DISPLAY).addClass('text')
+
+
     $('<p>').appendTo(div).html(markdown(`
       # You're done!
 
       Thanks for participating! We have a few quick questions before you go.
     `))
 
-    let difficulty = radio_buttons(div, `
-      How difficult were the problems, overall?
-    `, ['too easy', 'just right', 'too hard'])
+    let special = radio_buttons(div, `
+      Did you notice that any chemical was different from the others?
+    `, ["I didn't notice", 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
+    )
+
+    let special2 = text_box(div, `
+      If so, how was it different?
+    `,
+    )
 
     let feedback = text_box(div, `
       Do you have any other feedback? (optional)
@@ -131,7 +139,8 @@ async function runExperiment() {
 
     await button(div, 'submit').clicked
     logEvent('debrief.submitted', {
-      difficulty: difficulty.val(),
+      special: special.val(),
+      special2: special2.val(),
       feedback: feedback.val(),
     })
   }
