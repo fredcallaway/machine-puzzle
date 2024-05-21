@@ -1,6 +1,6 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
-  middle: true
+  config_dir: "M20-1"
 }
 
 updateExisting(PARAMS, urlParams)
@@ -8,14 +8,10 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 
 async function runExperiment() {
-  let config
-  if (PARAMS.middle) {
-    console.log('MIDDLE NODE VERSION')
-    config = await $.getJSON(`static/json/middle-${CONDITION+1}.json`)
-  } else {
-    config = await $.getJSON(`static/json/${CONDITION+1}.json`)
-  }
+  config = await $.getJSON(`static/json/${PARAMS.config_dir}/${CONDITION+1}.json`)
   window.config = config
+  // config.recipes = []
+
   _.extend(PARAMS, config)
 
   logEvent('experiment.initialize', {CONDITION, PARAMS})
@@ -63,20 +59,21 @@ async function runExperiment() {
     mp.book.hide()
     await button(prompt).promise()
 
+    if (config.recipes.length) {
+      prompt.html(markdown(`
+        # A new machine
+
+        We’ve filled in your manual with some transformations used by previous operators of this machine.
+      `))
+      mp.book.show()
+      await button(prompt).promise()
+    }
+
+
     prompt.html(markdown(`
       # A new machine
 
-      Fortunately, we were able to scrap together some notes from the last operator of the machine.
-      Hopefully, they will come in handy.
-    `))
-    mp.book.show()
-    await button(prompt).promise()
-
-
-    prompt.html(markdown(`
-      # A new machine
-
-      OK, that's it! You will complete a total of ${PARAMS.tasks.length} rounds. Good luck!
+      You will complete a total of ${PARAMS.tasks.length} rounds. Good luck!
     `))
     await button(prompt, 'begin').promise()
   }
@@ -92,9 +89,9 @@ async function runExperiment() {
       width: 1150,
       helpTitle: 'Feeling stuck?',
       help: `
-        If you can't find a solution in the manual, you can always synthesize the goal
-        chemical by brute force. Configure the machine to produce the goal chemical by
-        clicking the corresponding button (with the same letter). Then try the operation
+        You can always synthesize the goal chemical by brute force. Configure
+        the machine to produce the goal chemical by clicking the
+        corresponding button (with the same letter). Then try the operation
         modes one by one until you find the one that works.
       `
     }).prependTo(DISPLAY)

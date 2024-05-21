@@ -464,5 +464,15 @@ class MachinePuzzle {
     if (result != this.goal && this.nPull == 10) {
       logEvent('machine.struggling')
     }
+    // if (result != this.goal && this.nPull == 2) {
+    //   logEvent('machine.giveup')
+    //   await Swal.fire({
+    //     title: "Let's try the next one",
+    //     html: `this one might be too tricky`,
+    //     icon: 'error',
+    //     confirmButtonText: 'Continue',
+    //   })
+    //   this.done.resolve()
+    // }
   }
 }
