@@ -45,7 +45,7 @@ function conditionParameters(condition, choicesObj) {
 function enforceScreenSize(width, height, display='#display') {
   display = $(display)
 
-  warning = $('<div>')
+  let warning = $('<div>')
   .addClass('alert alert-warning center')
   .css({
     'width': 400,
@@ -65,6 +65,12 @@ function enforceScreenSize(width, height, display='#display') {
   $('<button>').addClass('btn btn-primary').css('margin-top', '20px').text('enter fullscreen').appendTo(warning)
   .click(() => {
     document.documentElement.requestFullscreen()
+    warning.html(`
+    <h4>Darn, still not big enough!</h4>
+
+    <p>You can also try zooming out a bit with <code>cmd/ctrl minus</code>.
+  `)
+
   })
 
 

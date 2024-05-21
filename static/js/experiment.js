@@ -54,7 +54,7 @@ async function runExperiment() {
       and works on different chemicals.
     `))
 
-    let mp = new MachinePuzzle({...PARAMS, manualHeight: 150}).attach( $('<div>').appendTo(workspace))
+    let mp = new MachinePuzzle({...PARAMS}).attach( $('<div>').appendTo(workspace))
     mp.goalBox.hide()
     mp.book.hide()
     await button(prompt).promise()
@@ -63,7 +63,7 @@ async function runExperiment() {
       prompt.html(markdown(`
         # A new machine
 
-        We’ve filled in your manual with some transformations used by previous operators of this machine.
+        We've filled in your manual with some transformations used by previous operators of this machine.
       `))
       mp.book.show()
       await button(prompt).promise()
