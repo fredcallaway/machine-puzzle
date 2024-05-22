@@ -100,7 +100,7 @@ class Prolific(object):
         pd.DataFrame(records).to_csv('prolific_summary.csv')
 
 
-    def approve_all(self, study=0, ignore_code=False):
+    def approve(self, study=0, ignore_code=False):
         """Approve all submissions of the last study.
 
         The "last" study refers to the most recently posted study within your project
@@ -120,6 +120,7 @@ class Prolific(object):
                 to_approve.append(sub["participant_id"])
             else:
                 bad_code.append(sub["participant_id"])
+
 
         if bad_code:
             print(f'{len(bad_code)} submissions have an incorrect code. Check',
@@ -192,9 +193,14 @@ class Prolific(object):
                 print('NOT paying bonuses')
 
     def pay(self, study=0, bonuses='bonus.csv'):
-            """Run approve_all and then assign_bonuses for the given study."""
-            self.approve_all(study)
-            self.assign_bonuses(study, bonuses)
+        """Run approve and then assign_bonuses for the given study."""
+        self.approve(study)
+        self.assign_bonuses(study, bonuses)
+
+    def approve_all(self, n=10):
+        for i in range(n):
+            self.approve(i)
+
 
     def update_places(self, new_total, study=0):
         """Set the total number of participants for the last study to `new_total`
