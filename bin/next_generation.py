@@ -20,12 +20,9 @@ next_gen = prev_gen + 1
 if prev_gen != 0:
     print('fetch data')
     out = bash('bin/fetch_data.py')
-    n = int(re.search(r'(\d+) complete', out).group(1))
-    if n < 10:
-        print(f'{n} participants completed; try again later.')
-        exit(1)
     print(bash('bin/prolific.py approve_all'))
 
+exit()
 print('generate stimuli')
 bash(f'cd ../compositionality-model && jl generate_redblack.jl {next_gen}' )
 

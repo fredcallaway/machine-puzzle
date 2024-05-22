@@ -267,6 +267,9 @@ class Prolific(object):
             kws['name'] = new['name'].replace(' Copy', '')
         if 'internal_name' not in kws:
             kws['internal_name'] = generate_internal_name()
+        if 'url_params' in kws:
+            kws['external_study_url'] += '&' + kws['url_params'].lstrip('&')
+
 
         for k, v in dict(read_config()['Prolific']).items():
             if k == 'description':
