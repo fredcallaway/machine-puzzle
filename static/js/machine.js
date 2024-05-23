@@ -401,14 +401,14 @@ class MachinePuzzle {
 
     // animate lever
     this.lever.css({transform: 'rotate(30deg)'})
-    // await sleep(500)
+    await sleep(500)
 
     // animate sliding into machine
     $('.staged').css({
       transform: 'translate(50px)',
       transition: 'transform 1s ease-in',
     })
-    await sleep(500)
+    await sleep(1000)
 
     // create result chemical
     let result = this.transitions[this.activeChemical][this.activeTarget] == this.activeMode ? this.activeTarget : null
@@ -423,29 +423,27 @@ class MachinePuzzle {
       top: 52,
     })
 
-    // this.progressButton.addClass('active')
-    await sleep(1500)
-    // // delay, flashing light
-    // let elapsed = 0
-    // while (elapsed < 1000 * this.delaySeconds) {
-    //   elapsed += 1000
-    //   this.progressButton.addClass('red')
-    //   await sleep(500)
-    //   this.progressButton.removeClass('red')
-    //   await sleep(500)
-    // }
+    // delay, flashing light
+    let elapsed = 0
+    while (elapsed < 1000 * this.delaySeconds) {
+      elapsed += 1000
+      this.progressButton.addClass('red')
+      await sleep(500)
+      this.progressButton.removeClass('red')
+      await sleep(500)
+    }
+    this.progressButton.addClass(result == null ? "red" : "green")
 
     // new chemical appears
     el.css({
       transform: 'translate(50px)',
       transition: 'transform 1s ease-in',
     })
-    await sleep(1000)
-    this.progressButton.addClass(result == null ? "red" : "green")
-    this.lever.css({transform: 'rotate(-30deg)'})
+    await sleep(2000)
 
-    await sleep(700)
     this.progressButton.removeClass('red green')
+    this.lever.css({transform: 'rotate(-30deg)'})
+    await sleep(500)
 
     el.remove()
     if (result != null) {
@@ -454,14 +452,14 @@ class MachinePuzzle {
     }
     this.logEvent('machine.result', {chemical: this.activeChemical, mode: this.activeMode, result, target: this.activeTarget})
     this.activeChemical = null
-    // this.activeMode = null
-    // this.activeTarget = null
-    // $('.active').removeClass('active')
+    this.activeMode = null
+    this.activeTarget = null
+    $('.active').removeClass('active')
     $('.mode:not(.small)').prop('disabled', false)
     $('.target:not(.small)').prop('disabled', false)
     $('.acquired').prop('disabled', false)
     this.checkState()
-    if (result != this.goal && this.nPull == 10) {
+    if (result != this.goal && this.nPull >= 10) {
       logEvent('machine.struggling')
     }
     // if (result != this.goal && this.nPull == 2) {
