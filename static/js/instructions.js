@@ -450,8 +450,8 @@ class MachineInstructions extends Instructions {
     `)
     await this.eventPromise('machine.activateChemical.2')
     this.instruct(`
-      You can see that the X and Y buttons are grayed out. This means it's not possible to synthesize
-      chemical X or Y directly from chemical Z.
+      You can see that the X and Z buttons are grayed out. This means it's not possible to synthesize
+      chemical X or Z directly from chemical Z.
     `)
 
   }
