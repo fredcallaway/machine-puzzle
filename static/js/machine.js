@@ -401,7 +401,7 @@ class MachinePuzzle {
 
     // animate lever
     this.lever.css({transform: 'rotate(30deg)'})
-    await sleep(500)
+    // await sleep(500)
 
     // animate sliding into machine
     $('.staged').css({
@@ -439,7 +439,7 @@ class MachinePuzzle {
       transform: 'translate(50px)',
       transition: 'transform 1s ease-in',
     })
-    await sleep(2000)
+    await sleep(1500)
 
     this.progressButton.removeClass('red green')
     this.lever.css({transform: 'rotate(-30deg)'})

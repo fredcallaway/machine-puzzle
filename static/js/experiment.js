@@ -1,6 +1,6 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
-  config_dir: "M20-1"
+  config_dir: "initial-1"
 }
 
 updateExisting(PARAMS, urlParams)
