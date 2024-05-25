@@ -30,6 +30,11 @@ description =
     This study is part of chain, and we can only begin the next
     step after this one is completed.
 
+    **Please do not attempt to complete multiple versions of this study.**
+    You can only complete one "Mystery Machine" study. If you complete
+    multiple, we will only approve one of the submissions.
+
+
 [Server Parameters]
 host = 0.0.0.0
 port = 22363
