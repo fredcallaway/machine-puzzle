@@ -214,14 +214,14 @@ class Prolific(object):
     def pause(self, study=0):
         """Temporarily pause recruiting new participants"""
         study_id = self.study_id(study)
-        self.post(f'/studies/{study_id}/transition/', {
+        self._request('POST', f'/studies/{study_id}/transition/', {
             "action": "PAUSE"
         })
 
     def start(self, study=0):
         """Resume recruiting participants (after pausing)"""
         study_id = self.study_id(study)
-        self.post(f'/studies/{study_id}/transition/', {
+        self._request('POST', f'/studies/{study_id}/transition/', {
             "action": "START"
         })
 
@@ -263,6 +263,13 @@ class Prolific(object):
 
         new = self._request('POST', f'/studies/{study_id}/clone/')
         new_id = new['id']
+
+        for k, v in dict(read_config()['Prolific']).items():
+            if k == 'description':
+                v = markdown(v)
+            elif k not in kws:
+                kws[k] = v
+
         if 'name' not in kws:
             kws['name'] = new['name'].replace(' Copy', '')
         if 'internal_name' not in kws:
@@ -270,12 +277,6 @@ class Prolific(object):
         if 'url_params' in kws:
             kws['external_study_url'] += '&' + kws['url_params'].lstrip('&')
 
-
-        for k, v in dict(read_config()['Prolific']).items():
-            if k == 'description':
-                v = markdown(v)
-            elif k not in kws:
-                kws[k] = v
 
         if '.' in kws['reward']:
             print('WARNING: found a . in config.txt reward. Specify this value in cents (removing for now)')
