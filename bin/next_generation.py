@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 import subprocess
+import os
 import re
+import pandas as pd
 
-def bash(cmd):
-    status, output = subprocess.getstatusoutput(cmd)
-    if status != 0:
-        print("Problem with command:", cmd)
-        print(output)
-        raise Exception()
-    return output
+def bash(cmd, background=False):
+    if background:
+        os.system(cmd + ' &')
+    else:
+        status, output = subprocess.getstatusoutput(cmd)
+        if status != 0:
+            print("Problem with command:", cmd)
+            print(output)
+            raise Exception()
+        return output
 
 with open('config.txt') as f:
     config = f.read()
@@ -20,9 +25,13 @@ next_gen = prev_gen + 1
 if prev_gen != 0:
     print('fetch data')
     out = bash('bin/fetch_data.py')
-    print(bash('bin/prolific.py approve_all'))
+    pdf = pd.read_csv(f'data/raw/{codeversion}/participants.csv')
+    counts = pdf.query('complete').groupby(['pop_name', 'N']).complete.count()
+    if not len(counts.to_frame().query('complete >= N')) == len(counts):
+        print('Not enough participants')
+        print(counts)
+    os.system('bin/prolific.py approve_all 3 &')
 
-exit()
 print('generate stimuli')
 bash(f'cd ../compositionality-model && jl generate_redblack.jl {next_gen}' )
 
@@ -38,4 +47,14 @@ bash('git add static/json')
 bash(f'git commit -m "{next_code}"')
 bash('git push heroku master')
 
-print(bash("bin/prolific.py post_duplicate --no_check"))
+
+pdf
+
+
+if prev_gen == 0:
+    print(bash("bin/prolific.py post_duplicate --no_check"))
+else:
+    for pop_name in pdf.pop_name.unique():
+        cmd = f'bin/prolific.py post_duplicate --url_params "config_dir={pop_name}-1" --internal_name {next_code}-{pop_name} --no_check'
+        print(cmd)
+        bash(cmd, background=True)
