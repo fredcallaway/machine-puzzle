@@ -64,10 +64,11 @@ def write_data(version, mode):
         ps = [p for p in ps
             if 'debug' not in p.uniqueid
             and not p.workerid.startswith('601055')  # the "preview" participant
+            and p.mode == 'live'
         ]
     # Note: we don't filter by completion status.
 
-    metakeys = ['condition', 'counterbalance', 'assignmentId', 'hitId', 'useragent', 'mode', 'status']
+    metakeys = ['condition', 'useragent']
     participants = []
 
     os.makedirs(f'data/raw/{version}/events/', exist_ok=True)
@@ -75,14 +76,20 @@ def write_data(version, mode):
         if p.datastring is None:
             continue
         datastring = json.loads(p.datastring)
-        meta = pick(datastring, metakeys)
-        meta['wid'] = anonymize(p.workerid)
-        meta['start_time'] = p.beginhit
-        participants.append(meta)
 
-        # datastring['eventdata']
         trialdata = [d['trialdata'] for d in datastring['data']]
-        wid = anonymize(p.workerid)
+        try:
+            params = next(e for e in trialdata if e['event'] == 'experiment.initialize')["PARAMS"]
+        except StopIteration:
+            continue
+
+        meta = pick(datastring, metakeys)
+        meta['wid'] = wid = anonymize(p.workerid)
+        meta['start_time'] = p.beginhit
+        params['pop_name']
+        meta.update(pick(params, ['pop_name', 'M', 'N', 'K']))
+
+        participants.append(meta)
         meta['complete'] = any(e['event'] == "experiment.complete" for e in trialdata)
 
         with open(f'data/raw/{version}/events/{wid}.json', 'w') as f:
