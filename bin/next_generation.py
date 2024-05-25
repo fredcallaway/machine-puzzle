@@ -30,6 +30,7 @@ if prev_gen != 0:
     if not len(counts.to_frame().query('complete >= N')) == len(counts):
         print('Not enough participants')
         print(counts)
+        exit(1)
     os.system('bin/prolific.py approve_all 3 &')
 
 print('generate stimuli')
@@ -46,10 +47,6 @@ bash('git add config.txt')
 bash('git add static/json')
 bash(f'git commit -m "{next_code}"')
 bash('git push heroku master')
-
-
-pdf
-
 
 if prev_gen == 0:
     print(bash("bin/prolific.py post_duplicate --no_check"))

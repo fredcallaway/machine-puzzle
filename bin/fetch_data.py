@@ -84,6 +84,7 @@ def write_data(version, mode):
             continue
 
         meta = pick(datastring, metakeys)
+        meta['workerid'] = p.workerid
         meta['wid'] = wid = anonymize(p.workerid)
         meta['start_time'] = p.beginhit
         params['pop_name']
