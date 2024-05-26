@@ -31,7 +31,7 @@ if prev_gen != 0:
         print('Not enough participants')
         print(counts)
         exit(1)
-    os.system('bin/prolific.py approve_all 3 &')
+    # os.system('bin/prolific.py approve_all 3 &')
 
 print('generate stimuli')
 bash(f'cd ../compositionality-model && jl generate_redblack.jl {next_gen}' )
@@ -54,4 +54,4 @@ else:
     for pop_name in pdf.pop_name.unique():
         cmd = f'bin/prolific.py post_duplicate --url_params "config_dir={pop_name}-1" --internal_name {next_code}-{pop_name} --no_check'
         print(cmd)
-        bash(cmd, background=True)
+        bash(cmd, background=False)

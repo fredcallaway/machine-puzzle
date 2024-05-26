@@ -85,7 +85,11 @@ class Prolific(object):
         records = []
         for study in self._studies():
             for sub in self._submissions(study['id']):
+
                 records.append({
+                    'internal_name': study['internal_name'],
+                    'started_at': sub['started_at'],
+                    'time_taken':  sub['time_taken'],
                     'study_id': study['id'],
                     'participant_id': sub['participant_id'],
                     'started_at': sub['started_at'],
