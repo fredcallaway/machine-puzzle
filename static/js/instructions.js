@@ -87,13 +87,13 @@ class Instructions {
     return this
   }
 
-  run(display, stage) {
+  async run(display, stage) {
     if (display) this.attach(display)
     if (stage == undefined && urlParams.instruct) {
       stage = parseInt(urlParams.instruct)
     }
-    this.runStage(stage ?? 1)
-    return this.completed
+    await this.runStage(stage ?? 1)
+    await this.completed
   }
 
   registerPromise(promise) {
@@ -170,9 +170,9 @@ class Instructions {
     }
   }
 
-  runPrev() {
+  async runPrev() {
     logEvent('instructions.runPrev')
-    this.runStage(this.stage - 1)
+    await this.runStage(this.stage - 1)
   }
 
   enableNext() {
@@ -476,6 +476,7 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_final() {
+    throw new Error()
     this.instruct(`
       You've finished the instructions, and are ready to move onto the main phase of the experiment.
 

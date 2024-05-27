@@ -182,21 +182,26 @@ async function showCompletionScreen() {
 };
 
 
-function handleError(e) {
-  let msg = e.stack?.length > 10 ? e.stack : `${e}`;
+function handleError(err) {
+  let msg = err.stack?.length > 10 ? err.stack : `${err}`;
   const workerIdMessage = typeof workerId !== "undefined" && workerId !== null ? workerId : 'N/A';
   logEvent('experiment.error', {
-    name: error.name, message: error.message, stack: error.stack,
+    name: err.name, message: err.message, stack: err.stack,
   })
   const message = `Prolific Id: ${workerIdMessage}\n${msg}`;
   const link = `<a href="mailto:${ERROR_EMAIL}?subject=ERROR in experiment&body=${encodeURIComponent(message)}">Click here</a> to report the error by email.`;
 
   $('#display').html(`
     <h1>The experiment encountered an error!</h1>
-    <b>${link}</b>
+    <b>${link}</b> If you prefer, you can send a message on prolific instead.
     <p>Please describe at what point in the study the error occurred, and include the following information.
     <pre>${message}</pre>
     After reporting the error, click the button below to submit your data and see the completion code.
+    <p><b>
+      NOTE: despite what we said earlier, you should actually submit the study in this case.
+      However, we may accidentally reject your submission if you don't contact us by email
+      or Prolific.
+    </b></p>
     <p><br>
     <button class="btn btn-primary" id="submit">I reported the error</button>
   `);

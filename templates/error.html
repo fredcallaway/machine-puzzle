@@ -5,7 +5,7 @@
   <head>
     <title>Error</title>
     <link rel="Favicon" href="static/favicon.ico" />
-    <link rel="stylesheet" type="text/css" href="static/css/general.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="static/css/style.css" media="screen" />
   </head>
 
   <body>
@@ -14,54 +14,35 @@
       <div class="blue">
         {% if errornum == 1008 %}
 
-        <p><b>Sorry, our records indicate that you have attempted to
-        complete this hit, but quit before finishing.</b></p>
-
-        <p>Because this is a Psychology experiment, you can only
-        complete this hit once.</p>
-
-        <p>Please release the hit so someone else can perform the
-        experiment.</p>
+        <p><b>
+          Sorry, our records indicate that you have attempted to
+          complete this study, but quit before finishing.
+        </b></p>
 
         {% elif errornum == 1010 %}
 
-        <h2>
+        <p><b>
           Sorry, our records indicate that you have already completed (or
-          attempted to complete) this hit.
-        </h2>
-        <p>Because this is a Psychology experiment, you can only complete
-        this hit once.</p>
-
-        <p>Please release the hit so someone else can perform the
-        experiment.</p>
+          attempted to complete) this study.
+        </b></p>
 
         {% elif errornum == 1014 %}
-        <h2>Sorry, it looks like you're not using an allowed browser or device</h2>
+        <p><b>Sorry, it looks like you're not using an allowed browser or device</b></p>
         <p>You cannot complete this HIT using a mobile device or Internet Explorer.</p>
 
         {% else %}
 
-        <h2>
-          Sorry, there was an unexpected error in our processing of your
-          hit.
-        </h2>
+        <p><b>
+          Sorry, there was an unexpected error in our processing of your study.
+        </b></p>
 
         {% endif %}
 
         <p>If you would like to receive partial compensation or feel you
-        have reached this page in error, please email
-        us
-        <!-- at <a href="mailto:Excellent@Bodcaious.edu">Excellent@Bodcaious.edu</a> -->
-        and send the following information:</p>
-
-        <div id="error-message">
-          <p>
-            Error: {{ errornum }}<br />
-            {% if hitId %} HitID: {{ hitId[0] }}<br /> {% endif %}
-            {% if assignId %} AssignId: {{ assignId }}<br /> {% endif %}
-            {% if workerId %} WorkerId: {{ workerId[0] }}<br /> {% endif %}
-          </p>
-        </div>
+        have reached this page in error, please send a message on prolific
+        and send the following information:
+        </p>
+      </div>
         <p>
           Our sincere apologies!
         </p>

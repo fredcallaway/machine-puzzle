@@ -23,6 +23,7 @@
         <script type="text/javascript">
             // These fields provided by the psiTurk Server
             var uniqueId = "{{ uniqueId }}";  // a unique string identifying the worker/task
+            var workerId = uniqueId.split(':')[0]
             var condition = "{{ condition }}"; // the condition number
             var counterbalance = "{{ counterbalance }}"; // a number indexing counterbalancing conditions
             var adServerLoc = "{{ adServerLoc }}"; // the location of your ad (so you can send user back at end of experiment)

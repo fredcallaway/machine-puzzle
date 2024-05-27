@@ -3,6 +3,7 @@ const PARAMS = {
   config_dir: "initial-1"
 }
 
+ERROR_EMAIL = 'fredcallaway@gmail.com'
 updateExisting(PARAMS, urlParams)
 psiturk.recordUnstructuredData('params', PARAMS);
 
