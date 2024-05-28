@@ -9,7 +9,13 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 
 async function runExperiment() {
-  config = await $.getJSON(`static/json/${PARAMS.config_dir}/${CONDITION+1}.json`)
+  let configFile = `static/json/${PARAMS.config_dir}/${CONDITION+1}.json`
+  try {
+    config = await $.getJSON(configFile)
+  } catch(err) {
+    console.log("ERR HERE")
+    throw new Error(`${configFile} does not exist`)
+  }
   window.config = config
   // config.recipes = []
 

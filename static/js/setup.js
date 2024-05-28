@@ -183,10 +183,7 @@ async function showCompletionScreen() {
 
 
 function handleError(err) {
-  let msg = err.toString()
-  if (msg.length == 0) {
-    msg = `${err}`
-  }
+  let msg = err.stack ?? `${err}`
   const workerIdMessage = typeof workerId !== "undefined" && workerId !== null ? workerId : 'N/A';
   logEvent('experiment.error', {
     name: err.name, message: err.message, stack: err.stack,
