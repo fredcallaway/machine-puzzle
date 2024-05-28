@@ -476,7 +476,6 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_final() {
-    throw new Error()
     this.instruct(`
       You've finished the instructions, and are ready to move onto the main phase of the experiment.
 
