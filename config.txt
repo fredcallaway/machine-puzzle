@@ -34,6 +34,10 @@ description =
     You can only complete one "Mystery Machine" study. If you complete
     multiple, we will only approve one of the submissions.
 
+    **Please do not submit the study without completing it.** If you are
+    unable to complete the study, return it and send us a message. We will
+    compensate you with a bonus payment!
+
 
 [Server Parameters]
 host = 0.0.0.0
