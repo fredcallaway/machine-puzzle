@@ -172,7 +172,15 @@ async function showCompletionScreen() {
     $('#display').html(`
       <div class='basic-content'>
         <h1>Thanks!</h1>
-        <p>Your completion code is <b>${PROLIFIC_CODE}</b>. Click this link to submit:<br>
+        <p>Your completion code is <b>${PROLIFIC_CODE}</b>.
+
+        <div class="alert alert-warning">
+          <b>Note:</b> we have had some trouble with the completion link recently. Please copy the code
+          <b>BEFORE</b> trying clicking the link. If the link does not work correctly, you can just paste
+          in the code manually. Sorry for the inconvenience
+        </div>
+
+        Copy the code, then click this link to submit:<br>
         <a href="https://app.prolific.co/submissions/complete?cc=${PROLIFIC_CODE}">
           https://app.prolific.co/submissions/complete?cc=${PROLIFIC_CODE}
         </a></p>
