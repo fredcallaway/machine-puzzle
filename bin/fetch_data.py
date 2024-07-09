@@ -31,8 +31,10 @@ class Anonymizer(object):
     def __call__(self, worker_id):
         if not self.enabled or 'debug' in worker_id:
             return worker_id
+
         if worker_id not in self.mapping:
-            self.mapping[worker_id] = 'w' + hashlib.md5(worker_id.encode()).hexdigest()[:7]
+            # self.mapping[worker_id] = 'w' + hashlib.md5(worker_id.encode()).hexdigest()[:7]
+            self.mapping[worker_id] = 'w' + worker_id[-8:]
         return self.mapping[worker_id]
 
 def pick(obj, keys):
