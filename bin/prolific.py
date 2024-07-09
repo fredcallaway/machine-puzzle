@@ -139,6 +139,11 @@ class Prolific(object):
         else:
             print('No submissions to approve')
 
+    def all_study_bonus(self, bonuses='bonus.csv', n=10):
+        for i in range(n):
+            self.assign_bonuses(i, bonuses)
+
+
     def assign_bonuses(self, study=0, bonuses='bonus.csv'):
         """Assign bonuses specified in a dictionary or file.
 
@@ -159,8 +164,6 @@ class Prolific(object):
                 bonuses = dict(pd.read_csv(file, header=None).set_index(0)[1])
 
         assert isinstance(bonuses, dict)
-
-        self._prolific.assign_bonuses(self._study_id, bonuses)
 
         previous_bonus = {sub['participant_id']: sum(sub['bonus_payments']) / 100
                           for sub in self._submissions(study_id)}
