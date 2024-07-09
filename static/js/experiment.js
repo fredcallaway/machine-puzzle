@@ -1,6 +1,6 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
-  config_dir: "initial-1"
+  config_dir: "asocial-1"
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
