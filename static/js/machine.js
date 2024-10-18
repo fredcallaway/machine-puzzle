@@ -68,19 +68,42 @@ class Block {
   }
 }
 
+function string2block(s, x, y, color, id='block') {
+    if (s == 'blank') {
+      s = BLANK
+    }
+    if (typeof(color) == 'number') {
+      color = COLORS[color]
+    }
+    let rows = s.trim().split('\n')
+    let parts = []
+    rows.forEach((row, y) => {
+      row.trim().split('').forEach((v, x) => {
+        if (v == "X") {
+          parts.push({x, y})
+        }
+      })
+    })
+    return new Block({x, y, parts, color, id})
+}
+
+
+
 class CodePuzzle {
   constructor(options = {}) {
     console.log('options', options);
 
     // Assign default values and override with any options provided
     _.assign(this, {
-      code: '1344',          // default correct code
-      dialSpeed: .02,        // speed of dial drag
-      clickTime: 300,        // time threshold for a quick click
-      maxDigit: 6,           // max digit allowed on each dial
-      trialID: randomUUID(), // unique trial ID
-      screenWidth: 400,
+      code: '1344',                // default correct code
+      blockString: 'XXX\nXX\nXXX', // default block
+      dialSpeed: .02,              // speed of dial drag
+      clickTime: 300,              // time threshold for a quick click
+      maxDigit: 6,                 // max digit allowed on each dial
+      trialID: randomUUID(),       // unique trial ID
+      screenWidth: 300,
       screenHeight: 200,
+      blockSize: 40,
     }, options);
 
     window.cp = this;
@@ -146,29 +169,36 @@ class CodePuzzle {
 
   drawShape(success) {
       // Clear the screen (canvas context)
-      this.ctx.clearRect(0, 0, 200, 200);
+      this.ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
 
       // Set the color based on success (blue for correct, light gray for incorrect)
       let shapeColor = success ? 'blue' : 'lightgray';
 
-      // Define the parts of the shape (relative coordinates)
-      const parts = [
-        {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1},
-        {x: 1, y: 2}, {x: 2, y: 2}, {x: 3, y: 2},
-        {x: 1, y: 3}, {x: 2, y: 3}, {x: 3, y: 3}
-      ];
+      // // Define the parts of the shape (relative coordinates)
+      // const parts = [
+      //   {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1},
+      //   {x: 1, y: 2}, {x: 2, y: 2}, {x: 3, y: 2},
+      //   {x: 1, y: 3}, {x: 2, y: 3}, {x: 3, y: 3}
+      // ];
 
-      // Create the Block object, using the parts and the color determined above
-      const block = new Block({
-        x: 0, // Position of the block (top-left corner)
-        y: 0,
-        parts: parts, // The shape parts
-        color: shapeColor, // Color based on success/failure
-        id: "shape" // Optional ID for identification
-      });
+      // // Create the Block object, using the parts and the color determined above
+      // const block = new Block({
+      //   x: 0, // Position of the block (top-left corner)
+      //   y: 0,
+      //   parts: parts, // The shape parts
+      //   color: shapeColor, // Color based on success/failure
+      //   id: "shape" // Optional ID for identification
+      // });
+      let block = string2block(this.blockString, 1, 1, shapeColor)
+      window.block = block
+      block.x = (this.screenWidth / this.blockSize - block.width) / 2
+      block.y = (this.screenHeight / this.blockSize - block.height) / 2
+
+      console.log(block)
+
 
       // Call the draw method of Block, using the canvas context and grid size
-      block.draw(this.ctx, 40); // 40px grid size to fit within 200x200 canvas
+      block.draw(this.ctx, this.blockSize); // 40px grid size to fit within 200x200 canvas
   }
 
   createDials(speedFactor = 50) {
@@ -295,8 +325,6 @@ class CodePuzzle {
 
     this.div.append(dialContainer); // append the dial container to the main div
   }
-
-
 
   incrementDial(position) {
     // Increment the number at the current position
