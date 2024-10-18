@@ -61,7 +61,7 @@ async function runExperiment() {
       and works on different chemicals.
     `))
 
-    let mp = new MachinePuzzle({...PARAMS}).attach( $('<div>').appendTo(workspace))
+    let mp = new CodePuzzle({...PARAMS}).attach($('<div>').appendTo(workspace))
     mp.goalBox.hide()
     mp.book.hide()
     await button(prompt).promise()
@@ -112,7 +112,7 @@ async function runExperiment() {
     let workspace = $('<div>').appendTo(DISPLAY)
 
     for (let [start, goal] of config.tasks) {
-      await new MachinePuzzle({...PARAMS, start, goal}).run(workspace)
+      await new CodePuzzle({...PARAMS, start, goal}).run(workspace)
       top.incrementCounter()
       saveData()
     }

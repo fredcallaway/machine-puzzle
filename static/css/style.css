@@ -1,4 +1,4 @@
-
+/* for CodePuzzle */
 .recipe {
   float: left;
   margin-left: 5px;
@@ -10,13 +10,14 @@
   translate: 0 -2px;
 }
 
-.machine-div {
-    position: relative;
-    text-align: center;
-    width: 1000px;
-    height: 600px;
-    margin: auto;
-
+.puzzle-div {
+  position: relative;
+  text-align: center;
+/*  width: 400px;*/
+/*  height: 400px;*/
+  margin: auto;
+  background: gray;
+  border: 5px black solid;
 }
 
 .recipe-book {
@@ -39,76 +40,6 @@
   scale: 0.8;
 /*  font-size: 16pt;*/
   margin: 6px !important;
-}
-
-.mode {
-  position: relative;
-  text-align: center;
-  width: 30px;
-  height: 30px;
-  line-height: 20px;
-  display: inline-block;
-  margin: 10px;
-  background: #E1E1E1;
-  border: medium black solid;
-  font-weight: bold;
-  font-size: 12pt;
-  z-index: 10;
-}
-
-.target {
-  position: relative;
-  text-align: center;
-  width: 30px;
-  height: 30px;
-  line-height: 20px;
-  display: inline-block;
-  margin: 10px;
-  background: #E1E1E1;
-  border: medium black solid;
-  font-weight: bold;
-  font-size: 12pt;
-  z-index: 10;
-}
-
-.target.disabled {
-  background-color: #ADADAD;
-}
-
-.active {
-  border-color: #3B3820;
-  background: #FFF28D;
-  box-shadow: 0px 0px 5px #FFE200;
-}
-
-.active.invalid {
-  background-color: #F14A45;
-  border-Color: #490403 solid;
-  box-shadow: 0px 0px 6px #EE000B;
-}
-
-.chemical {
-  text-align: center;
-  width: 40px;
-  height: 40px;
-  line-height: 30px;
-  display: inline-block;
-  margin: 10px;
-  border-radius: 100%;
-  background: white;
-  color: black;
-  font-weight: bold;
-  font-size: 16pt;
-  border: medium black solid;
-/*  transition: background-color 0s;*/
-}
-
-.chemical.unavailable {
-  opacity: 0.2;
-}
-
-.chemical.active {
-  border: medium #FFE622 solid;
 }
 
 
