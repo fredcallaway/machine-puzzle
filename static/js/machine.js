@@ -18,9 +18,10 @@ class Block {
       const partX = (this.x + part.x) * grid;
       const partY = (this.y + part.y) * grid;
       ctx.fillRect(partX, partY, grid, grid);
-      ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-      ctx.lineWidth = 1 + (grid / 30);
-      ctx.strokeRect(partX, partY, grid, grid);
+      // light border on each tile
+      // ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+      // ctx.lineWidth = 1 + (grid / 30);
+      // ctx.strokeRect(partX, partY, grid, grid);
     });
 
     // Now, draw the thick border around the shape
@@ -68,6 +69,13 @@ class Block {
   }
 }
 
+const COLORS = [
+  'lightgray',
+  '#FEBA49',
+  '#CF3C22',
+  '#119FBA',
+]
+
 function string2block(s, x, y, color, id='block') {
     if (s == 'blank') {
       s = BLANK
@@ -79,7 +87,7 @@ function string2block(s, x, y, color, id='block') {
     let parts = []
     rows.forEach((row, y) => {
       row.trim().split('').forEach((v, x) => {
-        if (v == "X") {
+        if (v != "_" && v != " ") {
           parts.push({x, y})
         }
       })
@@ -87,7 +95,29 @@ function string2block(s, x, y, color, id='block') {
     return new Block({x, y, parts, color, id})
 }
 
+function string2blockSplit(s, x, y) {
+    let rows = s.trim().split('\n')
+    let parts = {}
+    rows.forEach((row, y) => {
+      row.trim().split('').forEach((v, x) => {
+        if (v != "_" && v != " ") {
+          if (parts[v] === undefined) {
+            parts[v] = []
+          }
+          parts[v].push({x, y})
+        }
+      })
+    })
+    return Object.entries(parts).map(([v, bparts]) => new Block({x, y, parts: bparts, color: COLORS[v]}));
+}
 
+const testBlock = `
+  112
+  _122
+  11122
+  _122
+  112
+`
 
 class CodePuzzle {
   constructor(options = {}) {
@@ -95,21 +125,25 @@ class CodePuzzle {
 
     // Assign default values and override with any options provided
     _.assign(this, {
-      code: '1344',                // default correct code
-      blockString: 'XXX\nXX\nXXX', // default block
-      dialSpeed: .02,              // speed of dial drag
-      clickTime: 300,              // time threshold for a quick click
-      maxDigit: 6,                 // max digit allowed on each dial
-      trialID: randomUUID(),       // unique trial ID
-      screenWidth: 300,
-      screenHeight: 200,
+      solutions: {
+        '1112': 'compositional',
+        '1121': 'bespoke'
+      },
+      blockString: testBlock,  // default block
+      dialSpeed: .02,  // speed of dial drag
+      clickTime: 300,  // time threshold for a quick click
+      maxDigit: 6,  // max digit allowed on each dial
+      trialID: randomUUID(),  // unique trial ID
+      screenWidth: 400,
+      screenHeight: 300,
       blockSize: 40,
     }, options);
 
     window.cp = this;
 
-    this.correctCode = this.code.split('').map(Number); // convert code to array of digits
-    this.codeLength = this.correctCode.length
+
+    // this.correctCode = this.code.split('').map(Number); // convert code to array of digits
+    this.codeLength = Object.keys(this.solutions)[0].length
     this.currentCode = Array(this.codeLength).fill(1); // default starting code, length based on codeLength
     this.div = $("<div>").addClass('puzzle-div').css({
       width: this.screenWidth + 200
@@ -118,7 +152,7 @@ class CodePuzzle {
 
     this.createScreen();
     this.createDials();
-    this.logEvent('code.start', { code: this.correctCode.join('') });
+    this.logEvent('code.start');
   }
 
   logEvent(event, info = {}) {
@@ -167,42 +201,29 @@ class CodePuzzle {
     this.drawShape(false);
   }
 
-  drawShape(success) {
-      // Clear the screen (canvas context)
-      this.ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
+  drawShape(solution) {
+    console.log('drawShape', solution)
+    // Clear the screen (canvas context)
+    this.ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
 
-      // Set the color based on success (blue for correct, light gray for incorrect)
-      let shapeColor = success ? 'blue' : 'lightgray';
-
-      // // Define the parts of the shape (relative coordinates)
-      // const parts = [
-      //   {x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 1},
-      //   {x: 1, y: 2}, {x: 2, y: 2}, {x: 3, y: 2},
-      //   {x: 1, y: 3}, {x: 2, y: 3}, {x: 3, y: 3}
-      // ];
-
-      // // Create the Block object, using the parts and the color determined above
-      // const block = new Block({
-      //   x: 0, // Position of the block (top-left corner)
-      //   y: 0,
-      //   parts: parts, // The shape parts
-      //   color: shapeColor, // Color based on success/failure
-      //   id: "shape" // Optional ID for identification
-      // });
-      let block = string2block(this.blockString, 1, 1, shapeColor)
+    if (solution == 'compositional') {
+      let blocks = string2blockSplit(this.blockString, 1, 1)
+      window.blocks = blocks
+      for (const b of blocks) {
+        b.draw(this.ctx, this.blockSize);
+      }
+    } else {
+      let color = solution == 'bespoke' ? 3 : 0
+      console.log('color', color)
+      let block = string2block(this.blockString, 1, 1, color)
       window.block = block
-      block.x = (this.screenWidth / this.blockSize - block.width) / 2
-      block.y = (this.screenHeight / this.blockSize - block.height) / 2
-
-      console.log(block)
-
-
-      // Call the draw method of Block, using the canvas context and grid size
-      block.draw(this.ctx, this.blockSize); // 40px grid size to fit within 200x200 canvas
+      // block.x = (this.screenWidth / this.blockSize - block.width) / 2
+      // block.y = (this.screenHeight / this.blockSize - block.height) / 2
+      block.draw(this.ctx, this.blockSize);
+    }
   }
 
   createDials(speedFactor = 50) {
-    // Calculate appropriate width for the entire container based on codeLength
     let dialWidth = 60; // Base width per dial
     let containerWidth = this.codeLength * dialWidth;
 
@@ -220,7 +241,8 @@ class CodePuzzle {
       'margin-left': 'auto',
       'margin-right': 'auto',
       'overflow': 'hidden',
-      'background': 'white'
+      'background': 'white',
+      'margin-bottom': '50px'                // Moved outside loop
     });
 
     let dialStyle = {
@@ -239,12 +261,12 @@ class CodePuzzle {
       'width': 'auto'                              // Let the flexbox handle the width
     };
 
-    let numberEls = []
+    this.numberEls = []; // Store number elements for updating later
 
     for (let i = 0; i < this.codeLength; i++) {
       let dialWrapper = $('<div></div>').css(dialStyle).data('index', i);
       let numberElement = $('<div></div>').addClass('dial-number').text(this.currentCode[i]);
-      numberEls.push(numberElement)
+      this.numberEls.push(numberElement); // Store each number element in the array for later updates
 
       dialWrapper.append(numberElement);
 
@@ -253,12 +275,13 @@ class CodePuzzle {
       let currentNumber = this.currentCode[i];
       let mouseDownTime = 0;
 
-      dialWrapper.on('mousedown', (event) => {
+      // Attach mousedown handler (namespaced for this trial)
+      dialWrapper.on('mousedown.machine', (event) => {
+        if (this.solved) return  // HACK to fix clearHandlers not working
         isDragging = false;
         startY = event.pageY;
         mouseDownTime = Date.now(); // Record the mousedown time
 
-        // Define the dragHandler and mouseUpHandler inside mousedown to ensure clean scope
         const dragHandler = (event) => {
           let deltaY = event.pageY - startY;
           if (Math.abs(deltaY) > 5) { // Only trigger dragging if there's significant movement
@@ -267,8 +290,6 @@ class CodePuzzle {
 
           if (isDragging) {
             let change = Math.round(deltaY * this.dialSpeed); // Control how fast the numbers change
-
-            // Update the number dynamically as you drag, keeping it between 1 and maxDigit
             currentNumber = ((this.currentCode[i] - change - 1 + this.maxDigit) % this.maxDigit + this.maxDigit) % this.maxDigit + 1;
             numberElement.text(currentNumber);
           }
@@ -285,38 +306,35 @@ class CodePuzzle {
           } else {
             // Ensure currentNumber stays between 1 and maxDigit after dragging
             currentNumber = ((Math.round(currentNumber) - 1) % this.maxDigit + this.maxDigit) % this.maxDigit + 1;
-            // numberElement.text(currentNumber);
             this.currentCode[i] = currentNumber;
-            // this.checkCode();
           }
 
           // Update the display for each dial
           for (let j = 0; j < this.codeLength; j++) {
-            numberEls[j].text(this.currentCode[j]);
+            this.numberEls[j].text(this.currentCode[j]);
           }
 
           // Check the code after the change
           this.checkCode();
 
           // Clean up the event handlers after the mouse is released
-          $(document).off('mousemove', dragHandler);
-          $(document).off('mouseup', mouseUpHandler);
+          $(document).off('mousemove.machine', dragHandler);
+          $(document).off('mouseup.machine', mouseUpHandler);
         };
 
         // Attach the event handlers
-        $(document).on('mousemove', dragHandler);
-        $(document).on('mouseup', mouseUpHandler);
+        $(document).on('mousemove.machine', dragHandler);
+        $(document).on('mouseup.machine', mouseUpHandler);
       });
 
-      dialContainer.css({marginBottom: 50})
       dialContainer.append(dialWrapper);
 
       // Add separator line between dials (except the last one)
       if (i < this.codeLength - 1) {
         dialContainer.append($('<div></div>').css({
           'height': '30px',         // Shorter height for the separator
-          'width': '1px',
-          'background-color': 'gray',
+          'width': '2px',
+          'background-color': 'lightgray',
           'margin': '0 5px',        // Horizontal margin for spacing
           'align-self': 'center'    // Vertically center the line
         }));
@@ -325,6 +343,7 @@ class CodePuzzle {
 
     this.div.append(dialContainer); // append the dial container to the main div
   }
+
 
   incrementDial(position) {
     // Increment the number at the current position
@@ -337,14 +356,32 @@ class CodePuzzle {
     }
   }
 
+  async showSolution(solution) {
+    this.drawShape(solution); // Draw blue shape on success
+    let colors = solution == 'compositional' ? [1, 1, 2, 2] : [3, 3, 3, 3]
+    this.numberEls.forEach((el, idx) => {
+      console.log('colors[idx]', colors[idx])
+      el.css('color', COLORS[colors[idx]])
+    })
+    this.solved = true
+    this.clearHandlers()
+
+    await make_promise()
+    this.done.resolve(); // Mark the puzzle as complete
+  }
+
+  clearHandlers() {
+    // BROKEN: this doesn't seem to work
+    $(document).off('.machine'); // Remove handlers from document
+    this.div.off('.machine');    // Remove handlers from div elements
+  }
+
   checkCode() {
     // Compare the current code with the correct code
-    let isCorrect = this.currentCode.every((val, index) => val === this.correctCode[index]);
-
-    if (isCorrect) {
-      this.drawShape(true); // Draw blue shape on success
+    let input = this.currentCode.join('')
+    if (this.solutions[input]) {
       this.logEvent('correct_code_entered', { code: this.currentCode.join('') });
-      this.done.resolve(); // Mark the puzzle as complete
+      this.showSolution(this.solutions[input])
     } else {
       this.drawShape(false); // Keep the shape gray if incorrect
       this.logEvent('incorrect_code_entered', { code: this.currentCode.join('') });

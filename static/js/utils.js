@@ -113,6 +113,8 @@ function make_promise() {
   });
   promise.resolve = resolve
   promise.reject = reject
+  promise.resolved = false
+  promise.then(() => promise.resolved = true)
   return promise
 }
 
