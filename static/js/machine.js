@@ -76,6 +76,28 @@ const COLORS = [
   '#119FBA',
 ]
 
+const PARTS = {
+  "left": [
+    "111____\n1_1____\n1111___\n1_1____\n111____",
+    "111____\n__1____\n_111___\n__1____\n111____",
+    "__1____\n111____\n__11___\n111____\n__1____",
+    "1_1____\n1_1____\n1111___\n1_1____\n1_1____",
+    "111____\n111____\n__11___\n111____\n111____",
+    "111____\n1_1____\n__11___\n1_1____\n111____"
+  ],
+  "right": [
+    "____2__\n___22__\n____222\n___22__\n____2__",
+    "______2\n___22_2\n____222\n___22_2\n______2",
+    "_______\n___2222\n____2__\n___2222\n_______",
+    "____2__\n___222_\n____222\n___222_\n____2__",
+    "____222\n___22__\n____2__\n___22__\n____222",
+    "____222\n___22_2\n____2_2\n___22_2\n____222"
+  ]
+}
+
+// shape is defined by a string, e.g 11 indicates first element of left combined with first element of right
+// 
+
 function string2block(s, x, y, color, id='block') {
     if (s == 'blank') {
       s = BLANK
@@ -134,25 +156,66 @@ class CodePuzzle {
       clickTime: 300,  // time threshold for a quick click
       maxDigit: 6,  // max digit allowed on each dial
       trialID: randomUUID(),  // unique trial ID
-      screenWidth: 400,
-      screenHeight: 300,
       blockSize: 40,
+      width: 5,  // Width in block units, not including padding
+      height: 5,  // Height in block units, not including padding
+      manualScale: 0.25,
+      drawingMode: true
     }, options);
+    if (this.drawingMode) {
+      this.width = 30
+      this.height = 30
+      this.blockSize = 30
+    }
+    // Calculate screen dimensions based on blockSize, width, and height
+    this.screenWidth = (this.width + 2) * this.blockSize; // +2 for padding
+    this.screenHeight = (this.height + 2) * this.blockSize; // +2 for padding
 
     window.cp = this;
 
-
-    // this.correctCode = this.code.split('').map(Number); // convert code to array of digits
     this.codeLength = Object.keys(this.solutions)[0].length
     this.currentCode = Array(this.codeLength).fill(1); // default starting code, length based on codeLength
-    this.div = $("<div>").addClass('puzzle-div').css({
-      width: this.screenWidth + 200
-    })
+
+    // Create the top-level div
+    this.div = $("<div>").addClass('puzzle-container').css({
+      display: 'flex',
+      justifyContent: 'space-between',
+      width: '100%',
+      maxWidth: '1200px', // Adjust as needed
+      margin: '0 auto'
+    });
+
+    // Calculate the machine width based on screenWidth
+    const machineWidth = this.screenWidth + 100;
+
+    // Create the machine div
+    this.machineDiv = $("<div>").addClass('machine-div').css({
+      width: machineWidth + 'px',
+      paddingLeft: this.blockSize + 'px',
+      paddingRight: this.blockSize + 'px' // Add padding on both left and right
+    });
+
+    // Create the manual div
+    this.manualDiv = $("<div>").addClass('manual-div').css({
+      width: 'calc(100% - ' + (machineWidth + 50) + 'px)' // Adjust for spacing
+    });
+
+    // Append machine and manual divs to the main div
+    this.div.append(this.machineDiv, this.manualDiv);
+
     this.done = make_promise(); // promise to resolve when the task is completed
 
     this.createScreen();
-    this.createDials();
+    if (this.drawingMode) {
+      this.createDrawingInterface(); // Add this line
+    } else {
+      this.createDials();
+      this.createManual();
+      this.drawShape(false);
+    }
     this.logEvent('code.start');
+
+    this.copiedShape = null;
   }
 
   logEvent(event, info = {}) {
@@ -174,31 +237,20 @@ class CodePuzzle {
   }
 
   createScreen() {
-    // padding
-    $('<div>').css({
-      height: 20
-    }).appendTo(this.div)
-    // Create the screen for the shape (canvas element)
     this.screen = $('<canvas></canvas>').attr({
       width: this.screenWidth,
       height: this.screenHeight
     }).css({
       'border': '3px solid black',
       'margin': '10px auto',
-      'margin-top': '20px',
+      'margin-top': this.blockSize,
       'display': 'block',
       'border-radius': '10px',
       'background-color': 'white',
-    });
-    // padding
-
-    this.div.append(this.screen); // Append the canvas to the main div
+    }).appendTo(this.machineDiv)  
 
     // Initialize the canvas context (this.ctx)
     this.ctx = this.screen[0].getContext('2d');
-
-    // Initial drawing of the shape in gray
-    this.drawShape(false);
   }
 
   drawShape(solution) {
@@ -341,7 +393,7 @@ class CodePuzzle {
       }
     }
 
-    this.div.append(dialContainer); // append the dial container to the main div
+    this.machineDiv.append(dialContainer); // Append to machineDiv instead of div
   }
 
 
@@ -360,7 +412,6 @@ class CodePuzzle {
     this.drawShape(solution); // Draw blue shape on success
     let colors = solution == 'compositional' ? [1, 1, 2, 2] : [3, 3, 3, 3]
     this.numberEls.forEach((el, idx) => {
-      console.log('colors[idx]', colors[idx])
       el.css('color', COLORS[colors[idx]])
     })
     this.solved = true
@@ -387,4 +438,322 @@ class CodePuzzle {
       this.logEvent('incorrect_code_entered', { code: this.currentCode.join('') });
     }
   }
+
+  createManual() {
+    const manualContainer = $('<div>').addClass('manual-container').css({
+      'border': '2px solid black',
+      'padding': '10px',
+      'border-radius': '10px',
+      'background-color': 'white',
+      'height': '100%',
+      'box-sizing': 'border-box'
+    });
+
+    const title = $('<h3>').text('Shape Manual').css({
+      'text-align': 'center',
+      'margin-bottom': '10px'
+    });
+
+    manualContainer.append(title);
+
+    const shapeExamples = [
+      { shape: '##\n##', code: '1111' },
+      { shape: '###\n# #\n###', code: '1234' },
+      { shape: ' # \n###\n # ', code: '2222' },
+      { shape: '  #  \n ### \n#####\n ### \n  #  ', code: '3333' },
+      { shape: ' # \n# #\n # ', code: '4444' },
+      { shape: '#####\n#   #\n#   #\n#   #\n#####', code: '5555' },
+      { shape: '  #  \n # # \n#   #\n # # \n  #  ', code: '6161' },
+      { shape: '  #  \n ## #\n# # #\n# ## \n  #  ', code: '2345' },
+      { shape: '#   #\n ## #\n# # #\n# ## \n#   #', code: '6543' },
+      { shape: ' ### \n#   #\n# # #\n#   #\n ### ', code: '1212' },
+      { shape: '  #  \n ### \n# # #\n ### \n  #  ', code: '3434' },
+      { shape: '#####\n#    \n###  \n#    \n#####', code: '5151' },
+
+      { shape: ' # # \n# # #\n # # \n# # #\n # # ', code: '2323' },
+      { shape: '  #  \n # # \n#####\n # # \n  #  ', code: '4321' }
+    ];
+
+    const examplesContainer = $('<div>').css({
+      'display': 'flex',
+      'justify-content': 'space-around',
+      'flex-wrap': 'wrap'
+    });
+
+    shapeExamples.forEach(example => {
+      const exampleDiv = $('<div>').css({
+        'text-align': 'center',
+        'margin': '10px'
+      });
+
+      const canvas = $('<canvas>').attr({
+        width: this.screenWidth * this.manualScale,
+        height: this.screenHeight * this.manualScale
+      }).css({
+        'border': '1px solid red'
+      });
+
+      const ctx = canvas[0].getContext('2d');
+      this.drawExampleShape(ctx, example.shape);
+
+      const codeText = $('<p>').text(`Code: ${example.code}`).css({
+        'margin-top': '5px'
+      });
+
+      exampleDiv.append(canvas, codeText);
+      examplesContainer.append(exampleDiv);
+    });
+
+    manualContainer.append(examplesContainer);
+    this.manualDiv.append(manualContainer); // Append to manualDiv instead of div
+  }
+
+  drawExampleShape(ctx, shapeString) {
+    const block = string2block(shapeString, 0, 0, 'gray');
+    const cellSize = this.blockSize * this.manualScale;
+    const offsetX = (this.screenWidth * this.manualScale - block.width * cellSize) / 2;
+    const offsetY = (this.screenHeight * this.manualScale - block.height * cellSize) / 2;
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    block.draw(ctx, cellSize);
+    ctx.restore();
+  }
+
+  createDrawingInterface() {
+    this.drawingColor = 1; // Default color index
+    this.isDrawing = false;
+    this.isErasing = false;
+    this.grid = Array(this.height).fill().map(() => Array(this.width).fill(0));
+
+    // Add color selection buttons
+    const colorSelector = $('<div>').css({
+      'display': 'flex',
+      'justify-content': 'center',
+      'margin-bottom': '10px'
+    });
+
+    COLORS.forEach((color, index) => {
+      if (index === 0) return; // Skip the first color (lightgray)
+      const button = $('<button>')
+        .text(index)
+        .css({
+          'background-color': color,
+          'width': '30px',
+          'height': '30px',
+          'margin': '0 5px',
+          'border': 'none',
+          'border-radius': '50%',
+          'cursor': 'pointer'
+        })
+        .click(() => {
+          this.drawingColor = index;
+        });
+      colorSelector.append(button);
+    });
+
+    // Add copy button
+    const copyButton = $('<button>')
+      .text('Copy')
+      .css({
+        'margin-left': '10px'
+      })
+      .click(() => this.copyGridAsString());
+
+    colorSelector.append(copyButton);
+
+    this.machineDiv.prepend(colorSelector);
+
+    // Add copy/paste buttons
+    // const copyPasteButtons = $('<div>').css({
+    //   'display': 'flex',
+    //   'justify-content': 'center',
+    //   'margin-bottom': '10px'
+    // });
+
+    // const copyButton = $('<button>').text('Copy (X)').click(() => this.setCopyMode());
+    // const pasteButton = $('<button>').text('Paste (V)').click(() => this.setPasteMode());
+
+    // copyPasteButtons.append(copyButton, pasteButton);
+    // this.machineDiv.prepend(copyPasteButtons);
+
+    // Modify existing keydown event listener
+    $(document).on('keydown.drawing', (e) => {
+      if (e.key >= '1' && e.key <= '4') {
+        this.drawingColor = parseInt(e.key);
+      } else if (e.key.toLowerCase() === 'c') {
+        this.copyGridAsString();
+      } else if (e.key.toLowerCase() === 'x') {
+        this.setCopyMode();
+      } else if (e.key.toLowerCase() === 'v') {
+        this.setPasteMode();
+      }
+    });
+
+    this.mode = 'draw'; // 'draw', 'copy', or 'paste'
+
+    // Set up event listeners
+    this.screen.on('mousedown.drawing', (e) => this.startDrawing(e));
+    this.screen.on('mousemove.drawing', (e) => this.draw(e));
+    this.screen.on('mouseup.drawing', () => this.stopDrawing());
+    this.screen.on('mouseleave.drawing', () => this.stopDrawing());
+
+    this.redrawGrid(); // Add this line to draw the initial grid
+  }
+
+  setCopyMode() {
+    this.mode = 'copy';
+  }
+
+  setPasteMode() {
+    if (this.copiedShape) {
+      this.mode = 'paste';
+    } else {
+      alert('No shape copied yet!');
+    }
+  }
+
+  startDrawing(e) {
+    const { x, y } = this.getGridCoordinates(e);
+    if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+      if (this.mode === 'draw') {
+        this.isDrawing = true;
+        this.isErasing = this.grid[y][x] !== 0;
+        this.draw(e);
+      } else if (this.mode === 'copy') {
+        this.copyShape(x, y);
+      } else if (this.mode === 'paste') {
+        this.pasteShape(x, y);
+      }
+    }
+  }
+
+  stopDrawing() {
+    this.isDrawing = false;
+    this.isErasing = false;
+  }
+
+  draw(e) {
+    if (!this.isDrawing) return;
+
+    const { x, y } = this.getGridCoordinates(e);
+
+    if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+      if (this.isErasing) {
+        this.grid[y][x] = 0;
+      } else {
+        this.grid[y][x] = this.drawingColor;
+      }
+      this.redrawGrid();
+    }
+  }
+
+  getGridCoordinates(e) {
+    const rect = this.screen[0].getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / this.blockSize) - 1;
+    const y = Math.floor((e.clientY - rect.top) / this.blockSize) - 1;
+    return { x, y };
+  }
+
+  redrawGrid() {
+    this.ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
+
+    // Draw grid lines
+    this.ctx.strokeStyle = 'lightgray';
+    this.ctx.lineWidth = 1;
+
+    // Vertical lines
+    for (let x = 0; x <= this.width; x++) {
+      this.ctx.beginPath();
+      this.ctx.moveTo((x + 1) * this.blockSize, this.blockSize);
+      this.ctx.lineTo((x + 1) * this.blockSize, (this.height + 1) * this.blockSize);
+      this.ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let y = 0; y <= this.height; y++) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.blockSize, (y + 1) * this.blockSize);
+      this.ctx.lineTo((this.width + 1) * this.blockSize, (y + 1) * this.blockSize);
+      this.ctx.stroke();
+    }
+
+    // Draw colored blocks
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        if (this.grid[y][x] !== 0) {
+          this.ctx.fillStyle = COLORS[this.grid[y][x]];
+          this.ctx.fillRect((x + 1) * this.blockSize, (y + 1) * this.blockSize, this.blockSize, this.blockSize);
+        }
+      }
+    }
+  }
+
+  copyGridAsString() {
+    let result = '';
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        result += this.grid[y][x] === 0 ? '_' : this.grid[y][x];
+      }
+      result += '\n';
+    }
+    console.log(result.trim()); // Output to console
+    navigator.clipboard.writeText(result.trim())
+  }
+
+  copyShape(startX, startY) {
+    const color = this.grid[startY][startX];
+    if (color === 0) {
+      alert('Cannot copy empty space!');
+      return;
+    }
+
+    const visited = new Set();
+    const shape = [];
+    let minX = startX, minY = startY;
+
+    const dfs = (x, y) => {
+      if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
+      const key = `${x},${y}`;
+      if (visited.has(key) || this.grid[y][x] !== color) return;
+
+      visited.add(key);
+      shape.push({x: x - startX, y: y - startY});
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+
+      dfs(x+1, y);
+      dfs(x-1, y);
+      dfs(x, y+1);
+      dfs(x, y-1);
+    };
+
+    dfs(startX, startY);
+
+    // Normalize shape to top-left corner
+    this.copiedShape = {
+      color: color,
+      parts: shape.map(part => ({x: part.x - (minX - startX), y: part.y - (minY - startY)}))
+    };
+
+    this.mode = 'paste';
+  }
+
+  pasteShape(x, y) {
+    if (!this.copiedShape) return;
+
+    this.copiedShape.parts.forEach(part => {
+      const newX = x + part.x;
+      const newY = y + part.y;
+      if (newX >= 0 && newX < this.width && newY >= 0 && newY < this.height) {
+        this.grid[newY][newX] = this.copiedShape.color;
+      }
+    });
+
+    this.redrawGrid();
+    this.mode = 'draw'; // Reset to draw mode after pasting
+  }
 }
+
+
+
