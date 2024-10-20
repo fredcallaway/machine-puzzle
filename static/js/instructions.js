@@ -309,6 +309,7 @@ class MachineInstructions extends Instructions {
       ...this.params,
       solutions,
       blockString: this.blockString,
+      machineColor: "#ffe852",
       ...opts,
     })
     mp.attach(this.content)
@@ -410,9 +411,26 @@ class MachineInstructions extends Instructions {
     mp.dialsDisabled = true
   }
 
+
+  async stage_new_machine() {
+    let mp = this.getPuzzle(0, {
+      machineColor: "#656565",
+      solutions: {"0000": null}
+    })
+
+    this.instruct(`
+      For the rest of the experiment, you'll be working on this new machine.
+      It operates in the same way as the yellow practice machine, 
+      but it makes different shapes and uses different codes. 
+    `)
+    mp.manualDiv.hide()
+  }
+
   async stage_quiz() {
     this.instruct(`
       Before moving on, let's make sure you understand how the machine works.
+      If you're not sure, you can navigate to the earlier screens with the 
+      buttons on the sides of the screen.
     `)
 
     this.quiz =
@@ -431,6 +449,9 @@ class MachineInstructions extends Instructions {
           - The machine will break and you'll have to start over
           - The machine will add the shape and add code to the manual
           * Nothing will happen
+        # The codes you learned on the practice machine will work later in the experiment.
+          - true
+          * false
       `)
     await this.quiz.run($("<div>").appendTo(this.prompt))
     this.runNext()

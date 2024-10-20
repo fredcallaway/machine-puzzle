@@ -124,24 +124,29 @@ class MachinePuzzle {
     console.log('options', options);
 
     // Assign default values and override with any options provided
-    _.assign(this, {
-      task: 'null',
-      solutions: {
-        '1112': 'compositional',
-        '1121': 'bespoke'
+    _.assign(
+      this,
+      {
+        task: "null",
+        solutions: {
+          1112: "compositional",
+          1121: "bespoke",
+        },
+        manual: null,
+        blockString: testBlock, // default block
+        dialSpeed: 0.02, // speed of dial drag
+        clickTime: 300, // time threshold for a quick click
+        maxDigit: 6, // max digit allowed on each dial
+        trialID: randomUUID(), // unique trial ID
+        blockSize: 40,
+        width: 7, // Width in block units, not including padding
+        height: 5, // Height in block units, not including padding
+        manualScale: 0.25,
+        drawingMode: false,
+        machineColor: "#656565",
       },
-      manual: null,
-      blockString: testBlock,  // default block
-      dialSpeed: .02,  // speed of dial drag
-      clickTime: 300,  // time threshold for a quick click
-      maxDigit: 6,  // max digit allowed on each dial
-      trialID: randomUUID(),  // unique trial ID
-      blockSize: 40,
-      width: 7,  // Width in block units, not including padding
-      height: 5,  // Height in block units, not including padding
-      manualScale: 0.25,
-      drawingMode: false
-    }, options);
+      options
+    )
     if (this.drawingMode) {
       this.width = 30
       this.height = 30
@@ -174,8 +179,9 @@ class MachinePuzzle {
     this.machineDiv = $("<div>").addClass('machine-div').css({
       width: machineWidth + 'px',
       paddingLeft: this.blockSize + 'px',
-      paddingRight: this.blockSize + 'px' // Add padding on both left and right
-    });
+      paddingRight: this.blockSize + 'px', // Add padding on both left and right
+      backgroundColor: this.machineColor,
+    })
 
     // Create the manual div
     this.manualDiv = $("<div>").addClass('manual-div').css({
