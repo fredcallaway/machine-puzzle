@@ -1,13 +1,17 @@
 # %%
 import json
+import os
 import random
 from itertools import product
 
-N_TASK = 5
-MAX_DIGIT = 5
+N_TASK = 10
+MAX_DIGIT = 6
 CODE_LENGTH = 4
 N_PART = 4
 SOLUTIONS_PER_TASK = 10
+N_MANUAL = 8
+CONFIG_DIR = 'code-pilot'
+N_CONFIG = 50
 
 def separate_shapes(shape_def):
     # Split the string into rows
@@ -50,31 +54,26 @@ class TaskCodeGenerator:
         self.available_codes = []
         self.compositional_codes = {}
         self.used_codes = set()
+        self.tasks = list(product(range(self.n_part), repeat=2))
+        self.task_code_mapping = {}
         
     def generate(self):
-        self.tasks = list(product(range(self.n_part), repeat=2))
         self._generate_all_codes()
-        self.task_code_mapping = {}
-        self._generate_part_codes()
-
-        self.compositional_codes = {f"{i+1}{j+1}": self.left_codes[i] + self.right_codes[j] for i, j in self.tasks}
-        self.used_codes |= set(self.compositional_codes.values())
+        self._generate_compositional_codes()
         self._generate_bespoke_codes()
         self._validate_task_code_mapping()
         return self.task_code_mapping
 
-    def _generate_part_codes(self):
+    def _generate_compositional_codes(self):
         part_codes = self._generate_unique_codes(2)
         self.left_codes = part_codes[:self.n_part]
         self.right_codes = part_codes[self.n_part:2 * self.n_part+1]
-
-    def _generate_tasks(self):
-        self.tasks = list(product(range(self.n_part), repeat=2))
+        self.compositional_codes = {f"{i+1}{j+1}": self.left_codes[i] + self.right_codes[j] for i, j in self.tasks}
+        self.used_codes |= set(self.compositional_codes.values())
 
     def _generate_all_codes(self):
         self.available_codes = self._generate_unique_codes(self.code_length)
         random.shuffle(self.available_codes)
-        self.used_codes = set(self.compositional_codes.values())
 
     def _generate_bespoke_codes(self):
         for task, comp_code in self.compositional_codes.items():
@@ -89,6 +88,7 @@ class TaskCodeGenerator:
 
     def _generate_unique_codes(self, code_length):
         all_possible_codes = [''.join(digits) for digits in product(map(str, range(1, self.max_digit)), repeat=code_length)]
+        random.shuffle(all_possible_codes)
         return all_possible_codes
 
     def _generate_bespoke_code(self, comp_code):
@@ -164,29 +164,15 @@ def compose_block_strings(left, right):
     
     return ''.join(result)
 
-task_code_mapping = TaskCodeGenerator().generate()
-parts = parse_shape_definition()
-
-trials = []
-for (task, solutions) in random.sample(list(task_code_mapping.items()), N_TASK):
-    blockString = compose_block_strings(parts['left'][int(task[0])-1], parts['right'][int(task[1])-1])
-    trials.append({
-        'task': task,
-        'solutions': solutions,
-        'blockString': blockString
-    })
-
-
 def make_bespoke(blockString):
     return blockString.replace('1', '3').replace('2', '3')
 
-N_MANUAL = 16
-def generate_manual():
+def generate_manual(task_code_mapping, parts):
     manual = []
     for task, solutions in random.sample(list(task_code_mapping.items()), N_MANUAL):
         blockString = compose_block_strings(parts['left'][int(task[0])-1], parts['right'][int(task[1])-1])
-        code = list(task_code_mapping[task].keys())[random.choice((0, 1))]
-        compositional = task_code_mapping[task][code] == 'compositional'
+        code = list(solutions.keys())[random.choice((0, 1))]
+        compositional = solutions[code] == 'compositional'
         if not compositional:
             blockString = make_bespoke(blockString)
 
@@ -198,26 +184,47 @@ def generate_manual():
         })
     return manual
 
-config = {
-    'trials': trials,
-    'params': {
-        'maxDigit': MAX_DIGIT,
-        'codeLength': CODE_LENGTH,
-        'nPart': N_PART,
-        'solutionsPerTask': SOLUTIONS_PER_TASK,
-        'manual': generate_manual(),
+def generate_trials(task_code_mapping, parts):
+    trials = []
+    for (task, solutions) in random.choices(list(task_code_mapping.items()), k=N_TASK):
+        blockString = compose_block_strings(parts['left'][int(task[0])-1], parts['right'][int(task[1])-1])
+        trials.append({
+            'task': task,
+            'solutions': solutions,
+            'blockString': blockString
+        })
+    return trials
+
+def generate_config(i):
+    random.seed(i)
+    task_code_mapping = TaskCodeGenerator().generate()
+    parts = parse_shape_definition()
+    trials = generate_trials(task_code_mapping, parts)
+    manual = generate_manual(task_code_mapping, parts)
+    return {
+        'trials': trials,
+        'params': {
+            'maxDigit': MAX_DIGIT,
+            'codeLength': CODE_LENGTH,
+            'nPart': N_PART,
+            'solutionsPerTask': SOLUTIONS_PER_TASK,
+            'manual': manual,
+        }
     }
-}
 
-json.dump(config, open('static/json/config.json', 'w'))
-print('wrote config.json')
+os.makedirs(f'static/json/{CONFIG_DIR}', exist_ok=True)
+for i in range(N_CONFIG):
+    config = generate_config(i)
+    json.dump(config, open(f'static/json/{CONFIG_DIR}/{i}.json', 'w'))
+    print(f'wrote static/json/{CONFIG_DIR}/{i}.json')
 
-# Pretty print one trial and the first entry of the manual
-import pprint
 
-print("Sample Trial:")
-pprint.pprint(trials[0], width=80, indent=2)
+# # Pretty print one trial and the first entry of the manual
+# import pprint
 
-print("\nFirst Manual Entry:")
-pprint.pprint(config['manual'][0], width=80, indent=2)
+# print("Sample Trial:")
+# pprint.pprint(trials[0], width=80, indent=2)
+
+# print("\nFirst Manual Entry:")
+# pprint.pprint(config['manual'][0], width=80, indent=2)
 

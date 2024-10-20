@@ -154,6 +154,7 @@ function alert_success(opts = {}) {
     html: `<em>${flavor}!</em>`,
     icon: 'success',
     confirmButtonText: 'Continue',
+    allowOutsideClick: false,
     ...opts
   })
 }

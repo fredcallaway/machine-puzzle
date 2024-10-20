@@ -1,6 +1,6 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
-  config_dir: "asocial-1"
+  config_dir: "code-pilot"
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
@@ -13,8 +13,7 @@ async function runExperiment() {
     new MachinePuzzle({...PARAMS, drawingMode: true}).run(DISPLAY)
     await make_promise()
   }
-  // let configFile = `static/json/${PARAMS.config_dir}/${CONDITION+1}.json`
-  let configFile = `static/json/config.json`
+  let configFile = `static/json/${PARAMS.config_dir}/${CONDITION+1}.json`
   try {
     config = await $.getJSON(configFile)
   } catch(err) {
@@ -37,6 +36,7 @@ async function runExperiment() {
     }).run(DISPLAY)
   }
 
+  
   async function social() {
     if (config.params.manual.length == 0) return
     logEvent('experiment.social')

@@ -122,8 +122,6 @@ _11222_
 class MachinePuzzle {
   
   constructor(options = {}) {
-    console.log('options', options);
-
     // Assign default values and override with any options provided
     _.assign(
       this,
@@ -135,7 +133,7 @@ class MachinePuzzle {
         },
         manual: null,
         blockString: testBlock, // default block
-        dialSpeed: 0.02, // speed of dial drag
+        dialSpeed: 0.03, // speed of dial drag
         clickTime: 300, // time threshold for a quick click
         maxDigit: 6, // max digit allowed on each dial
         trialID: randomUUID(), // unique trial ID
@@ -155,15 +153,18 @@ class MachinePuzzle {
       this.blockSize = 30
     }
 
-    this.logEvent('machine.initialize', _.pick(this, ['task', 'solutions', 'blockString']))
+    this.logEvent('machine.initialize', _.pick(this, ['task', 'solutions', 'blockString', 'manual']))
     // Calculate screen dimensions based on blockSize, width, and height
     this.screenWidth = (this.width + 2) * this.blockSize; // +2 for padding
     this.screenHeight = (this.height + 2) * this.blockSize; // +2 for padding
 
     window.cp = this;
 
-    this.codeLength = Object.keys(this.solutions)[0].length
-    this.currentCode = Array(this.codeLength).fill(1); // default starting code, length based on codeLength
+    this.codeLength = Object.keys(this.solutions)[0].length || 4
+    // Generate a random starting code that's not in solutions
+    do {
+      this.currentCode = Array(this.codeLength).fill().map(() => Math.floor(Math.random() * this.maxDigit) + 1);
+    } while (this.solutions[this.currentCode.join('')]);
 
     // Create the top-level div
     this.div = $("<div>").addClass('puzzle-container').css({
@@ -243,12 +244,10 @@ class MachinePuzzle {
   }
 
   drawTarget(mode='target') {
-    console.log("👉 drawTarget", mode)
     this.drawShape(this.ctx, this.blockString, mode);
   }
 
   drawShape(ctx, blockString, mode, manual=false) {
-    console.log('drawShape', mode)
     let blockSize = manual ? this.blockSize * this.manualScale : this.blockSize
     
     // Clear the screen (canvas context)
@@ -349,17 +348,20 @@ class MachinePuzzle {
           if (mouseUpTime - mouseDownTime < this.clickTime && Math.abs(event.pageY - startY) < 5) {
             // Use the incrementDial function to handle the increment logic
             this.incrementDial(i);
+            this.lastAction = `click.${i}`;
 
           } else {
             // Ensure currentNumber stays between 1 and maxDigit after dragging
             currentNumber = ((Math.round(currentNumber) - 1) % this.maxDigit + this.maxDigit) % this.maxDigit + 1;
             this.currentCode[i] = currentNumber;
+            this.lastAction = `drag.${i}`;
           }
 
           // Update the display for each dial
           for (let j = 0; j < this.codeLength; j++) {
             this.numberEls[j].text(this.currentCode[j]);
           }
+
 
           // Check the code after the change
           this.checkCode();
@@ -388,13 +390,13 @@ class MachinePuzzle {
       }
     }
 
-    this.machineDiv.append(dialContainer); // Append to machineDiv instead of div
+    this.machineDiv.append(dialContainer);
   }
 
 
   incrementDial(position) {
     // Increment the number at the current position
-    this.currentCode[position] = (this.currentCode[position] % this.maxDigit) + 1;  // Use maxDigit
+    this.currentCode[position] = (this.currentCode[position] % this.maxDigit) + 1;
 
     // Check if carrying is needed (i.e., if we incremented from maxDigit to 1)
     if (this.currentCode[position] === 1 && position > 0) {
@@ -421,6 +423,7 @@ class MachinePuzzle {
       compositional: solutionType == 'compositional',
       code: this.currentCode.join(''),
       })
+      this.logEvent('machine.manual.update', { solutionType, code: this.currentCode.join('') }); // Add this line
     }
   }
 
@@ -467,21 +470,22 @@ class MachinePuzzle {
     // BROKEN: this doesn't seem to work
     $(document).off('.machine'); // Remove handlers from document
     this.div.off('.machine');    // Remove handlers from div elements
+    this.logEvent('machine.handlers.cleared'); // Add this line
   }
 
   checkCode() {
     // Compare the current code with the correct code
     let input = this.currentCode.join('')
+    let info = { code: input, action: this.lastAction }
     if (this.solutions[input]) {
-      this.logEvent('machine.enter.correct', { code: this.currentCode.join('') });
+      this.logEvent('machine.enter.correct', info);
       this.showSolution(this.solutions[input])
     } else {
       // this.drawShape(this.ctx, this.blockString, 'gray'); // Keep the shape gray if incorrect
-      this.logEvent('machine.enter.incorrect', { code: this.currentCode.join('') });
+      this.logEvent('machine.enter.incorrect', info);
     }
   }
 
-  
   createManual() {
     const manualContainer = $('<div>').addClass('manual-container').css({
       'border': '2px solid black',
@@ -493,7 +497,7 @@ class MachinePuzzle {
     });
 
     const title = $('<h3>').text('Shape Manual').css({
-      'text-align': 'center',
+      'text-align': 'left',
       'margin-bottom': '10px'
     });
 
@@ -501,7 +505,7 @@ class MachinePuzzle {
 
     const examplesContainer = $('<div>').css({
       'display': 'flex',
-      'justify-content': 'space-around',
+      'justify-content': 'flex-start',
       'flex-wrap': 'wrap'
     });
 
@@ -583,7 +587,10 @@ class MachinePuzzle {
       .css({
         'margin-left': '10px'
       })
-      .click(() => this.copyGridAsString());
+      .click(() => {
+        this.copyGridAsString();
+        this.logEvent('machine.drawing.copy'); // Add this line
+      });
 
     colorSelector.append(copyButton);
 
@@ -628,13 +635,16 @@ class MachinePuzzle {
 
   setCopyMode() {
     this.mode = 'copy';
+    this.logEvent('machine.drawing.mode', { mode: 'copy' }); // Add this line
   }
 
   setPasteMode() {
     if (this.copiedShape) {
       this.mode = 'paste';
+      this.logEvent('machine.drawing.mode', { mode: 'paste' }); // Add this line
     } else {
       alert('No shape copied yet!');
+      this.logEvent('machine.drawing.paste.error', { error: 'No shape copied' }); // Add this line
     }
   }
 
@@ -645,10 +655,13 @@ class MachinePuzzle {
         this.isDrawing = true;
         this.isErasing = this.grid[y][x] !== 0;
         this.draw(e);
+        this.logEvent('machine.drawing.start', { mode: 'draw', x, y, isErasing: this.isErasing }); // Add this line
       } else if (this.mode === 'copy') {
         this.copyShape(x, y);
+        this.logEvent('machine.drawing.start', { mode: 'copy', x, y }); // Add this line
       } else if (this.mode === 'paste') {
         this.pasteShape(x, y);
+        this.logEvent('machine.drawing.start', { mode: 'paste', x, y }); // Add this line
       }
     }
   }
@@ -779,6 +792,3 @@ class MachinePuzzle {
     this.mode = 'draw'; // Reset to draw mode after pasting
   }
 }
-
-
-
