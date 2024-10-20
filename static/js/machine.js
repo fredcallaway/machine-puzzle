@@ -217,8 +217,10 @@ class MachinePuzzle {
     this.logEvent('machine.run');
     if (display) this.attach(display); // attach the display if provided
     this.drawTarget()
-    await make_promise();
+    // this.showSolution('compositional')
+    // await make_promise()
     await this.done; // wait until the puzzle is completed
+    this.logEvent('machine.done')
   }
 
   createScreen() {
@@ -239,6 +241,7 @@ class MachinePuzzle {
   }
 
   drawTarget(mode='target') {
+    console.log("👉 drawTarget", mode)
     this.drawShape(this.ctx, this.blockString, mode);
   }
 
@@ -398,7 +401,30 @@ class MachinePuzzle {
     }
   }
 
+
+  updateManual(solutionType) {
+    // Check if this entry already exists in the manual
+    const existingEntry = this.manual.find(entry => 
+      entry.task === this.task &&
+      entry.blockString === this.blockString &&
+      entry.compositional === (solutionType === 'compositional') &&
+      entry.code === this.currentCode.join('')
+    );
+
+    // If the entry doesn't exist, add it to the manual
+    if (!existingEntry) {
+    this.manual.push({
+      task: this.task,
+      blockString: this.blockString,
+      compositional: solutionType == 'compositional',
+      code: this.currentCode.join(''),
+      })
+    }
+  }
+
   async showSolution(solutionType) {
+    this.logEvent("machine.solved", {solutionType})
+    this.updateManual(solutionType)
     this.drawTarget(solutionType); // Draw blue shape on success
     let colors = solutionType == 'compositional' ? [1, 1, 2, 2] : [3, 3, 3, 3]
     this.numberEls.forEach((el, idx) => {
@@ -406,7 +432,31 @@ class MachinePuzzle {
     })
     this.dialsDisabled = true
     this.clearHandlers()
-    this.done.resolve(); // Mark the puzzle as complete
+    // checkmark on goal
+    $("<p>")
+      .html("&#x2713")
+      .css({
+        position: "absolute",
+        fontSize: 200,
+        top: -140,
+        // marginTop: -200,
+        zIndex: 5,
+      })
+      .appendTo(this.goalBox)
+
+    // party parrot
+    $("<img>", { src: "static/img/parrot.gif" })
+      .css({
+        position: "absolute",
+        left: 0,
+        top: -53,
+        width: 50,
+        zIndex: 10,
+      })
+      .appendTo(this.machineDiv)
+    await sleep(500)
+    await alert_success()
+    this.done.resolve()
   }
 
   clearHandlers() {

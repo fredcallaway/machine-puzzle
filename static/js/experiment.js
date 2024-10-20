@@ -70,7 +70,7 @@ async function runExperiment() {
     DISPLAY.empty()
 
     let top = new TopBar({
-      nTrial: PARAMS.trials.length,
+      nTrial: config.trials.length,
       height: 70,
       width: 1150,
       helpTitle: 'Feeling stuck?',
@@ -93,7 +93,7 @@ async function runExperiment() {
     let workspace = $('<div>').appendTo(DISPLAY)
 
     for (let trial of config.trials) {
-      await new MachinePuzzle({manual: config.manual, ...trial}).run(workspace)
+      await new MachinePuzzle({...PARAMS, ...trial}).run(workspace)
       top.incrementCounter()
       saveData()
     }
