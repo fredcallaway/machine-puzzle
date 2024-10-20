@@ -9,6 +9,10 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 
 async function runExperiment() {
+  if (urlParams.draw) {
+    new MachinePuzzle({...PARAMS, drawingMode: true}).run(DISPLAY)
+    await make_promise()
+  }
   // let configFile = `static/json/${PARAMS.config_dir}/${CONDITION+1}.json`
   let configFile = `static/json/config.json`
   try {
@@ -21,7 +25,7 @@ async function runExperiment() {
   console.log('manual', config.manual)
   // config.recipes = []
 
-  _.extend(PARAMS, config)
+  _.extend(PARAMS, config.params)
 
   logEvent('experiment.initialize', {CONDITION, PARAMS})
   enforceScreenSize(1200, 750)

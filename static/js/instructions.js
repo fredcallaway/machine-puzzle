@@ -1,82 +1,84 @@
-
 class Instructions {
   constructor(options = {}) {
-    _.assign(this, {
-      height: 800,
-      promptWidth: 700,
-      promptHeight: 130,
-      contentWidth: 1200,
-    }, options)
+    _.assign(
+      this,
+      {
+        height: 800,
+        promptWidth: 700,
+        promptHeight: 130,
+        contentWidth: 1200,
+      },
+      options
+    )
     this.width = Math.max(this.promptWidth, this.contentWidth)
 
-    this.div = $('<div>')
-    .css({
+    this.div = $("<div>").css({
       height: this.height,
       width: this.width,
       // border: 'thick black solid',
-      position: 'relative',
-      margin: 'auto',
-      padding: '10px',
-      'user-select': 'none',
+      position: "relative",
+      margin: "auto",
+      padding: "10px",
+      "user-select": "none",
     })
 
-    let help = $('<button>')
-    .appendTo(this.div)
-    .css({
-      'position': 'absolute',
-      'right': '-50px',
-      'top': '10px'
-    })
-    .addClass('btn-help')
-    .text('?')
-    .click(async () => {
-      await Swal.fire({
-          title: 'Help',
+    let help = $("<button>")
+      .appendTo(this.div)
+      .css({
+        position: "absolute",
+        right: "-50px",
+        top: "10px",
+      })
+      .addClass("btn-help")
+      .text("?")
+      .click(async () => {
+        await Swal.fire({
+          title: "Help",
           html: `
             Use the << and >> buttons to flip through the sections. You have
             to follow all the instructions on a page before you can advance to the next one.
             If you get stuck, try clicking << and then >> to start the section over.
           `,
-          icon: 'info',
-          confirmButtonText: 'Got it!',
+          icon: "info",
+          confirmButtonText: "Got it!",
         })
-    })
+      })
 
-    this.btnPrev = $('<button>')
-    .addClass('btn')
-    .text('<<')
-    .css({
-      position: 'absolute',
-      top: '30px',
-      left: '30px',
-    })
-    .click(() => this.runPrev())
-    .prop('disabled', true)
-    .appendTo(this.div)
+    this.btnPrev = $("<button>")
+      .addClass("btn")
+      .text("<<")
+      .css({
+        position: "absolute",
+        top: "30px",
+        left: "30px",
+      })
+      .click(() => this.runPrev())
+      .prop("disabled", true)
+      .appendTo(this.div)
 
-    this.btnNext = $('<button>')
-    .addClass('btn')
-    .text('>>')
-    .css({
-      position: 'absolute',
-      top: '30px',
-      right: '30px',
-    })
-    .click(() => this.runNext())
-    .prop('disabled', true)
-    .appendTo(this.div)
+    this.btnNext = $("<button>")
+      .addClass("btn")
+      .text(">>")
+      .css({
+        position: "absolute",
+        top: "30px",
+        right: "30px",
+      })
+      .click(() => this.runNext())
+      .prop("disabled", true)
+      .appendTo(this.div)
 
-    this.prompt = $('<div>').css({
-      'max-width': this.promptWidth,
-      'min-height': this.promptHeight,
-      'margin': 'auto',
-      'margin-bottom': 50,
-    }).appendTo(this.div)
+    this.prompt = $("<div>")
+      .css({
+        "max-width": this.promptWidth,
+        "min-height": this.promptHeight,
+        margin: "auto",
+        "margin-bottom": 50,
+      })
+      .appendTo(this.div)
 
-    this.content = $('<div>')
-    .appendTo(this.div)
-    .css({
-      float: 'left',
+    this.content = $("<div>").appendTo(this.div).css({
+      float: "left",
       width: this.contentWidth,
       // border: '1px solid red',
     })
@@ -84,13 +86,12 @@ class Instructions {
     this.stage = 0
     this.maxStage = 0
     this.stages = Object.getOwnPropertyNames(Object.getPrototypeOf(this))
-    .filter(f => f.startsWith('stage_'))
-    .map(f => this[f])
+      .filter((f) => f.startsWith("stage_"))
+      .map((f) => this[f])
 
     this.completed = make_promise()
 
     this.promises = []
-
   }
 
   attach(display) {
@@ -138,15 +139,15 @@ class Instructions {
     this.prompt.html(markdown(md))
   }
 
-  async button(text='continue', opts={}) {
-    _.defaults(opts, {delay: 0})
+  async button(text = "continue", opts = {}) {
+    _.defaults(opts, { delay: 0 })
     let btn = button(this.prompt, text, opts)
     await btn.clicked
     btn.remove()
   }
 
   instruct(md) {
-    let prog = this.stage ? `(${this.stage}/${this.stages.length})` : ''
+    let prog = this.stage ? `(${this.stage}/${this.stages.length})` : ""
     this.message(`# Instructions ${prog}\n\n` + md)
   }
 
@@ -155,13 +156,13 @@ class Instructions {
     this._sleep?.reject()
     this.prompt.empty()
     this.content.empty()
-    this.content.css({opacity: 1}) // just to be safe
+    this.content.css({ opacity: 1 }) // just to be safe
     logEvent(`instructions.runStage.${n}`)
     this.maxStage = Math.max(this.maxStage, n)
     this.stage = n
-    this.btnNext.prop('disabled', this.stage >= this.maxStage)
-    this.btnPrev.prop('disabled', this.stage <= 1)
-    await this.stages[n-1].bind(this)()
+    this.btnNext.prop("disabled", this.stage >= this.maxStage)
+    this.btnPrev.prop("disabled", this.stage <= 1)
+    await this.stages[n - 1].bind(this)()
     if (this.stage == n) {
       // check to make sure we didn't already move forward
       this.enableNext()
@@ -170,11 +171,11 @@ class Instructions {
 
   runNext() {
     saveData()
-    logEvent('instructions.runNext')
-    this.btnNext.removeClass('btn-pulse')
+    logEvent("instructions.runNext")
+    this.btnNext.removeClass("btn-pulse")
     if (this.stage == this.stages.length) {
-      logEvent('instructions.completed')
-      psiturk.finishInstructions();
+      logEvent("instructions.completed")
+      psiturk.finishInstructions()
       this.completed.resolve()
       this.div.remove()
     } else {
@@ -183,33 +184,62 @@ class Instructions {
   }
 
   async runPrev() {
-    logEvent('instructions.runPrev')
+    logEvent("instructions.runPrev")
     await this.runStage(this.stage - 1)
   }
 
   enableNext() {
-    this.btnNext.addClass('btn-pulse')
+    this.btnNext.addClass("btn-pulse")
     this.maxStage = Math.max(this.maxStage, this.stage + 1)
-    this.btnNext.prop('disabled', false)
+    this.btnNext.prop("disabled", false)
   }
 }
 
+function parseQuizText(text) {
+  const lines = text.trim().split("\n")
+  const questions = []
+  let currentQuestion = null
 
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+    if (trimmedLine.startsWith("#")) {
+      if (currentQuestion) {
+        questions.push(currentQuestion)
+      }
+      currentQuestion = [trimmedLine.slice(1).trim(), [], null]
+    } else if (trimmedLine.startsWith("-") || trimmedLine.startsWith("*")) {
+      const option = trimmedLine.slice(1).trim()
+      currentQuestion[1].push(option)
+      if (trimmedLine.startsWith("*")) {
+        currentQuestion[2] = option
+      }
+    }
+  }
+
+  if (currentQuestion) {
+    questions.push(currentQuestion)
+  }
+
+  return questions
+}
 
 class Quiz {
   constructor(questions) {
+    if (typeof questions == "string") {
+      questions = parseQuizText(questions)
+    }
     this.questions = questions
-    this.div = $('<div>')
+    this.div = $("<div>")
     this.done = make_promise()
     this.correct = []
     this.inputs = questions.map((q) => {
       this.correct.push(q[2])
       return radio_buttons(this.div, q[0], q[1])
     })
-    this.button = $('<button>', {class: 'btn btn-primary'})
-    .text('check answers')
-    .appendTo(this.div)
-    .click(() => this.check())
+    this.button = $("<button>", { class: "btn btn-primary" })
+      .text("check answers")
+      .appendTo(this.div)
+      .click(() => this.check())
   }
 
   attach(div) {
@@ -225,248 +255,159 @@ class Quiz {
   }
 
   check() {
-    let answers = this.inputs.map(i => i.val())
-    logEvent('quiz.check', {answers, correct: this.correct})
+    let answers = this.inputs.map((i) => i.val())
+    logEvent("quiz.check", { answers, correct: this.correct })
     let pass = _.every(_.zip(answers, this.correct), ([a, c]) => {
       return a == c
     })
-    console.log('pass', pass)
+    console.log("pass", pass)
     if (pass) {
       alert_success()
       this.done.resolve()
     } else {
       alert_failure({
-        title: 'Try again',
-        html: "Click the arrows at the top of the screen to review the instructions if needed."
+        title: "Try again",
+        html: "Click the arrows at the top of the screen to review the instructions if needed.",
       })
     }
   }
 }
 
-
 class MachineInstructions extends Instructions {
   constructor(params) {
-    super({contentWidth: 1200, })
+    super({ contentWidth: 1200 })
     this.params = _.cloneDeep(params)
+    let blockString = (this.blockString = `
+      11___22
+      _11222_
+      __112__
+      _11222_
+      11___22
+    `)
+    this.blockString2 = `
+      1_____2
+      1_122_2
+      1111222
+      1_122_2
+      1_____2
+    `
+
+    this.manual = [
+      { code: "1234", compositional: false, blockString },
+      { code: "1235", compositional: false, blockString },
+      { code: "3124", compositional: true, blockString },
+    ]
     window.instruct = this
   }
 
-  getPuzzle(opts={}) {
-    let mp = new MachinePuzzle({...this.params, ...opts })
-    // mp.book.hide()
-    // mp.goalBox.hide()
-    // mp.chemicalDiv.hide()
+  getPuzzle(idx, opts = {}) {
+    let code = this.manual[idx].code
+    let type = this.manual[idx].compositional ? "compositional" : "bespoke"
+    let solutions = {[code]: type}
+
+    let mp = new MachinePuzzle({
+      ...this.params,
+      solutions,
+      blockString: this.blockString,
+      ...opts,
+    })
     mp.attach(this.content)
-    $('.machine-div button').prop('disabled', true)
     return mp
   }
 
   async stage_welcome() {
-    // this.instruct(`
-    //   Thanks for participating! We'll start with some quick instructions.
-    // `)
-
-    let mp = this.getPuzzle()
+    let mp = this.getPuzzle(0)
     mp.manualDiv.hide()
-    // mp.drawShape()
+    mp.solutions = {}
 
     this.instruct(`
-      Welcome! In this experiment, you will be synthesizing chemicals using
-      a machine like the one below (this simple one is just for practice).
+      Welcome! In this experiment, you will be building shapes using
+      the machine below. (Click the pulsing arrow to continue).
     `)
   }
 
   async stage_intro() {
-    let mp = this.getPuzzle()
-    window.foo = mp
-    for (let i of _.range(mp.nChemical)) {
-      mp.addChemical(i)
-    }
-    $('.machine-div button').prop('disabled', true)
+    let mp = this.getPuzzle(0)
+    mp.manualDiv.hide()
+    mp.drawTarget()
+    this.instruct(`
+      On each round, a shape will appear on the screen. 
+      Your job is to find a code that produces this shape. 
+      You can click and drag the dials to change the code. 
+      As soon as you land on the right code, the shape will be built. 
+      Try entering the code 1234.
+    `)
+    await mp.done
+    // this.prompt.append('<b>Nice!</b>');
+  }
 
-    mp.chemicalDiv.show()
+  async stage_multiple() {
+    let mp = this.getPuzzle(1)
+    mp.manualDiv.hide()
+    mp.drawTarget()
+    this.instruct(`
+      Each shape can be built using multiple codes. 
+      Try to find another code that builds this shape.
+      (We disabled 1234).
+
+      <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        <strong>Tip:</strong>
+        You can quickly go through possible codes by clicking on one of the dials.
+        It will automatically increment the next dial when you cycle back to 1.
+      </div>
+    `)
+    await mp.done
+    // this.prompt.append('<b>Nice!</b>');
+  }
+
+  async stage_compositional() {
+    let mp = this.getPuzzle(2)
+    mp.manualDiv.hide()
+    mp.drawTarget()
+    this.instruct(`
+      Try to find one more code. Hint: this one ends with 24.
+
+      <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        <strong>Tip:</strong> 
+        Start by setting the last two digits to 24. Then repeatedly click on the second
+        dial to go through possible codes that end with 24.
+      </div>
+    `)
+    await mp.done
+    // this.prompt.append('<b>Nice!</b>');
+  }
+
+  async stage_manual() {
+    let mp = this.getPuzzle(2, { manual: this.manual })
+    mp.drawTarget()
+    mp.dialsDisabled = true
 
     this.instruct(`
-      There are 3 different chemicals: X, Y, and Z.
+      To help you remember what you've learned about the machine, we'll keep an updated manual for you.
+      Every time you discover a new code, we'll add it to the manual.
     `)
   }
 
-  async stage_stock() {
-    let mp = this.getPuzzle()
-    mp.addChemical(0)
-    mp.chemicalDiv.show()
-    $('.machine-div button').prop('disabled', true)
+  async stage_only_target() {
+    let mp = this.getPuzzle(0, {
+      manual: this.manual,
+      blockString: this.blockString2,
+      solutions: { "0000": null },
+    })
+    mp.drawTarget()
 
     this.instruct(`
-      But on each round, you will start with only one chemical in stock.
+      One last thing. The machine will only ever produce the shape on the screen.
+      If you enter a code for a different shape, nothing will happen.
+      Try entering 1234 into the machine to see what happens.
     `)
-  }
-
-  async stage_goal() {
-    let mp = this.getPuzzle({start: 0, goal: 1})
-    mp.addChemical(0)
-    mp.chemicalDiv.show()
-    mp.goalBox.show()
-    $('.machine-div button').prop('disabled', true)
-
-    this.instruct(`
-      Your job is to synthesize a **goal chemical**, in this case **chemical Y**.
-    `)
-  }
-
-  async stage_example() {
-    let mp = this.getPuzzle({start: 0, goal: 1, trialID: 'example-one'})
-    mp.addChemical(0)
-    mp.chemicalDiv.show()
-    mp.goalBox.show()
-
-    this.instruct(`
-      You can synthesize other chemicals using the machine.
-      Put **chemical X** in the machine by clicking on it.
-    `)
-    await this.eventPromise(`machine.activateChemical`)
-    $('.chemical').prop('disabled', true)
-
-    this.instruct(`
-      Next, you enter the chemical you want to synthesize. Select **chemical Y**
-      by clicking the button labeled Y.
-
-    `)
-    mp.targetEls[1].prop('disabled', false)
-    await this.eventPromise(`machine.activateTarget`)
-
-    this.instruct(`
-      Finally, you enter a operation code. Try using **operation code 1**.
-    `)
-    mp.modeEls[0].prop('disabled', false)
-    await this.eventPromise(`machine.activateMode.0`)
-
-    this.instruct('Great! The machine is now ready to run. Pull the lever!')
-    $('.mode').prop('disabled', true)
-
-    await this.eventPromise('machine.addChemical')
-
-    this.instruct('Well done!')
-    $('.machine-div button').prop('disabled', true)
-  }
-
-  async stage_recipes() {
-    let mp = this.getPuzzle({recipes: [[0, 0, 1]]})
-    // mp.machineWrapper.hide()
-    mp.chemicalDiv.show()
-    mp.book.show()
-
-    this.instruct(`
-      To help you remember what you've learned about the machine, we'll keep an updated **manual** for you.
-      Every time you discover a new transformation, we'll add it to the manual.
-    `)
-  }
-
-  async stage_example_brute() {
-    let mp = this.getPuzzle({start: 1, goal: 2, trialID: 'example-brute', recipes: [[0, 0, 1]]})
-    mp.addChemical(1)
-    mp.chemicalDiv.show()
-    mp.goalBox.show()
-    mp.book.show()
-
-    this.instruct(`Let's try another one. Add **chemical Y** to the machine.`)
-    await this.eventPromise(`machine.activateChemical.1`)
-
-
-    this.instruct(`Now try to synthesize **chemical Z**`)
-    $('.target').prop('disabled', true)
-    mp.targetEls[2].prop('disabled', false)
-    await this.eventPromise(`machine.activateTarget.2`)
-
-    this.instruct(`Try **operation code 1** again.`)
-    $('.mode').prop('disabled', true)
-    mp.modeEls[0].prop('disabled', false)
-    await this.eventPromise(`machine.activateMode.0`)
-
-    this.instruct('Pull that lever!')
-    await this.eventPromise('machine.result')
-
-    this.instruct(`
-      Oh... yuck. That didn't look good. What about **operation code 2**?
-    `)
-
-    $('.target').prop('disabled', true)
-    mp.targetEls[2].prop('disabled', false)
-    $('.mode').prop('disabled', true)
-    mp.modeEls[1].prop('disabled', false)
-    await this.eventPromise('machine.result')
-
-    this.instruct(`
-      OK, I'm feeling really good about **operation code 3**.
-    `)
-
-    $('.target').prop('disabled', true)
-    mp.targetEls[2].prop('disabled', false)
-    $('.mode').prop('disabled', true)
-    mp.modeEls[2].prop('disabled', false)
-    await this.eventPromise('machine.result')
-
-    $('.machine-div button').prop('disabled', true)
-
-    this.instruct(`
-      Third time's the charm! We've added this transformation to the manual.
-    `)
-  }
-
-  async stage_example_twostep() {
-    let mp = this.getPuzzle({start: 0, goal: 2, recipes: [[0, 0, 1], [1, 2, 2]], trialID: 'example-twostep'})
-    mp.addChemical(0)
-    mp.chemicalDiv.show()
-    mp.goalBox.show()
-    mp.book.show()
-
-    this.instruct(`
-      Let's try one more. We need to turn chemical X into chemical Z.
-      Start by adding **chemical X** to the machine.
-    `)
-    await this.eventPromise(`machine.activateChemical.0`)
-    $('.chemical').prop('disabled', true)
-
-    this.instruct(`
-      This one might be easier to do in two steps. Try to synthesize **chemical Y**.
-
-      *psst: don't forget about the manual!*
-    `)
-    $('.target').prop('disabled', true)
-    mp.targetEls[1].prop('disabled', false)
-    $('.mode').prop('disabled', false)
-    await this.eventPromise('machine.addChemical.1')
-
-    this.instruct(`
-      Awesome! Now you can add your newly synthesized **chemical Y** to the machine...
-    `)
-    await this.eventPromise('machine.activateChemical.1')
-
-    this.instruct(`
-      ...and you should be able to synthesize **chemical Z**.
-    `)
-    await this.eventPromise('machine.addChemical.2')
-
-    this.instruct('Beautiful!')
-  }
-
-  async stage_invalid() {
-    let mp = this.getPuzzle({start: 0, goal: 0, recipes: [[0, 0, 1], [1, 2, 2]], trialID: 'example-invalid', disableInvalid: true})
-    mp.addChemical(2)
-    mp.chemicalDiv.show()
-    mp.goalBox.show()
-    mp.book.show()
-
-    this.instruct(`
-      One last thing. There are some chemical transformations that the machine just can't perform.
-      Try adding **chemical Z** to the machine.
-    `)
-    await this.eventPromise('machine.activateChemical.2')
-    this.instruct(`
-      You can see that the X and Z buttons are grayed out. This means it's not possible to synthesize
-      chemical X or Z directly from chemical Z.
-    `)
-
+    await this.eventPromise(
+      (event) => event.event.startsWith("machine.enter") && event.code == "1234"
+    )
+    this.instruct("See? Nothing happened.")
+    mp.dialsDisabled = true
   }
 
   async stage_quiz() {
@@ -474,18 +415,25 @@ class MachineInstructions extends Instructions {
       Before moving on, let's make sure you understand how the machine works.
     `)
 
-
-    this.quiz = this.quiz ?? new Quiz([  // use pre-existing quiz so answers are saved
-      ['To complete each round, you need to synthesize the specified goal chemical.' , ['true', 'false'], 'true'],
-      ['What is the goal chemical on the previous screen? (You can check!)', ['X', 'Y', 'Z'], 'X'],
-      // [`According to the manual, in mode ${mn} the machine will turn chemical ${cn1} into which chemical?`, mp.chemicalNames, cn2],
-      [`According to the manual, which operation code should you enter to turn chemical Y into chemical Z?`, [1,2,3], 3],
-      ['You must synthesize the goal chemical directly from your starting chemical.' , ['true', 'false'], 'false'],
-      ['The manual includes all possible chemical transformations.' , ['true', 'false'], 'false'],
-      // ['Every chemical can be directly transformed into every other chemical.' , ['true', 'false'], 'true'],
-      // ['A given mode always produces the same chemical, regardless of the input chemical.' , ['true', 'false'], 'false'],
-    ])
+    this.quiz =
+      this.quiz ??
+      new Quiz(`
+        # There is only one code to make each shape.
+          - true
+          * false
+        # What is the easiest way to find the code for a shape?
+        * Check the manual
+          - Guess randomly
+        # If you still have no idea after checking the manual, what should you do?
+          * Systematically try codes by repeatedly clicking on one of the dials
+          - Guess random codes by sliding the dials up and down
+        # If you enter the code for a different shape, what will happen?
+          - The machine will break and you'll have to start over
+          - The machine will add the shape and add code to the manual
+          * Nothing will happen
+      `)
     await this.quiz.run($("<div>").appendTo(this.prompt))
+    this.runNext()
   }
 
   async stage_final() {
@@ -499,13 +447,14 @@ class MachineInstructions extends Instructions {
         study.
       </div>
     `)
-    let question = 'Are you going to refresh the page after completing the instructions?'
-    let radio = radio_buttons(this.prompt, question, ['yes', 'no'])
-    let post = $('<div>').appendTo(this.prompt)
+    let question =
+      "Are you going to refresh the page after completing the instructions?"
+    let radio = radio_buttons(this.prompt, question, ["yes", "no"])
+    let post = $("<div>").appendTo(this.prompt)
     let no = make_promise()
     let done = false
     radio.click((val) => {
-      if (val == 'yes') {
+      if (val == "yes") {
         post.html("Haha... But seriously.")
       } else {
         no.resolve()
@@ -513,9 +462,9 @@ class MachineInstructions extends Instructions {
     })
     await no
     radio.buttons().off()
-    radio.buttons().prop('disabled', true)
-    post.html('Good. No refreshing!')
-    await this.button('finish instructions')
+    radio.buttons().prop("disabled", true)
+    post.html("Good. No refreshing!")
+    await this.button("finish instructions")
     this.runNext() // don't make them click the arrow
   }
 }

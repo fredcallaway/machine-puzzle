@@ -76,8 +76,8 @@ class RadioButtons extends Input {
     $('<div>')
     .html(choices.map(choice => `
       <input type="radio" id="${choice}" name="${this._name}" value="${choice}">
-      <label for="${choice}">${choice}&nbsp;&nbsp</label>
-    `).join('\n'))
+      <label for="${choice}">${choice}&nbsp;&nbsp;</label>
+    `).join(choices.join('').length > 80 ? '<br>' : ''))
     .appendTo(this.div)
 
   }

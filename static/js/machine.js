@@ -112,11 +112,11 @@ function string2blockSplit(s, x, y) {
 }
 
 const testBlock = `
-  112
-  _122
-  11122
-  _122
-  112
+11___22
+_11222_
+__112__
+_11222_
+11___22
 `
 
 class MachinePuzzle {
@@ -210,7 +210,7 @@ class MachinePuzzle {
   async run(display) {
     this.logEvent('machine.run');
     if (display) this.attach(display); // attach the display if provided
-    this.drawShape(this.ctx, this.blockString, 'target');
+    this.drawTarget()
     await make_promise();
     await this.done; // wait until the puzzle is completed
   }
@@ -230,6 +230,10 @@ class MachinePuzzle {
 
     // Initialize the canvas context (this.ctx)
     this.ctx = this.screen[0].getContext('2d');
+  }
+
+  drawTarget(mode='target') {
+    this.drawShape(this.ctx, this.blockString, mode);
   }
 
   drawShape(ctx, blockString, mode, manual=false) {
@@ -295,8 +299,9 @@ class MachinePuzzle {
     this.numberEls = []; // Store number elements for updating later
 
     for (let i = 0; i < this.codeLength; i++) {
-      let dialWrapper = $('<div></div>').css(dialStyle).data('index', i);
+      let dialWrapper = $('<div></div>').addClass('dial').attr('id', `dial-${i}`).css(dialStyle).data('index', i);
       let numberElement = $('<div></div>').addClass('dial-number').text(this.currentCode[i]);
+
       this.numberEls.push(numberElement); // Store each number element in the array for later updates
 
       dialWrapper.append(numberElement);
@@ -308,7 +313,7 @@ class MachinePuzzle {
 
       // Attach mousedown handler (namespaced for this trial)
       dialWrapper.on('mousedown.machine', (event) => {
-        if (this.solved) return  // HACK to fix clearHandlers not working
+        if (this.dialsDisabled) return  // HACK to fix clearHandlers not working
         isDragging = false;
         startY = event.pageY;
         mouseDownTime = Date.now(); // Record the mousedown time
@@ -388,15 +393,13 @@ class MachinePuzzle {
   }
 
   async showSolution(solutionType) {
-    this.drawShape(this.ctx, this.blockString, solutionType); // Draw blue shape on success
+    this.drawTarget(solutionType); // Draw blue shape on success
     let colors = solutionType == 'compositional' ? [1, 1, 2, 2] : [3, 3, 3, 3]
     this.numberEls.forEach((el, idx) => {
       el.css('color', COLORS[colors[idx]])
     })
-    this.solved = true
+    this.dialsDisabled = true
     this.clearHandlers()
-
-    await make_promise()
     this.done.resolve(); // Mark the puzzle as complete
   }
 
@@ -410,11 +413,11 @@ class MachinePuzzle {
     // Compare the current code with the correct code
     let input = this.currentCode.join('')
     if (this.solutions[input]) {
-      this.logEvent('correct_code_entered', { code: this.currentCode.join('') });
+      this.logEvent('machine.enter.correct', { code: this.currentCode.join('') });
       this.showSolution(this.solutions[input])
     } else {
       // this.drawShape(this.ctx, this.blockString, 'gray'); // Keep the shape gray if incorrect
-      this.logEvent('incorrect_code_entered', { code: this.currentCode.join('') });
+      this.logEvent('machine.enter.incorrect', { code: this.currentCode.join('') });
     }
   }
 

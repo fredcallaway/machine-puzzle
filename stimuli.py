@@ -4,6 +4,10 @@ import random
 from itertools import product
 
 N_TASK = 5
+MAX_DIGIT = 5
+CODE_LENGTH = 4
+N_PART = 4
+SOLUTIONS_PER_TASK = 10
 
 def separate_shapes(shape_def):
     # Split the string into rows
@@ -38,7 +42,7 @@ def parse_shape_definition():
 
 
 class TaskCodeGenerator:
-    def __init__(self, max_digit, code_length, n_part, solutions_per_task):
+    def __init__(self, max_digit=MAX_DIGIT, code_length=CODE_LENGTH, n_part=N_PART, solutions_per_task=SOLUTIONS_PER_TASK):
         self.max_digit = max_digit
         self.code_length = code_length
         self.n_part = n_part
@@ -60,7 +64,7 @@ class TaskCodeGenerator:
         return self.task_code_mapping
 
     def _generate_part_codes(self):
-        part_codes = self._generate_unique_codes(self.max_digit, 2)
+        part_codes = self._generate_unique_codes(2)
         self.left_codes = part_codes[:self.n_part]
         self.right_codes = part_codes[self.n_part:2 * self.n_part+1]
 
@@ -68,7 +72,7 @@ class TaskCodeGenerator:
         self.tasks = list(product(range(self.n_part), repeat=2))
 
     def _generate_all_codes(self):
-        self.available_codes = self._generate_unique_codes(self.max_digit, self.code_length)
+        self.available_codes = self._generate_unique_codes(self.code_length)
         random.shuffle(self.available_codes)
         self.used_codes = set(self.compositional_codes.values())
 
@@ -83,8 +87,8 @@ class TaskCodeGenerator:
 
             self.task_code_mapping[task] = task_codes
 
-    def _generate_unique_codes(self, max_digit, code_length):
-        all_possible_codes = [''.join(digits) for digits in product(map(str, range(1, max_digit + 1)), repeat=code_length)]
+    def _generate_unique_codes(self, code_length):
+        all_possible_codes = [''.join(digits) for digits in product(map(str, range(1, self.max_digit)), repeat=code_length)]
         return all_possible_codes
 
     def _generate_bespoke_code(self, comp_code):
@@ -160,7 +164,7 @@ def compose_block_strings(left, right):
     
     return ''.join(result)
 
-task_code_mapping = TaskCodeGenerator(max_digit=5, code_length=4, n_part=4, solutions_per_task=10).generate()
+task_code_mapping = TaskCodeGenerator().generate()
 parts = parse_shape_definition()
 
 trials = []
@@ -196,7 +200,13 @@ def generate_manual():
 
 config = {
     'trials': trials,
-    'manual': generate_manual()
+    'params': {
+        'maxDigit': MAX_DIGIT,
+        'codeLength': CODE_LENGTH,
+        'nPart': N_PART,
+        'solutionsPerTask': SOLUTIONS_PER_TASK,
+        'manual': generate_manual(),
+    }
 }
 
 json.dump(config, open('static/json/config.json', 'w'))
