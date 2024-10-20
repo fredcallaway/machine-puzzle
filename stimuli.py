@@ -181,7 +181,7 @@ def generate_manual():
     manual = []
     for task, solutions in random.sample(list(task_code_mapping.items()), N_MANUAL):
         blockString = compose_block_strings(parts['left'][int(task[0])-1], parts['right'][int(task[1])-1])
-        code = list(task_code_mapping[task].keys())[0]
+        code = list(task_code_mapping[task].keys())[random.choice((0, 1))]
         compositional = task_code_mapping[task][code] == 'compositional'
         if not compositional:
             blockString = make_bespoke(blockString)

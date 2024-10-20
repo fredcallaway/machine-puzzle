@@ -18,6 +18,7 @@ async function runExperiment() {
     throw new Error(`${configFile} does not exist`)
   }
   window.config = config
+  console.log('manual', config.manual)
   // config.recipes = []
 
   _.extend(PARAMS, config)

@@ -1,3 +1,10 @@
+const COLORS = [
+  'lightgray',
+  '#548df0',
+  '#e96060',
+  '#b46cc6',
+]
+
 class Block {
   constructor({x, y, parts, color, id} = {}) {
     this.x = x;
@@ -68,16 +75,6 @@ class Block {
     });
   }
 }
-
-const COLORS = [
-  'lightgray',
-  '#FEBA49',
-  '#CF3C22',
-  '#119FBA',
-]
-
-// shape is defined by a string, e.g 11 indicates first element of left combined with first element of right
-// 
 
 function string2block(s, x, y, color, id='block') {
     if (s == 'blank') {
