@@ -6,3 +6,5 @@ participants.db
 .database_url
 data
 env
+.vscode/launch.json
+static/js/old-machine.js

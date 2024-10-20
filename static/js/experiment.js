@@ -9,7 +9,8 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 
 async function runExperiment() {
-  let configFile = `static/json/${PARAMS.config_dir}/${CONDITION+1}.json`
+  // let configFile = `static/json/${PARAMS.config_dir}/${CONDITION+1}.json`
+  let configFile = `static/json/config.json`
   try {
     config = await $.getJSON(configFile)
   } catch(err) {
@@ -80,7 +81,7 @@ async function runExperiment() {
     prompt.html(markdown(`
       # A new machine
 
-      You will complete a total of ${PARAMS.tasks.length} rounds. Good luck!
+      You will complete a total of ${PARAMS.trials.length} rounds. Good luck!
     `))
     await button(prompt, 'begin').promise()
   }
@@ -91,7 +92,7 @@ async function runExperiment() {
     DISPLAY.empty()
 
     let top = new TopBar({
-      nTrial: PARAMS.tasks.length,
+      nTrial: PARAMS.trials.length,
       height: 70,
       width: 1150,
       helpTitle: 'Feeling stuck?',
@@ -111,8 +112,8 @@ async function runExperiment() {
 
     let workspace = $('<div>').appendTo(DISPLAY)
 
-    for (let [start, goal] of config.tasks) {
-      await new CodePuzzle({...PARAMS, start, goal}).run(workspace)
+    for (let trial of config.trials) {
+      await new CodePuzzle(trial).run(workspace)
       top.incrementCounter()
       saveData()
     }

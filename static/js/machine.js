@@ -76,25 +76,6 @@ const COLORS = [
   '#119FBA',
 ]
 
-const PARTS = {
-  "left": [
-    "111____\n1_1____\n1111___\n1_1____\n111____",
-    "111____\n__1____\n_111___\n__1____\n111____",
-    "__1____\n111____\n__11___\n111____\n__1____",
-    "1_1____\n1_1____\n1111___\n1_1____\n1_1____",
-    "111____\n111____\n__11___\n111____\n111____",
-    "111____\n1_1____\n__11___\n1_1____\n111____"
-  ],
-  "right": [
-    "____2__\n___22__\n____222\n___22__\n____2__",
-    "______2\n___22_2\n____222\n___22_2\n______2",
-    "_______\n___2222\n____2__\n___2222\n_______",
-    "____2__\n___222_\n____222\n___222_\n____2__",
-    "____222\n___22__\n____2__\n___22__\n____222",
-    "____222\n___22_2\n____2_2\n___22_2\n____222"
-  ]
-}
-
 // shape is defined by a string, e.g 11 indicates first element of left combined with first element of right
 // 
 
@@ -147,6 +128,7 @@ class CodePuzzle {
 
     // Assign default values and override with any options provided
     _.assign(this, {
+      task: 'null',
       solutions: {
         '1112': 'compositional',
         '1121': 'bespoke'
@@ -157,16 +139,18 @@ class CodePuzzle {
       maxDigit: 6,  // max digit allowed on each dial
       trialID: randomUUID(),  // unique trial ID
       blockSize: 40,
-      width: 5,  // Width in block units, not including padding
+      width: 7,  // Width in block units, not including padding
       height: 5,  // Height in block units, not including padding
       manualScale: 0.25,
-      drawingMode: true
+      drawingMode: false
     }, options);
     if (this.drawingMode) {
       this.width = 30
       this.height = 30
       this.blockSize = 30
     }
+
+    this.logEvent('machine.initialize', _.pick(this, ['task', 'solutions', 'blockString']))
     // Calculate screen dimensions based on blockSize, width, and height
     this.screenWidth = (this.width + 2) * this.blockSize; // +2 for padding
     this.screenHeight = (this.height + 2) * this.blockSize; // +2 for padding
@@ -213,9 +197,6 @@ class CodePuzzle {
       this.createManual();
       this.drawShape(false);
     }
-    this.logEvent('code.start');
-
-    this.copiedShape = null;
   }
 
   logEvent(event, info = {}) {
@@ -230,7 +211,7 @@ class CodePuzzle {
   }
 
   async run(display) {
-    this.logEvent('code.run');
+    this.logEvent('machine.run');
     if (display) this.attach(display); // attach the display if provided
     await make_promise();
     await this.done; // wait until the puzzle is completed
@@ -521,6 +502,7 @@ class CodePuzzle {
   }
 
   createDrawingInterface() {
+    this.copiedShape = null;
     this.drawingColor = 1; // Default color index
     this.isDrawing = false;
     this.isErasing = false;
