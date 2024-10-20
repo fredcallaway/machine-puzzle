@@ -21,7 +21,6 @@ async function runExperiment() {
     throw new Error(`${configFile} does not exist`)
   }
   window.config = config
-  // config.recipes = []
 
   _.extend(PARAMS, config.params)
 
@@ -32,11 +31,10 @@ async function runExperiment() {
     logEvent('experiment.instructions')
     await new MachineInstructions({
       ...PARAMS,
-      // colors: ['#FB9C9C', '#FAFB9C', '#A9D2FB'],
     }).run(DISPLAY)
   }
 
-  
+
   async function social() {
     if (config.params.manual.length == 0) return
     logEvent('experiment.social')
@@ -77,7 +75,7 @@ async function runExperiment() {
       help: `
         You can always find a code by brute force. Just repeatedly click on
         the rightmost dial (the last digit) and you will eventually find one
-        of the correct codes. It shouldn't require more than 100 clicks. If
+        of the correct codes. It should never require more than 200 clicks. If
         that doesn't work, there's probably a bug in the experiment. Please
         submit your study without a completion code and message us on Prolific.
         If you can, email ${ERROR_EMAIL} as well so we can fix it ASAP!
@@ -112,12 +110,12 @@ async function runExperiment() {
     `))
 
     let special = radio_buttons(div, `
-      Did you notice that any chemical was different from the others?
-    `, ["I didn't notice", 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
+      Did you notice that some codes worked differently from others?
+    `, ['yes', 'no']
     )
 
     let special2 = text_box(div, `
-      If so, how was it different?
+      If so, please briefly explain what you noticed.
     `,
     )
 
