@@ -120,6 +120,7 @@ _11222_
 `
 
 class MachinePuzzle {
+  
   constructor(options = {}) {
     console.log('options', options);
 
@@ -144,6 +145,7 @@ class MachinePuzzle {
         manualScale: 0.25,
         drawingMode: false,
         machineColor: "#656565",
+        suppressSuccess: false,
       },
       options
     )
@@ -455,7 +457,9 @@ class MachinePuzzle {
       })
       .appendTo(this.machineDiv)
     await sleep(500)
-    await alert_success()
+    if (!this.suppressSuccess) {
+      await alert_success()
+    }
     this.done.resolve()
   }
 

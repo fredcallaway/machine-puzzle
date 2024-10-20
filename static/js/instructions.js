@@ -275,7 +275,7 @@ class Quiz {
 
 class MachineInstructions extends Instructions {
   constructor(params) {
-    super({ contentWidth: 1200 })
+    super({ contentWidth: 1200, promptHeight: 200 })
     this.params = _.cloneDeep(params)
     let blockString = (this.blockString = `
       11___22
@@ -310,6 +310,7 @@ class MachineInstructions extends Instructions {
       solutions,
       blockString: this.blockString,
       machineColor: "#ffe852",
+      suppressSuccess: true,
       ...opts,
     })
     mp.attach(this.content)
@@ -377,7 +378,9 @@ class MachineInstructions extends Instructions {
       </div>
     `)
     await mp.done
-    // this.prompt.append('<b>Nice!</b>');
+    this.instruct(`
+      Huh, that code seemed to make the shape out of two pieces. Neat!
+    `)
   }
 
   async stage_manual() {
