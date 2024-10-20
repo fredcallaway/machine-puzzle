@@ -30,18 +30,7 @@ async function runExperiment() {
     logEvent('experiment.instructions')
     await new MachineInstructions({
       ...PARAMS,
-      colors: ['#FB9C9C', '#FAFB9C', '#A9D2FB'],
-      chemicalNames: ['X', 'Y', 'Z'],
-      nMode: 4,
-      start: 0,
-      goal: null,
-      manualHeight: 150,
-      transitions: [
-        [-1, 0, -1],
-        [0, -1, 2],
-        [-1, 0, -1]
-      ],
-      recipes: []
+      // colors: ['#FB9C9C', '#FAFB9C', '#A9D2FB'],
     }).run(DISPLAY)
   }
 
@@ -63,7 +52,7 @@ async function runExperiment() {
       and works on different chemicals.
     `))
 
-    let mp = new CodePuzzle({...PARAMS}).attach($('<div>').appendTo(workspace))
+    let mp = new MachinePuzzle({...PARAMS}).attach($('<div>').appendTo(workspace))
     mp.goalBox.hide()
     mp.book.hide()
     await button(prompt).promise()
@@ -114,7 +103,7 @@ async function runExperiment() {
     let workspace = $('<div>').appendTo(DISPLAY)
 
     for (let trial of config.trials) {
-      await new CodePuzzle({manual: config.manual, ...trial}).run(workspace)
+      await new MachinePuzzle({manual: config.manual, ...trial}).run(workspace)
       top.incrementCounter()
       saveData()
     }

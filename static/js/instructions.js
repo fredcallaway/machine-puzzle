@@ -1,10 +1,18 @@
 
 class Instructions {
-  constructor() {
+  constructor(options = {}) {
+    _.assign(this, {
+      height: 800,
+      promptWidth: 700,
+      promptHeight: 130,
+      contentWidth: 1200,
+    }, options)
+    this.width = Math.max(this.promptWidth, this.contentWidth)
+
     this.div = $('<div>')
     .css({
-      height: 800,
-      width: 1000,
+      height: this.height,
+      width: this.width,
       // border: 'thick black solid',
       position: 'relative',
       margin: 'auto',
@@ -59,15 +67,19 @@ class Instructions {
     .appendTo(this.div)
 
     this.prompt = $('<div>').css({
-      'max-width': 700,
-      'min-height': 130,
+      'max-width': this.promptWidth,
+      'min-height': this.promptHeight,
       'margin': 'auto',
       'margin-bottom': 50,
     }).appendTo(this.div)
 
     this.content = $('<div>')
     .appendTo(this.div)
-    .css('float', 'left')
+    .css({
+      float: 'left',
+      width: this.contentWidth,
+      // border: '1px solid red',
+    })
 
     this.stage = 0
     this.maxStage = 0
@@ -234,17 +246,16 @@ class Quiz {
 
 class MachineInstructions extends Instructions {
   constructor(params) {
-    super()
+    super({contentWidth: 1200, })
     this.params = _.cloneDeep(params)
     window.instruct = this
   }
 
   getPuzzle(opts={}) {
-    console.log('WHAT', this.params, opts)
-    let mp = new MachinePuzzle({disableInvalid: false, ...this.params, ...opts })
-    mp.book.hide()
-    mp.goalBox.hide()
-    mp.chemicalDiv.hide()
+    let mp = new MachinePuzzle({...this.params, ...opts })
+    // mp.book.hide()
+    // mp.goalBox.hide()
+    // mp.chemicalDiv.hide()
     mp.attach(this.content)
     $('.machine-div button').prop('disabled', true)
     return mp
@@ -256,6 +267,8 @@ class MachineInstructions extends Instructions {
     // `)
 
     let mp = this.getPuzzle()
+    mp.manualDiv.hide()
+    // mp.drawShape()
 
     this.instruct(`
       Welcome! In this experiment, you will be synthesizing chemicals using

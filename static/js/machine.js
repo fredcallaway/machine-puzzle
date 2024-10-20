@@ -119,7 +119,7 @@ const testBlock = `
   112
 `
 
-class CodePuzzle {
+class MachinePuzzle {
   constructor(options = {}) {
     console.log('options', options);
 
@@ -130,7 +130,7 @@ class CodePuzzle {
         '1112': 'compositional',
         '1121': 'bespoke'
       },
-      manual: [],
+      manual: null,
       blockString: testBlock,  // default block
       dialSpeed: .02,  // speed of dial drag
       clickTime: 300,  // time threshold for a quick click
@@ -193,24 +193,24 @@ class CodePuzzle {
     } else {
       this.createDials();
       this.createManual();
-      this.drawShape(this.ctx, this.blockString, 'target');
     }
   }
-
+  
   logEvent(event, info = {}) {
     info.trialID = this.trialID;
     logEvent(event, info);
   }
-
+  
   attach(display) {
     display.empty(); // clear the display
     this.div.appendTo(display); // attach the main div to the display
     return this;
   }
-
+  
   async run(display) {
     this.logEvent('machine.run');
     if (display) this.attach(display); // attach the display if provided
+    this.drawShape(this.ctx, this.blockString, 'target');
     await make_promise();
     await this.done; // wait until the puzzle is completed
   }
