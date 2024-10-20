@@ -133,6 +133,7 @@ class CodePuzzle {
         '1112': 'compositional',
         '1121': 'bespoke'
       },
+      manual: [],
       blockString: testBlock,  // default block
       dialSpeed: .02,  // speed of dial drag
       clickTime: 300,  // time threshold for a quick click
@@ -195,7 +196,7 @@ class CodePuzzle {
     } else {
       this.createDials();
       this.createManual();
-      this.drawShape(false);
+      this.drawShape(this.ctx, this.blockString, 'target');
     }
   }
 
@@ -234,25 +235,25 @@ class CodePuzzle {
     this.ctx = this.screen[0].getContext('2d');
   }
 
-  drawShape(solution) {
-    console.log('drawShape', solution)
+  drawShape(ctx, blockString, mode, manual=false) {
+    console.log('drawShape', mode)
+    let blockSize = manual ? this.blockSize * this.manualScale : this.blockSize
+    
     // Clear the screen (canvas context)
-    this.ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
+    ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
 
-    if (solution == 'compositional') {
-      let blocks = string2blockSplit(this.blockString, 1, 1)
-      window.blocks = blocks
+    if (mode == 'compositional') {
+      let blocks = string2blockSplit(blockString, 1, 1)
       for (const b of blocks) {
-        b.draw(this.ctx, this.blockSize);
+        b.draw(ctx, blockSize);
       }
     } else {
-      let color = solution == 'bespoke' ? 3 : 0
-      console.log('color', color)
-      let block = string2block(this.blockString, 1, 1, color)
+      let color = mode == 'bespoke' ? 3 : 0
+      let block = string2block(blockString, 1, 1, color)
       window.block = block
       // block.x = (this.screenWidth / this.blockSize - block.width) / 2
       // block.y = (this.screenHeight / this.blockSize - block.height) / 2
-      block.draw(this.ctx, this.blockSize);
+      block.draw(ctx, blockSize);
     }
   }
 
@@ -389,9 +390,9 @@ class CodePuzzle {
     }
   }
 
-  async showSolution(solution) {
-    this.drawShape(solution); // Draw blue shape on success
-    let colors = solution == 'compositional' ? [1, 1, 2, 2] : [3, 3, 3, 3]
+  async showSolution(solutionType) {
+    this.drawShape(this.ctx, this.blockString, solutionType); // Draw blue shape on success
+    let colors = solutionType == 'compositional' ? [1, 1, 2, 2] : [3, 3, 3, 3]
     this.numberEls.forEach((el, idx) => {
       el.css('color', COLORS[colors[idx]])
     })
@@ -415,11 +416,12 @@ class CodePuzzle {
       this.logEvent('correct_code_entered', { code: this.currentCode.join('') });
       this.showSolution(this.solutions[input])
     } else {
-      this.drawShape(false); // Keep the shape gray if incorrect
+      // this.drawShape(this.ctx, this.blockString, 'gray'); // Keep the shape gray if incorrect
       this.logEvent('incorrect_code_entered', { code: this.currentCode.join('') });
     }
   }
 
+  
   createManual() {
     const manualContainer = $('<div>').addClass('manual-container').css({
       'border': '2px solid black',
@@ -437,31 +439,13 @@ class CodePuzzle {
 
     manualContainer.append(title);
 
-    const shapeExamples = [
-      { shape: '##\n##', code: '1111' },
-      { shape: '###\n# #\n###', code: '1234' },
-      { shape: ' # \n###\n # ', code: '2222' },
-      { shape: '  #  \n ### \n#####\n ### \n  #  ', code: '3333' },
-      { shape: ' # \n# #\n # ', code: '4444' },
-      { shape: '#####\n#   #\n#   #\n#   #\n#####', code: '5555' },
-      { shape: '  #  \n # # \n#   #\n # # \n  #  ', code: '6161' },
-      { shape: '  #  \n ## #\n# # #\n# ## \n  #  ', code: '2345' },
-      { shape: '#   #\n ## #\n# # #\n# ## \n#   #', code: '6543' },
-      { shape: ' ### \n#   #\n# # #\n#   #\n ### ', code: '1212' },
-      { shape: '  #  \n ### \n# # #\n ### \n  #  ', code: '3434' },
-      { shape: '#####\n#    \n###  \n#    \n#####', code: '5151' },
-
-      { shape: ' # # \n# # #\n # # \n# # #\n # # ', code: '2323' },
-      { shape: '  #  \n # # \n#####\n # # \n  #  ', code: '4321' }
-    ];
-
     const examplesContainer = $('<div>').css({
       'display': 'flex',
       'justify-content': 'space-around',
       'flex-wrap': 'wrap'
     });
 
-    shapeExamples.forEach(example => {
+    this.manual.forEach(example => {
       const exampleDiv = $('<div>').css({
         'text-align': 'center',
         'margin': '10px'
@@ -470,15 +454,26 @@ class CodePuzzle {
       const canvas = $('<canvas>').attr({
         width: this.screenWidth * this.manualScale,
         height: this.screenHeight * this.manualScale
-      }).css({
-        'border': '1px solid red'
-      });
+      })
 
       const ctx = canvas[0].getContext('2d');
-      this.drawExampleShape(ctx, example.shape);
+      this.drawShape(ctx, example.blockString, example.compositional ? 'compositional' : 'bespoke', true);
 
-      const codeText = $('<p>').text(`Code: ${example.code}`).css({
-        'margin-top': '5px'
+      const codeText = $('<p>').css({
+        'margin-top': '5px',
+        'display': 'flex',
+        'justify-content': 'center',
+        'align-items': 'center',
+        'font-weight': 'bold',
+        'font-size': '30px'
+      });
+      
+      const colors = example.compositional ? [1, 1, 2, 2] : [3, 3, 3, 3];
+      example.code.split('').forEach((digit, idx) => {
+        const digitSpan = $('<span>')
+          .text(digit)
+          .css('color', COLORS[colors[idx]]);
+        codeText.append(digitSpan);
       });
 
       exampleDiv.append(canvas, codeText);
@@ -487,18 +482,6 @@ class CodePuzzle {
 
     manualContainer.append(examplesContainer);
     this.manualDiv.append(manualContainer); // Append to manualDiv instead of div
-  }
-
-  drawExampleShape(ctx, shapeString) {
-    const block = string2block(shapeString, 0, 0, 'gray');
-    const cellSize = this.blockSize * this.manualScale;
-    const offsetX = (this.screenWidth * this.manualScale - block.width * cellSize) / 2;
-    const offsetY = (this.screenHeight * this.manualScale - block.height * cellSize) / 2;
-
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
-    block.draw(ctx, cellSize);
-    ctx.restore();
   }
 
   createDrawingInterface() {

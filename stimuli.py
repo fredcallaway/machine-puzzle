@@ -172,9 +172,42 @@ for (task, solutions) in random.sample(list(task_code_mapping.items()), N_TASK):
         'blockString': blockString
     })
 
+
+def make_bespoke(blockString):
+    return blockString.replace('1', '3').replace('2', '3')
+
+N_MANUAL = 16
+def generate_manual():
+    manual = []
+    for task, solutions in random.sample(list(task_code_mapping.items()), N_MANUAL):
+        blockString = compose_block_strings(parts['left'][int(task[0])-1], parts['right'][int(task[1])-1])
+        code = list(task_code_mapping[task].keys())[0]
+        compositional = task_code_mapping[task][code] == 'compositional'
+        if not compositional:
+            blockString = make_bespoke(blockString)
+
+        manual.append({
+            'task': task,
+            'compositional': compositional,
+            'blockString': blockString,
+            'code': code
+        })
+    return manual
+
 config = {
-    'trials': trials
+    'trials': trials,
+    'manual': generate_manual()
 }
 
 json.dump(config, open('static/json/config.json', 'w'))
 print('wrote config.json')
+
+# Pretty print one trial and the first entry of the manual
+import pprint
+
+print("Sample Trial:")
+pprint.pprint(trials[0], width=80, indent=2)
+
+print("\nFirst Manual Entry:")
+pprint.pprint(config['manual'][0], width=80, indent=2)
+

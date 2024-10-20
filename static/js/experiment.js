@@ -113,7 +113,7 @@ async function runExperiment() {
     let workspace = $('<div>').appendTo(DISPLAY)
 
     for (let trial of config.trials) {
-      await new CodePuzzle(trial).run(workspace)
+      await new CodePuzzle({manual: config.manual, ...trial}).run(workspace)
       top.incrementCounter()
       saveData()
     }
