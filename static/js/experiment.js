@@ -22,7 +22,6 @@ async function runExperiment() {
     throw new Error(`${configFile} does not exist`)
   }
   window.config = config
-  console.log('manual', config.manual)
   // config.recipes = []
 
   _.extend(PARAMS, config.params)
@@ -39,45 +38,30 @@ async function runExperiment() {
   }
 
   async function social() {
+    if (config.params.manual.length == 0) return
+    logEvent('experiment.social')
+    
     let workspace = $('<div>').appendTo(DISPLAY)
-
-    logEvent('experiment.main')
     let prompt = $('<div>').css({
       'max-width': 700,
-      'min-height': 200,
+      // 'min-height': 100,
       'margin': 'auto',
-      'margin-bottom': 50,
+      'margin-bottom': 20,
     }).appendTo(workspace)
-    .html(markdown(`
-      # A new machine
-
-      For the rest of the experiment, you'll be working on this more complex machine.
-      It operates in the same way as the previous one, but it has more modes
-      and works on different chemicals.
-    `))
 
     let mp = new MachinePuzzle({...PARAMS}).attach($('<div>').appendTo(workspace))
-    mp.goalBox.hide()
-    mp.book.hide()
-    await button(prompt).promise()
-
-    if (config.recipes.length) {
-      prompt.html(markdown(`
-        # A new machine
-
-        We've filled in your manual with some transformations used by previous operators of this machine.
-      `))
-      mp.book.show()
-      await button(prompt).promise()
-    }
-
+    mp.machineDiv.hide()
+    mp.manualDiv.css('margin', 'auto')
 
     prompt.html(markdown(`
-      # A new machine
+      # Instructions complete
 
-      You will complete a total of ${PARAMS.trials.length} rounds. Good luck!
+      You're now ready to start the main experiment. 
+      There will be ${config.trials.length} rounds.
+      Try to complete them all as quickly as possible, using the manual as much as you can.
+      To start you off, we've filled in your manual with some codes used by previous operators of this machine.
     `))
-    await button(prompt, 'begin').promise()
+    await button(prompt).promise()
   }
 
 
@@ -91,10 +75,12 @@ async function runExperiment() {
       width: 1150,
       helpTitle: 'Feeling stuck?',
       help: `
-        You can always synthesize the goal chemical by brute force. Configure
-        the machine to produce the goal chemical by clicking the
-        corresponding button (with the same letter). Then try the operation
-        modes one by one until you find the one that works.
+        You can always find a code by brute force. Just repeatedly click on
+        the rightmost dial (the last digit) and you will eventually find one
+        of the correct codes. It shouldn't require more than 100 clicks. If
+        that doesn't work, there's probably a bug in the experiment. Please
+        submit your study without a completion code and message us on Prolific.
+        If you can, email ${ERROR_EMAIL} as well so we can fix it ASAP!
       `
     }).prependTo(DISPLAY)
 
