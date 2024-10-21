@@ -345,7 +345,7 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_multiple() {
-    let mp = this.getPuzzle(1)
+    let mp = this.getPuzzle(1, {initialCode: "4132"})
     mp.manualDiv.hide()
     mp.drawTarget()
     this.instruct(`

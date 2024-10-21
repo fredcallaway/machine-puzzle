@@ -141,7 +141,7 @@ class MachinePuzzle {
         width: 7, // Width in block units, not including padding
         height: 5, // Height in block units, not including padding
         manualScale: 0.25,
-        initialCode: 'random'
+        initialCode: 'random',
         drawingMode: false,
         machineColor: "#656565",
         suppressSuccess: false,
