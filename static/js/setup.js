@@ -59,7 +59,7 @@ function logEvent(event, info={}){
   if (!event.includes('mousemove') && !QUIET) {
     console.log('logEvent', info.event, info);
   }
-  psiturk.recordTrialData(info);
+  if (!info.event.startsWith('nosave')) psiturk.recordTrialData(info)
 }
 
 function registerEventCallback(f) {

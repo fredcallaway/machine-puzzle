@@ -5,6 +5,8 @@ const COLORS = [
   '#b46cc6',
 ]
 
+const NEXT_CODE_COLOR = "#4abf41"
+
 class Block {
   constructor({x, y, parts, color, id} = {}) {
     this.x = x;
@@ -141,28 +143,45 @@ class MachinePuzzle {
         width: 7, // Width in block units, not including padding
         height: 5, // Height in block units, not including padding
         manualScale: 0.25,
-        initialCode: 'random',
+        initialCode: "random",
         drawingMode: false,
-        machineColor: "#656565",
+        machineColor: "#707374",
         suppressSuccess: false,
+        showNextCodeButton: true,
+        showLocks: true,
+        showManual: true,
+        codeLength: 4,
+        contentWidth: 1200,
       },
       options
     )
+    window.cp = this;
     if (this.drawingMode) {
       this.width = 30
       this.height = 30
       this.blockSize = 30
     }
 
-    this.logEvent('machine.initialize', _.pick(this, ['task', 'solutions', 'blockString', 'manual']))
-    // Calculate screen dimensions based on blockSize, width, and height
     this.screenWidth = (this.width + 2) * this.blockSize; // +2 for padding
     this.screenHeight = (this.height + 2) * this.blockSize; // +2 for padding
-
-    window.cp = this;
-
-    this.codeLength = Object.keys(this.solutions)[0].length || 4
-
+    this.machineWidth = this.screenWidth + 100;
+    this.machineHeight = this.screenHeight + 200;
+    
+    this.div = $("<div>").addClass('puzzle-container').css({
+      display: 'flex',
+      justifyContent: 'space-between',
+      width: this.contentWidth + 'px',
+      margin: '0 auto'
+    });
+    this.createMachine();
+    
+    if (this.drawingMode) {
+      this.createDrawingInterface();
+      return
+    }
+    
+    this.dialLocked = Array(this.codeLength).fill(false)
+    this.nTry = 0
     if (this.initialCode == 'random') {
       // Generate a random starting code that's not in solutions
       do {
@@ -171,45 +190,16 @@ class MachinePuzzle {
     } else {
       this.currentCode = this.initialCode.split('').map(Number);
     }
-
-    // Create the top-level div
-    this.div = $("<div>").addClass('puzzle-container').css({
-      display: 'flex',
-      justifyContent: 'space-between',
-      width: '100%',
-      maxWidth: '1200px', // Adjust as needed
-      margin: '0 auto'
-    });
-
-    // Calculate the machine width based on screenWidth
-    const machineWidth = this.screenWidth + 100;
-
-    // Create the machine div
-    this.machineDiv = $("<div>").addClass('machine-div').css({
-      width: machineWidth + 'px',
-      paddingLeft: this.blockSize + 'px',
-      paddingRight: this.blockSize + 'px', // Add padding on both left and right
-      backgroundColor: this.machineColor,
-    })
-
-    // Create the manual div
-    this.manualDiv = $("<div>").addClass('manual-div').css({
-      width: 'calc(100% - ' + (machineWidth + 50) + 'px)' // Adjust for spacing
-    });
-
-    // Append machine and manual divs to the main div
-    this.div.append(this.machineDiv, this.manualDiv);
-
+    
+    this.logEvent('machine.initialize', _.pick(this, ['task', 'currentCode', 'solutions', 'blockString', 'manual']))
     this.done = make_promise(); // promise to resolve when the task is completed
 
-    this.createScreen();
-    if (this.drawingMode) {
-      this.createDrawingInterface(); // Add this line
-    } else {
-      this.createDials();
-      this.createManual();
-    }
-  }
+    this.createDials();
+    this.drawTarget()
+    if (this.showNextCodeButton) this.createNextCodeButton()
+    if (this.showLocks) this.createLocks()
+    if (this.showManual) this.createManual()
+}
   
   logEvent(event, info = {}) {
     info.trialID = this.trialID;
@@ -225,14 +215,21 @@ class MachinePuzzle {
   async run(display) {
     this.logEvent('machine.run');
     if (display) this.attach(display); // attach the display if provided
-    this.drawTarget()
-    // this.showSolution('compositional')
-    // await make_promise()
     await this.done; // wait until the puzzle is completed
     this.logEvent('machine.done')
   }
 
-  createScreen() {
+  createMachine() {
+    this.machineDiv = $("<div>")
+      .addClass("machine-div")
+      .css({
+        width: this.machineWidth + "px",
+        height: this.screenHeight + 200 + "px",
+        paddingLeft: this.blockSize + "px",
+        paddingRight: this.blockSize + "px",
+        backgroundColor: this.machineColor,
+      }).appendTo(this.div)
+
     this.screen = $('<canvas></canvas>').attr({
       width: this.screenWidth,
       height: this.screenHeight
@@ -245,7 +242,6 @@ class MachinePuzzle {
       'background-color': 'white',
     }).appendTo(this.machineDiv)  
 
-    // Initialize the canvas context (this.ctx)
     this.ctx = this.screen[0].getContext('2d');
   }
 
@@ -258,6 +254,7 @@ class MachinePuzzle {
     
     // Clear the screen (canvas context)
     ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
+    if (mode == 'blank') return
 
     if (mode == 'compositional') {
       let blocks = string2blockSplit(blockString, 1, 1)
@@ -276,9 +273,9 @@ class MachinePuzzle {
 
   createDials(speedFactor = 50) {
     let dialWidth = 60; // Base width per dial
-    let containerWidth = this.codeLength * dialWidth;
+    let containerWidth = this.dialContainerWidth = this.codeLength * dialWidth;
 
-    let dialContainer = $('<div></div>').css({
+    let dialContainer = this.dialContainer = $('<div></div>').css({
       'display': 'flex',
       'justify-content': 'space-between',    // Evenly space the dials
       'align-items': 'center',               // Vertically center the dials
@@ -293,7 +290,6 @@ class MachinePuzzle {
       'margin-right': 'auto',
       'overflow': 'hidden',
       'background': 'white',
-      'margin-bottom': '50px'                // Moved outside loop
     });
 
     let dialStyle = {
@@ -329,6 +325,7 @@ class MachinePuzzle {
 
       // Attach mousedown handler (namespaced for this trial)
       dialWrapper.on('mousedown.machine', (event) => {
+        this.logEvent('nosave.machine.dials.mousedown', { dial: i })
         if (this.dialsDisabled) return  // HACK to fix clearHandlers not working
         isDragging = false;
         startY = event.pageY;
@@ -352,8 +349,7 @@ class MachinePuzzle {
 
           // If the click is quick and no drag occurred
           if (mouseUpTime - mouseDownTime < this.clickTime && Math.abs(event.pageY - startY) < 5) {
-            // Use the incrementDial function to handle the increment logic
-            this.incrementDial(i);
+            this.currentCode[i] = (this.currentCode[i] % this.maxDigit) + 1;
             this.lastAction = `click.${i}`;
 
           } else {
@@ -363,14 +359,8 @@ class MachinePuzzle {
             this.lastAction = `drag.${i}`;
           }
 
-          // Update the display for each dial
-          for (let j = 0; j < this.codeLength; j++) {
-            this.numberEls[j].text(this.currentCode[j]);
-          }
-
-
           // Check the code after the change
-          this.checkCode();
+          this.updateAndCheckCode();
 
           // Clean up the event handlers after the mouse is released
           $(document).off('mousemove.machine', dragHandler);
@@ -399,49 +389,142 @@ class MachinePuzzle {
     this.machineDiv.append(dialContainer);
   }
 
+  
+  createLocks() {
+    // Add lock icons below each dial
+    const lockContainer = $("<div>")
+      .css({
+        display: "flex",
+        "justify-content": "space-around",
+        width: `${this.dialContainerWidth}px`,
+        "margin-bottom": "20px",
+        "margin-top": "10px",
+        "margin-left": "auto",
+        "margin-right": "auto",
+      })
+      .appendTo(this.machineDiv)
 
-  incrementDial(position) {
-    // Increment the number at the current position
-    this.currentCode[position] = (this.currentCode[position] % this.maxDigit) + 1;
-
-    // Check if carrying is needed (i.e., if we incremented from maxDigit to 1)
-    if (this.currentCode[position] === 1 && position > 0) {
-      // Recursively apply the carrying step to the number to the left
-      this.incrementDial(position - 1);
+    for (let i = 0; i < this.codeLength; i++) {
+      const lockIcon = $("<i>")
+        .addClass("fas fa-lock-open")
+        .css({
+          "font-size": "20px",
+          color: NEXT_CODE_COLOR,
+          cursor: "pointer",
+          width: "20px", // Set a fixed width
+          "text-align": "center", // Center the icon within its container
+          display: "inline-block", // Ensure inline-block display
+        })
+        .on("click", () => {
+          if (lockIcon.hasClass("fa-lock")) {
+            this.logEvent("machine.locks.unlock", { 
+              dial: i })
+            lockIcon
+              .removeClass("fa-lock")
+              .addClass("fa-lock-open")
+              .css({ color: NEXT_CODE_COLOR })
+            this.dialLocked[i] = false
+          } else {
+            this.logEvent("machine.locks.lock", { dial: i })
+            lockIcon
+              .removeClass("fa-lock-open")
+              .addClass("fa-lock")
+              .css({ color: "black" })
+            this.dialLocked[i] = true
+          }
+        })
+        .appendTo(lockContainer)
     }
   }
 
+  createNextCodeButton() {
+    const nextCodeButton = $('<button>')
+      .text('?')
+      .css({
+        'color': 'white',
+        'font-weight': 'bold',
+        'background-color': NEXT_CODE_COLOR,
+        'transition': 'background-color 0.3s ease',
+        'outline': 'none',
+        'cursor': 'pointer',
+        'border': '3px solid black',
+        'border-radius': '10px',
+        'position': 'absolute',
+        'right': '50px',  // Adjust this value as needed to position the button correctly
+        'top': this.blockSize + this.screenHeight + 35,
+        'padding': '0px 8px',
+        'font-size': '25px',
+        'cursor': 'pointer'
+      })
+      .on('click', () => {
+        this.tryNextCode();
+      });
 
-  updateManual(solutionType) {
+    this.machineDiv.append(nextCodeButton);
+  }
+
+  
+  tryNextCode() {
+    this.logEvent('nosave.machine.nextCode')
+    this.lastAction = 'nextCode'
+    if (this.nextCodeDisabled) return // HACK to fix clearHandlers not working
+    let incrementDial = (position) => {
+      if (position < 0) return
+      if (this.dialLocked[position]) return incrementDial(position - 1)
+      // Increment the number at the current position
+      this.currentCode[position] = (this.currentCode[position] % this.maxDigit) + 1
+
+      // Check if carrying is needed (i.e., if we incremented from maxDigit to 1)
+      if (this.currentCode[position] === 1) {
+        // Recursively apply the carrying step to the number to the left
+        incrementDial(position - 1)
+      }
+    }
+    incrementDial(this.codeLength - 1)
+    this.updateAndCheckCode()
+  }
+
+
+  addSolutionToManual(entry) {
+    if (typeof entry == 'string') {
+      entry = {
+        task: this.task,
+        blockString: this.blockString,
+        compositional: entry == "compositional",
+        code: this.currentCode.join(""),
+      }
+    }
+
+    if (typeof entry.blockString !== 'string' || entry.blockString.trim() === '') {
+      console.error('Invalid entry: blockString must be a non-empty string');
+      return;
+    }
+
     // Check if this entry already exists in the manual
-    const existingEntry = this.manual.find(entry => 
-      entry.task === this.task &&
-      entry.blockString === this.blockString &&
-      entry.compositional === (solutionType === 'compositional') &&
-      entry.code === this.currentCode.join('')
+    const existingEntry = this.manual.find(e2 => 
+      e2.task === entry.task &&
+      e2.blockString === entry.blockString &&
+      e2.compositional === entry.compositional &&
+      e2.code === entry.code
     );
-
+    
     // If the entry doesn't exist, add it to the manual
     if (!existingEntry) {
-    this.manual.push({
-      task: this.task,
-      blockString: this.blockString,
-      compositional: solutionType == 'compositional',
-      code: this.currentCode.join(''),
-      })
-      this.logEvent('machine.manual.update', { solutionType, code: this.currentCode.join('') }); // Add this line
+      this.manual.push(entry)
+      this.logEvent('machine.manual.update', entry);
     }
   }
 
   async showSolution(solutionType) {
     this.logEvent("machine.solved", {solutionType})
-    this.updateManual(solutionType)
+    this.addSolutionToManual(solutionType)
     this.drawTarget(solutionType); // Draw blue shape on success
     let colors = solutionType == 'compositional' ? [1, 1, 2, 2] : [3, 3, 3, 3]
     this.numberEls.forEach((el, idx) => {
       el.css('color', COLORS[colors[idx]])
     })
     this.dialsDisabled = true
+    this.nextCodeDisabled = true
     this.clearHandlers()
     // checkmark on goal
     $("<p>")
@@ -479,79 +562,96 @@ class MachinePuzzle {
     this.logEvent('machine.handlers.cleared'); // Add this line
   }
 
-  checkCode() {
+  updateAndCheckCode() {
+    // Update the display for each dial
+    this.nTry += 1
+    for (let j = 0; j < this.codeLength; j++) {
+      this.numberEls[j].text(this.currentCode[j])
+    }
     // Compare the current code with the correct code
-    let input = this.currentCode.join('')
+    let input = this.currentCode.join("")
     let info = { code: input, action: this.lastAction }
     if (this.solutions[input]) {
-      this.logEvent('machine.enter.correct', info);
+      this.logEvent("machine.enter.correct", info)
       this.showSolution(this.solutions[input])
     } else {
       // this.drawShape(this.ctx, this.blockString, 'gray'); // Keep the shape gray if incorrect
-      this.logEvent('machine.enter.incorrect', info);
+      this.logEvent("machine.enter.incorrect", info)
     }
   }
 
   createManual() {
-    const manualContainer = $('<div>').addClass('manual-container').css({
-      'border': '2px solid black',
-      'padding': '10px',
-      'border-radius': '10px',
-      'background-color': 'white',
-      'height': '100%',
-      'box-sizing': 'border-box'
-    });
+    // Create the manual div
+    this.manualDiv = $("<div>")
+      .addClass("manual-div")
+      .css({
+        width: this.contentWidth - this.machineWidth - 50 + "px",
+      }).appendTo(this.div)
 
-    const title = $('<h3>').text('Shape Manual').css({
-      'text-align': 'left',
-      'margin-bottom': '10px'
-    });
+    const manualContainer = $("<div>").addClass("manual-container").css({
+      border: "2px solid black",
+      padding: "10px",
+      "border-radius": "10px",
+      "background-color": "white",
+      height: "100%",
+      "box-sizing": "border-box",
+    })
 
-    manualContainer.append(title);
+    const title = $("<h3>").text("Shape Manual").css({
+      "text-align": "left",
+      "margin-bottom": "10px",
+    })
 
-    const examplesContainer = $('<div>').css({
-      'display': 'flex',
-      'justify-content': 'flex-start',
-      'flex-wrap': 'wrap'
-    });
+    manualContainer.append(title)
 
-    this.manual.forEach(example => {
-      const exampleDiv = $('<div>').css({
-        'text-align': 'center',
-        'margin': '10px'
-      });
+    const examplesContainer = $("<div>").css({
+      display: "flex",
+      "justify-content": "flex-start",
+      "flex-wrap": "wrap",
+    })
 
-      const canvas = $('<canvas>').attr({
-        width: this.screenWidth * this.manualScale,
-        height: this.screenHeight * this.manualScale
+    this.manual.forEach((example) => {
+      const exampleDiv = $("<div>").css({
+        "text-align": "center",
+        margin: "10px",
       })
 
-      const ctx = canvas[0].getContext('2d');
-      this.drawShape(ctx, example.blockString, example.compositional ? 'compositional' : 'bespoke', true);
+      const canvas = $("<canvas>").attr({
+        width: this.screenWidth * this.manualScale,
+        height: this.screenHeight * this.manualScale,
+      })
 
-      const codeText = $('<p>').css({
-        'margin-top': '5px',
-        'display': 'flex',
-        'justify-content': 'center',
-        'align-items': 'center',
-        'font-weight': 'bold',
-        'font-size': '30px'
-      });
-      
-      const colors = example.compositional ? [1, 1, 2, 2] : [3, 3, 3, 3];
-      example.code.split('').forEach((digit, idx) => {
-        const digitSpan = $('<span>')
+      const ctx = canvas[0].getContext("2d")
+      this.drawShape(
+        ctx,
+        example.blockString,
+        example.compositional ? "compositional" : "bespoke",
+        true
+      )
+
+      const codeText = $("<p>").css({
+        "margin-top": "5px",
+        display: "flex",
+        "justify-content": "center",
+        "align-items": "center",
+        "font-weight": "bold",
+        "font-size": "30px",
+      })
+
+      const colors = example.compositional ? [1, 1, 2, 2] : [3, 3, 3, 3]
+      example.code.split("").forEach((digit, idx) => {
+        const digitSpan = $("<span>")
           .text(digit)
-          .css('color', COLORS[colors[idx]]);
-        codeText.append(digitSpan);
-      });
+          .css("color", COLORS[colors[idx]])
+        codeText.append(digitSpan)
+      })
 
-      exampleDiv.append(canvas, codeText);
-      examplesContainer.append(exampleDiv);
-    });
+      exampleDiv.append(canvas, codeText)
+      examplesContainer.append(exampleDiv)
+    })
 
-    manualContainer.append(examplesContainer);
-    this.manualDiv.append(manualContainer); // Append to manualDiv instead of div
+    manualContainer.append(examplesContainer)
+    this.manualDiv.append(manualContainer) // Append to manualDiv instead of div
   }
 
   createDrawingInterface() {

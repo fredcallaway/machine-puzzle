@@ -170,11 +170,22 @@ function alert_failure(opts = {}) {
   return Swal.fire({
     title: "Let's try the next one",
     html: `<em>${flavor}!</em>`,
-    icon: 'error',
-    confirmButtonText: 'Continue',
-    ...opts
+    icon: "error",
+    confirmButtonText: "Continue",
+    allowOutsideClick: false,
+    ...opts,
   })
+}
 
+function alert_info(opts = {}) {
+
+  return Swal.fire({
+    title: "Hint",
+    icon: "info",
+    confirmButtonText: "Got it!",
+    allowOutsideClick: false,
+    ...opts,
+  })
 }
 
 class TopBar {
