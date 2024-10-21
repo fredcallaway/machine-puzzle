@@ -294,7 +294,7 @@ class MachineInstructions extends Instructions {
 
     this.manual = [
       { code: "1234", compositional: false, blockString },
-      { code: "1235", compositional: false, blockString },
+      { code: "4321", compositional: false, blockString },
       { code: "3124", compositional: true, blockString },
     ]
     window.instruct = this
@@ -307,6 +307,7 @@ class MachineInstructions extends Instructions {
 
     let mp = new MachinePuzzle({
       ...this.params,
+      maxDigit: 4,
       solutions,
       blockString: this.blockString,
       machineColor: "#ffe852",
@@ -359,6 +360,7 @@ class MachineInstructions extends Instructions {
         It will automatically increment the next dial when you cycle back to 1.
       </div>
     `)
+    mp.currentCode[0] = 4
     await mp.done
     // this.prompt.append('<b>Nice!</b>');
   }
@@ -424,7 +426,7 @@ class MachineInstructions extends Instructions {
     this.instruct(`
       For the rest of the experiment, you'll be working on this new machine.
       It operates in the same way as the yellow practice machine, 
-      but it makes different shapes and uses different codes. 
+      but it has more possible codes and makes more shapes.
     `)
     mp.manualDiv.hide()
   }
