@@ -360,7 +360,6 @@ class MachineInstructions extends Instructions {
         It will automatically increment the next dial when you cycle back to 1.
       </div>
     `)
-    mp.currentCode[0] = 4
     await mp.done
     // this.prompt.append('<b>Nice!</b>');
   }

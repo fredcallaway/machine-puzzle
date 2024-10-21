@@ -141,6 +141,7 @@ class MachinePuzzle {
         width: 7, // Width in block units, not including padding
         height: 5, // Height in block units, not including padding
         manualScale: 0.25,
+        initialCode: 'random'
         drawingMode: false,
         machineColor: "#656565",
         suppressSuccess: false,
@@ -161,10 +162,15 @@ class MachinePuzzle {
     window.cp = this;
 
     this.codeLength = Object.keys(this.solutions)[0].length || 4
-    // Generate a random starting code that's not in solutions
-    do {
-      this.currentCode = Array(this.codeLength).fill().map(() => Math.floor(Math.random() * this.maxDigit) + 1);
-    } while (this.solutions[this.currentCode.join('')]);
+
+    if (this.initialCode == 'random') {
+      // Generate a random starting code that's not in solutions
+      do {
+        this.currentCode = Array(this.codeLength).fill().map(() => Math.floor(Math.random() * this.maxDigit) + 1);
+      } while (this.solutions[this.currentCode.join('')]);
+    } else {
+      this.currentCode = this.initialCode.split('').map(Number);
+    }
 
     // Create the top-level div
     this.div = $("<div>").addClass('puzzle-container').css({
