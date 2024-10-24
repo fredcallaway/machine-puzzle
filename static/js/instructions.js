@@ -581,7 +581,7 @@ class MachineInstructions extends Instructions {
           - It locks the dials that are in the correct position
         # What do the locks do?
           - They show you which dials are in the correct position
-          - They prevent the green button from changing some positions of the code
+          * They prevent the green button from changing some positions of the code
         # If you enter the code for a different shape, what will happen?
           * Nothing will happen
           - The machine will break and you'll have to start over

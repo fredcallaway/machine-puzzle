@@ -254,8 +254,9 @@ class Prolific(object):
 
     def study_id(self, n):
         """The study id for the study run `n` studies ago (0 is most recent)."""
-        if isinstance(n, str): return n
-        return self._studies()[-(n+1)]['id']
+        if isinstance(n, str): 
+            return n
+        return self._studies(limit=n+1)[-(n+1)]['id']
 
     def post_duplicate(self, study=0, no_check=False, **kws):
         """Post a duplicate of the given study using current fields in config.txt"""
