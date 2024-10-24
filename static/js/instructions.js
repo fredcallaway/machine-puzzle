@@ -368,7 +368,7 @@ class MachineInstructions extends Instructions {
     this.instruct(`
       On each round, a shape will appear on the screen. 
       Your job is to find a code that reveals this shape. 
-      You can click or drag the dials to change the code. 
+      You can drag the dials up and down to change the code (click and hold to drag).
       As soon as you land on the right code, the shape will be revealed. 
       _Try entering the code ${this.codes.intro}._
     `)

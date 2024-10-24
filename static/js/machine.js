@@ -146,6 +146,7 @@ class MachinePuzzle {
         initialCode: "random",
         drawingMode: false,
         machineColor: "#707374",
+        allowClicks: false,
         suppressSuccess: false,
         showNextCodeButton: true,
         showLocks: true,
@@ -348,7 +349,7 @@ class MachinePuzzle {
           let mouseUpTime = Date.now(); // Record the mouseup time
 
           // If the click is quick and no drag occurred
-          if (mouseUpTime - mouseDownTime < this.clickTime && Math.abs(event.pageY - startY) < 5) {
+          if (this.allowClicks && mouseUpTime - mouseDownTime < this.clickTime && Math.abs(event.pageY - startY) < 5) {
             this.currentCode[i] = (this.currentCode[i] % this.maxDigit) + 1;
             this.lastAction = `click.${i}`;
 
