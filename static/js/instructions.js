@@ -243,6 +243,12 @@ class Quiz {
       questions = parseQuizText(questions)
     }
     this.questions = questions
+    // Ensure all questions have a correct answer
+    this.questions.forEach(q => {
+      if (!q[2]) {
+        throw new Error("Quiz question has no correct answer: " + q[0])
+      }
+    });
     this.div = $("<div>")
     this.done = make_promise()
     this.correct = []
