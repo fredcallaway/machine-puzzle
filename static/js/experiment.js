@@ -13,7 +13,7 @@ async function runExperiment() {
     new MachinePuzzle({...PARAMS, drawingMode: true}).run(DISPLAY)
     await make_promise()
   }
-  let configFile = `static/json/${PARAMS.config_dir}/${CONDITION+1}.json`
+  let configFile = `static/json/${PARAMS.config_dir}/${CONDITION}.json`
   try {
     config = await $.getJSON(configFile)
   } catch(err) {
