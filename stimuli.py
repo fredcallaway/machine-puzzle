@@ -3,6 +3,7 @@ import json
 import os
 import random
 from itertools import product
+import numpy as np
 
 N_TASK = 10
 MAX_DIGIT = 6
@@ -12,6 +13,7 @@ SOLUTIONS_PER_TASK = 20
 N_MANUAL = 8
 CONFIG_DIR = 'code-pilot'
 N_CONFIG = 50
+
 
 def separate_shapes(shape_def):
     # Split the string into rows
@@ -167,40 +169,143 @@ def compose_block_strings(left, right):
 def make_bespoke(blockString):
     return blockString.replace('1', '3').replace('2', '3')
 
-def generate_manual(task_code_mapping, parts):
-    manual = []
-    for task, solutions in random.sample(list(task_code_mapping.items()), N_MANUAL):
-        blockString = compose_block_strings(parts['left'][int(task[0])-1], parts['right'][int(task[1])-1])
-        code = list(solutions.keys())[random.choice((0, 1))]
-        compositional = solutions[code] == 'compositional'
-        if not compositional:
-            blockString = make_bespoke(blockString)
+class RandomStimuliGenerator:
+    def __init__(self, task_code_mapping, parts):
+        self.task_code_mapping = task_code_mapping
+        self.parts = parts
 
-        manual.append({
-            'task': task,
-            'compositional': compositional,
-            'blockString': blockString,
-            'code': code
-        })
-    return manual
+    def generate(self):
+        manual = self.generate_manual()
+        trials = self.generate_trials()
+        return trials, manual
 
-def generate_trials(task_code_mapping, parts):
-    trials = []
-    for (task, solutions) in random.choices(list(task_code_mapping.items()), k=N_TASK):
-        blockString = compose_block_strings(parts['left'][int(task[0])-1], parts['right'][int(task[1])-1])
-        trials.append({
-            'task': task,
-            'solutions': solutions,
-            'blockString': blockString
-        })
-    return trials
+    def generate_manual(self):
+        manual = []
+        for task, solutions in random.sample(list(self.task_code_mapping.items()), N_MANUAL):
+            blockString = compose_block_strings(self.parts['left'][int(task[0])-1], self.parts['right'][int(task[1])-1])
+            code = list(solutions.keys())[random.choice((0, 1))]
+            compositional = solutions[code] == 'compositional'
+            if not compositional:
+                blockString = make_bespoke(blockString)
+
+            manual.append({
+                'task': task,
+                'compositional': compositional,
+                'blockString': blockString,
+                'code': code
+            })
+        return manual
+
+    def generate_trials(self):
+        trials = []
+        # bespoke (present/absent) x compositional (exact/full/partial/none)
+        for (task, solutions) in random.choices(list(self.task_code_mapping.items()), k=N_TASK):
+            blockString = compose_block_strings(self.parts['left'][int(task[0])-1], self.parts['right'][int(task[1])-1])
+            trials.append({
+                'task': task,
+                'solutions': solutions,
+                'blockString': blockString
+            })
+        return trials
+
+# %% --------
+class InformativeStimuliGenerator:
+    def __init__(self, task_code_mapping, parts):
+        self.task_code_mapping = task_code_mapping
+        self.parts = parts
+
+    def generate(self):
+        C, B, tasks = self.generate_abstract()
+        trials = self.generate_trials(tasks)
+        manual = self.generate_manual(C, B)
+        return trials, manual
+
+    def generate_manual(self, C, B):
+        manual = []
+        for tasks, compositional in [((zip(*np.where(C))), True), ((zip(*np.where(B))), False)]:
+            for (i, j) in tasks:
+                blockString = compose_block_strings(self.parts['left'][i], self.parts['right'][j])
+                if not compositional:
+                    blockString = make_bespoke(blockString)
+                task = "".join(str(t+1) for t in (i, j))
+                
+                solutions = self.task_code_mapping[task]
+                if compositional:
+                    code = next(code for code, type in solutions.items() if type == 'compositional')
+                else:
+                    code = next(code for code, type in solutions.items() if type == 'bespoke')
+                manual.append({
+                    'task': task,
+                    'compositional': compositional,
+                    'blockString': blockString,
+                    'code': code
+                })
+        random.shuffle(manual)
+        return manual
+    
+    def generate_trials(self, tasks):
+        trials = []
+        for (i, j) in tasks:
+            task = "".join(str(t+1) for t in (i, j))
+            trials.append({
+                'task': task,
+                'solutions': self.task_code_mapping[task],
+                'blockString': compose_block_strings(self.parts['left'][i], self.parts['right'][j])
+            })
+        return trials
+    
+    def generate_abstract(self):
+        # three compositional solutions across 3 columns and 2 rows 
+        C = np.zeros((N_PART, N_PART), dtype=bool)
+        a, b, c, d = random.sample(range(4), 4)
+        C[a, a] = 1
+        C[a, b] = 1
+        C[b, c] = 1
+
+        # compute compostional types: none, partial, full, exact
+        partial = np.logical_or.outer(C.any(1), C.any(0))
+        full = np.logical_and.outer(C.any(1), C.any(0))
+        types = 1 * partial + full + C
+
+        # for each type, one matching task gets a bespoke solution
+        B = np.zeros((N_PART, N_PART), dtype=bool)
+        # we order the tasks by type to make sure we don't turn a none to partial or partial to full
+        tasks = []
+        for t in range(4):
+            i, j = np.where(types == t)
+            if len(i) < 2:
+                raise ValueError(f"Invalid C")
+            # pick two tasks at random
+            idx1, idx2 = np.random.choice(len(i), 2, replace=False)
+            i1, j1 = i[idx1], j[idx1]
+            i2, j2 = i[idx2], j[idx2]
+            # first task gets a bespoke solution
+            B[i1, j1] = 1
+            # random order within compositional type
+            these_tasks = [(i1, j1), (i2, j2)]
+            random.shuffle(these_tasks)
+            tasks.extend(these_tasks)
+            
+        # 10s place is for bespoke
+        types += 10 * B
+
+        # make sure that we actually have all the types
+        for t in [0, 1, 2, 3, 10, 11, 12, 13]:
+            assert any(types[task] == t for task in tasks), f"Type {t} not present"
+
+        return C, B, tasks
+
+
+task_code_mapping = TaskCodeGenerator().generate()
+parts = parse_shape_definition()
+tasks, manual = InformativeStimuliGenerator(task_code_mapping, parts).generate()
+
 
 def generate_config(i):
     random.seed(i)
     task_code_mapping = TaskCodeGenerator().generate()
     parts = parse_shape_definition()
-    trials = generate_trials(task_code_mapping, parts)
-    manual = generate_manual(task_code_mapping, parts)
+    trials, manual = InformativeStimuliGenerator(task_code_mapping, parts).generate()
     return {
         'trials': trials,
         'params': {
@@ -219,12 +324,4 @@ for i in range(N_CONFIG):
     print(f'wrote static/json/{CONFIG_DIR}/{i}.json')
 
 
-# # Pretty print one trial and the first entry of the manual
-# import pprint
-
-# print("Sample Trial:")
-# pprint.pprint(trials[0], width=80, indent=2)
-
-# print("\nFirst Manual Entry:")
-# pprint.pprint(config['manual'][0], width=80, indent=2)
 
