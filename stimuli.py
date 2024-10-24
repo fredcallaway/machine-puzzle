@@ -295,12 +295,6 @@ class InformativeStimuliGenerator:
 
         return C, B, tasks
 
-
-task_code_mapping = TaskCodeGenerator().generate()
-parts = parse_shape_definition()
-tasks, manual = InformativeStimuliGenerator(task_code_mapping, parts).generate()
-
-
 def generate_config(i):
     random.seed(i)
     task_code_mapping = TaskCodeGenerator().generate()
