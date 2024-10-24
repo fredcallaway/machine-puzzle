@@ -53,10 +53,15 @@ class Prolific(object):
             url = 'https://api.prolific.co/api/v1' + url
         if not url.endswith('/') and '?' not in url:  # adding / prevents redirecting POST requests
             url += '/'
+        print(method, url)
         r = requests.request(method, url, **kws, json=json, headers={
             'Authorization': f'Token {self.token}',
         })
-        response = r.json()
+        try:
+            response = r.json()
+        except:
+            print(r.text)
+            return
         if r.ok:
             return response
         else:
@@ -65,12 +70,18 @@ class Prolific(object):
             exit(1)
 
     @cache
-    def _studies(self):
-        res = self._request('GET', f'/projects/{self.project_id}/studies?limit=1000')
+    def _studies(self, state="active|paused|completed|awaiting review|unknown", limit=1000):
+        "ACTIVE" "PAUSED" "UNPUBLISHED" "PUBLISHING" "COMPLETED" "AWAITING REVIEW" "UNKNOWN" "SCHEDULED"
+        #  Accepts a string in the format "(active|published|...)"
+
+        url = f'/projects/{self.project_id}/studies?limit={limit}'
+        if state:
+            url += f'&state=({state})'
+        res = self._request('GET', url)
         if len(res['results']) != res['meta']['count']:
             print("Some studies were not retrieved. You might have to implemnent paging.")
-
-        return [s for s in res['results'] if s['status'] != 'UNPUBLISHED' ]
+        # return [s for s in res['results'] if s['status'] != 'UNPUBLISHED' ]
+        return res['results']
 
     @cache
     def _submissions(self, study_id):
@@ -324,6 +335,10 @@ class Prolific(object):
             confirm = input('NOT posting. Keep draft? [Y/n] ')
             if confirm.lower() == 'n':
                 self._request('DELETE', '/studies/' + new['id'])
+
+    def clear_drafts(self):
+        for study in self._studies(state='unpublished'):
+            self._request('DELETE', f'/studies/{study["id"]}')
 
     def check_wage(self, study=0, target_wage=12):
         """Summarizes time and total payment for the given study"""

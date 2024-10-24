@@ -89,8 +89,7 @@ def write_data(version, mode):
         meta['workerid'] = p.workerid
         meta['wid'] = wid = anonymize(p.workerid)
         meta['start_time'] = p.beginhit
-        params['pop_name']
-        meta.update(pick(params, ['pop_name', 'M', 'N', 'K']))
+        # meta.update(pick(params, ['pop_name', 'M', 'N', 'K']))
 
         participants.append(meta)
         meta['complete'] = any(e['event'] == "experiment.complete" for e in trialdata)
