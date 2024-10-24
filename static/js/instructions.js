@@ -367,9 +367,9 @@ class MachineInstructions extends Instructions {
     })
     this.instruct(`
       On each round, a shape will appear on the screen. 
-      Your job is to find a code that unlocks this shape. 
+      Your job is to find a code that reveals this shape. 
       You can click or drag the dials to change the code. 
-      As soon as you land on the right code, the shape will be unlocked. 
+      As soon as you land on the right code, the shape will be revealed. 
       _Try entering the code ${this.codes.intro}._
     `)
     await mp.done
@@ -382,8 +382,8 @@ class MachineInstructions extends Instructions {
       solutions: {},
     })
     this.instruct(`
-      Each shape can be unlocked by multiple codes. 
-      _Try to find another code that unlocks this shape_ (we disabled ${this.codes.intro}).
+      Each shape can be revealed by multiple codes. 
+      _Try to find another code that reveals this shape_ (we disabled ${this.codes.intro}).
     `)
 
     await this.eventPromise(
@@ -508,7 +508,7 @@ class MachineInstructions extends Instructions {
   async stage_only_target() {
     this.instruct(`
       One last note.
-      _You can only unlock the shape currently on the screen._
+      _You can only reveal the shape currently on the screen._
       If you enter a code for a different shape, nothing will happen.
       
       See the example below and continue when you're ready—_no need to click anything!_
@@ -517,6 +517,9 @@ class MachineInstructions extends Instructions {
     let mp = this.getPuzzle({
       blockString: this.shape21,
       showManual: true,
+      manual: [
+        {task: 'null', blockString: this.shape11, compositional: true, code: this.codes.comp11}
+      ],
       showNextCodeButton: true,
       showLocks: true,
       solutions: { "0000": null },
@@ -561,23 +564,25 @@ class MachineInstructions extends Instructions {
       // prettier-ignore
       new Quiz(`
         # There is only one code to make each shape.
-          - true
-          * false
+          - True
+          * False
         # You can only use the manual if it has the exact shape you're trying to crack.
-          - true
-          * false
-        # What is the fastest way to crack parts of the code you don't know?
-          - (A) Lock the dials you already know
-          - (B) Repeatedly click the green button
-          * First A, then B
-          - First B, then A
+          - True
+          * False
+        # What does the green button do?
+          - It reveals the shape
+          * It tries the next possible code
+          - It locks the dials that are in the correct position
+        # What do the locks do?
+          - They show you which dials are in the correct position
+          - They prevent the green button from changing some positions of the code
         # If you enter the code for a different shape, what will happen?
           * Nothing will happen
           - The machine will break and you'll have to start over
           - The machine will update the manual
         # The codes you learned on the practice machine will work later in the experiment.
-          - true
-          * false
+          - True
+          * False
       `)
     await this.quiz.run($("<div>").appendTo(this.prompt))
     this.runNext()
