@@ -89,7 +89,7 @@ class TaskCodeGenerator:
             self.task_code_mapping[task] = task_codes
 
     def _generate_unique_codes(self, code_length):
-        all_possible_codes = [''.join(digits) for digits in product(map(str, range(1, self.max_digit)), repeat=code_length)]
+        all_possible_codes = [''.join(digits) for digits in product(map(str, range(1, self.max_digit+1)), repeat=code_length)]
         random.shuffle(all_possible_codes)
         return all_possible_codes
 
@@ -315,7 +315,7 @@ os.makedirs(f'static/json/{CONFIG_DIR}', exist_ok=True)
 for i in range(N_CONFIG):
     config = generate_config(i)
     json.dump(config, open(f'static/json/{CONFIG_DIR}/{i}.json', 'w'))
-    print(f'wrote static/json/{CONFIG_DIR}/{i}.json')
+    # print(f'wrote static/json/{CONFIG_DIR}/{i}.json')
 
 
 

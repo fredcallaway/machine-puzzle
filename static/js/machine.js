@@ -6,7 +6,7 @@ const COLORS = [
 ]
 
 const NEXT_CODE_COLOR = "#4abf41"
-
+const NEXT_CODE_DISABLED_COLOR = "#94c490"
 class Block {
   constructor({x, y, parts, color, id} = {}) {
     this.x = x;
@@ -136,8 +136,9 @@ class MachinePuzzle {
         manual: null,
         blockString: testBlock, // default block
         dialSpeed: 0.03, // speed of dial drag
-        clickTime: 300, // time threshold for a quick click
-        maxDigit: 6, // max digit allowed on each dial
+        clickTime: 200, // time threshold for a quick click
+        nextCodeDelay: 300, // delay after clicking next code button
+        maxDigit: null, // max digit allowed on each dial
         trialID: randomUUID(), // unique trial ID
         blockSize: 40,
         width: 7, // Width in block units, not including padding
@@ -445,7 +446,7 @@ class MachinePuzzle {
         'color': 'white',
         'font-weight': 'bold',
         'background-color': NEXT_CODE_COLOR,
-        'transition': 'background-color 0.3s ease',
+        // 'transition': 'background-color 0.02s ease',
         'outline': 'none',
         'cursor': 'pointer',
         'border': '3px solid black',
@@ -457,8 +458,15 @@ class MachinePuzzle {
         'font-size': '25px',
         'cursor': 'pointer'
       })
-      .on('click', () => {
+      .on('click', async () => {
         this.tryNextCode();
+        if (this.nextCodeDelay) {
+          nextCodeButton.prop('disabled', true)
+          nextCodeButton.css('background-color', NEXT_CODE_DISABLED_COLOR)
+          await sleep(this.nextCodeDelay)
+          nextCodeButton.prop('disabled', false)
+          nextCodeButton.css('background-color', NEXT_CODE_COLOR)
+        }
       });
 
     this.machineDiv.append(nextCodeButton);

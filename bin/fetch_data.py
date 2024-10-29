@@ -89,6 +89,11 @@ def write_data(version, mode):
         meta['workerid'] = p.workerid
         meta['wid'] = wid = anonymize(p.workerid)
         meta['start_time'] = p.beginhit
+
+        meta['active_minutes'] = (datastring['data'][-1]['dateTime'] - datastring['data'][0]['dateTime']) / 60000
+
+        
+
         # meta.update(pick(params, ['pop_name', 'M', 'N', 'K']))
 
         participants.append(meta)
