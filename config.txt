@@ -7,9 +7,9 @@ table_name = participants
 name = Code Cracker
 project_name = machine
 reward = 500
-total_available_places = 3
+total_available_places = 5
 external_study_url = https://machinepuzzles-35f86e31c902.herokuapp.com/consent?mode=live&hitId=prolific&workerId={{%%PROLIFIC_PID%%}}&STUDY_ID={{%%STUDY_ID%%}}&assignmentId={{%%SESSION_ID%%}}
-estimated_completion_time = 20
+estimated_completion_time = 25
 description =
     In this study, you will solve a series of puzzles that involve cracking codes.
 
