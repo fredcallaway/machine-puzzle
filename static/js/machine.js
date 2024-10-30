@@ -7,111 +7,6 @@ const COLORS = [
 
 const NEXT_CODE_COLOR = "#4abf41"
 const NEXT_CODE_DISABLED_COLOR = "#94c490"
-class Block {
-  constructor({x, y, parts, color, id} = {}) {
-    this.x = x;
-    this.y = y;
-    this.parts = parts; // Array of {x, y} parts relative to the block's position
-    this.color = color;
-    this.id = id
-    this.colliding = false;
-    this.rotation = 0  // just for analysis convenience
-    this.width = _(this.parts).map((part) => part.x).max() + 1
-    this.height = _(this.parts).map((part) => part.y).max() + 1
-  }
-
-  draw(ctx, grid) {
-    // Draw individual parts with a thin outline
-    ctx.fillStyle = this.colliding ? `rgba(${hex2rgb(this.color)},0.2)` : this.color; // Set transparency on collision
-    this.parts.forEach(part => {
-      const partX = (this.x + part.x) * grid;
-      const partY = (this.y + part.y) * grid;
-      ctx.fillRect(partX, partY, grid, grid);
-      // light border on each tile
-      // ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-      // ctx.lineWidth = 1 + (grid / 30);
-      // ctx.strokeRect(partX, partY, grid, grid);
-    });
-
-    // Now, draw the thick border around the shape
-    ctx.strokeStyle = this.colliding ? 'rgba(0,0,0,0.2)' : 'black';
-    ctx.lineWidth = 1 + (grid / 30);
-    // Helper function to check if there is an adjacent part
-    const hasAdjacentPart = (dx, dy) => {
-      return this.parts.some(part => part.x === dx && part.y === dy);
-    };
-
-    this.parts.forEach(part => {
-      const partX = (this.x + part.x) * grid;
-      const partY = (this.y + part.y) * grid;
-
-      // For each side of the part, draw a line if there is no adjacent part
-      if (!hasAdjacentPart(part.x, part.y - 1)) {
-        // No part above, draw top line
-        ctx.beginPath();
-        ctx.moveTo(partX, partY);
-        ctx.lineTo(partX + grid, partY);
-        ctx.stroke();
-      }
-      if (!hasAdjacentPart(part.x + 1, part.y)) {
-        // No part to the right, draw right line
-        ctx.beginPath();
-        ctx.moveTo(partX + grid, partY);
-        ctx.lineTo(partX + grid, partY + grid);
-        ctx.stroke();
-      }
-      if (!hasAdjacentPart(part.x, part.y + 1)) {
-        // No part below, draw bottom line
-        ctx.beginPath();
-        ctx.moveTo(partX, partY + grid);
-        ctx.lineTo(partX + grid, partY + grid);
-        ctx.stroke();
-      }
-      if (!hasAdjacentPart(part.x - 1, part.y)) {
-        // No part to the left, draw left line
-        ctx.beginPath();
-        ctx.moveTo(partX, partY);
-        ctx.lineTo(partX, partY + grid);
-        ctx.stroke();
-      }
-    });
-  }
-}
-
-function string2block(s, x, y, color, id='block') {
-    if (s == 'blank') {
-      s = BLANK
-    }
-    if (typeof(color) == 'number') {
-      color = COLORS[color]
-    }
-    let rows = s.trim().split('\n')
-    let parts = []
-    rows.forEach((row, y) => {
-      row.trim().split('').forEach((v, x) => {
-        if (v != "_" && v != " ") {
-          parts.push({x, y})
-        }
-      })
-    })
-    return new Block({x, y, parts, color, id})
-}
-
-function string2blockSplit(s, x, y) {
-    let rows = s.trim().split('\n')
-    let parts = {}
-    rows.forEach((row, y) => {
-      row.trim().split('').forEach((v, x) => {
-        if (v != "_" && v != " ") {
-          if (parts[v] === undefined) {
-            parts[v] = []
-          }
-          parts[v].push({x, y})
-        }
-      })
-    })
-    return Object.entries(parts).map(([v, bparts]) => new Block({x, y, parts: bparts, color: COLORS[v]}));
-}
 
 const testBlock = `
 11___22
@@ -468,7 +363,6 @@ class MachinePuzzle {
 
   getNextCode() {
     let partialSolution = this.hasPartialSolution()
-    console.log('getNextCode', this.nTry, this.nTryPartial, partialSolution)
 
     // if we've hit the limit on pulls, reveal the solution
     if (partialSolution && this.nTryPartial >= this.maxTryPartial-1) {
@@ -935,4 +829,127 @@ class MachinePuzzle {
     this.redrawGrid();
     this.mode = 'draw'; // Reset to draw mode after pasting
   }
+}
+
+
+class Block {
+  constructor({ x, y, parts, color, id } = {}) {
+    this.x = x
+    this.y = y
+    this.parts = parts // Array of {x, y} parts relative to the block's position
+    this.color = color
+    this.id = id
+    this.colliding = false
+    this.rotation = 0 // just for analysis convenience
+    this.width =
+      _(this.parts)
+        .map((part) => part.x)
+        .max() + 1
+    this.height =
+      _(this.parts)
+        .map((part) => part.y)
+        .max() + 1
+  }
+
+  draw(ctx, grid) {
+    // Draw individual parts with a thin outline
+    ctx.fillStyle = this.colliding
+      ? `rgba(${hex2rgb(this.color)},0.2)`
+      : this.color // Set transparency on collision
+    this.parts.forEach((part) => {
+      const partX = (this.x + part.x) * grid
+      const partY = (this.y + part.y) * grid
+      ctx.fillRect(partX, partY, grid, grid)
+      // light border on each tile
+      // ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+      // ctx.lineWidth = 1 + (grid / 30);
+      // ctx.strokeRect(partX, partY, grid, grid);
+    })
+
+    // Now, draw the thick border around the shape
+    ctx.strokeStyle = this.colliding ? "rgba(0,0,0,0.2)" : "black"
+    ctx.lineWidth = 1 + grid / 30
+    // Helper function to check if there is an adjacent part
+    const hasAdjacentPart = (dx, dy) => {
+      return this.parts.some((part) => part.x === dx && part.y === dy)
+    }
+
+    this.parts.forEach((part) => {
+      const partX = (this.x + part.x) * grid
+      const partY = (this.y + part.y) * grid
+
+      // For each side of the part, draw a line if there is no adjacent part
+      if (!hasAdjacentPart(part.x, part.y - 1)) {
+        // No part above, draw top line
+        ctx.beginPath()
+        ctx.moveTo(partX, partY)
+        ctx.lineTo(partX + grid, partY)
+        ctx.stroke()
+      }
+      if (!hasAdjacentPart(part.x + 1, part.y)) {
+        // No part to the right, draw right line
+        ctx.beginPath()
+        ctx.moveTo(partX + grid, partY)
+        ctx.lineTo(partX + grid, partY + grid)
+        ctx.stroke()
+      }
+      if (!hasAdjacentPart(part.x, part.y + 1)) {
+        // No part below, draw bottom line
+        ctx.beginPath()
+        ctx.moveTo(partX, partY + grid)
+        ctx.lineTo(partX + grid, partY + grid)
+        ctx.stroke()
+      }
+      if (!hasAdjacentPart(part.x - 1, part.y)) {
+        // No part to the left, draw left line
+        ctx.beginPath()
+        ctx.moveTo(partX, partY)
+        ctx.lineTo(partX, partY + grid)
+        ctx.stroke()
+      }
+    })
+  }
+}
+
+function string2block(s, x, y, color, id = "block") {
+  if (s == "blank") {
+    s = BLANK
+  }
+  if (typeof color == "number") {
+    color = COLORS[color]
+  }
+  let rows = s.trim().split("\n")
+  let parts = []
+  rows.forEach((row, y) => {
+    row
+      .trim()
+      .split("")
+      .forEach((v, x) => {
+        if (v != "_" && v != " ") {
+          parts.push({ x, y })
+        }
+      })
+  })
+  return new Block({ x, y, parts, color, id })
+}
+
+function string2blockSplit(s, x, y) {
+  let rows = s.trim().split("\n")
+  let parts = {}
+  rows.forEach((row, y) => {
+    row
+      .trim()
+      .split("")
+      .forEach((v, x) => {
+        if (v != "_" && v != " ") {
+          if (parts[v] === undefined) {
+            parts[v] = []
+          }
+          parts[v].push({ x, y })
+        }
+      })
+  })
+  return Object.entries(parts).map(
+    ([v, bparts]) => new Block({ x, y, parts: bparts, color: COLORS[v] })
+  )
 }

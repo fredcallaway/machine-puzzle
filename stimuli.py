@@ -4,16 +4,19 @@ import os
 import random
 from itertools import product
 import numpy as np
+from scipy import stats
 
 N_TASK = 10
-MAX_DIGIT = 6
+MAX_DIGIT = 9
 CODE_LENGTH = 4
 N_PART = 4
 SOLUTIONS_PER_TASK = 20
 N_MANUAL = 8
 CONFIG_DIR = 'code-pilot'
 N_CONFIG = 50
+MAXTRY_QUANTILE = 0.5
 
+# %% --------
 
 def separate_shapes(shape_def):
     # Split the string into rows
@@ -295,6 +298,11 @@ class InformativeStimuliGenerator:
 
         return C, B, tasks
 
+def max_try(p):
+    # quantile of geometric distribution
+    return stats.geom(p).ppf(.5)
+
+
 def generate_config(i):
     random.seed(i)
     task_code_mapping = TaskCodeGenerator().generate()
@@ -308,6 +316,8 @@ def generate_config(i):
             'nPart': N_PART,
             'solutionsPerTask': SOLUTIONS_PER_TASK,
             'manual': manual,
+            'maxTry': max_try(SOLUTIONS_PER_TASK / (MAX_DIGIT ** CODE_LENGTH)),
+            'maxTryPartial': max_try(1 / (MAX_DIGIT ** (CODE_LENGTH/2))),
         }
     }
 

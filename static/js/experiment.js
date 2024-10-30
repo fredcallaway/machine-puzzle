@@ -2,9 +2,8 @@ const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
   config_dir: "code-pilot",
   maxTryPartial: 100,
-  // these are the .75 quantiles of the Geometrics
-  maxTry: 90,
-  maxTryPartial: 50,
+  nextCodeDelay: 0,
+  maxTotalTries: 600,
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
@@ -37,7 +36,6 @@ async function runExperiment() {
       ...PARAMS,
     }).run(DISPLAY)
   }
-
 
   async function social() {
     if (config.params.manual.length == 0) return
@@ -75,20 +73,30 @@ async function runExperiment() {
       nTrial: config.trials.length,
       height: 70,
       width: 1150,
-      helpTitle: 'Feeling stuck?',
-      help: `
-        You can always find a code by brute force. Just repeatedly click on
-        the rightmost dial (the last digit) and you will eventually find one
-        of the correct codes. It should never require more than 200 clicks. If
-        that doesn't work, there's probably a bug in the experiment. Please
-        submit your study without a completion code and message us on Prolific.
-        If you can, email ${ERROR_EMAIL} as well so we can fix it ASAP!
-      `
+      // helpTitle: 'Feeling stuck?',
+      // help: `
+      //   Check the manual to see if you have any usable information.
+      //   Remember that you can combine codes from shapes that are built
+      //   from the same parts as the one you're trying to crack!
+        
+      //   You can always find a code by brute force. Just repeatedly click on
+      //   the rightmost dial (the last digit) and you will eventually find one
+      //   of the correct codes. It should never require more than ${Math.max(250, PARAMS.maxTryPartial)} clicks. 
+      //   If that doesn't work, there's probably a bug in the experiment. Please
+      //   submit your study without a completion code and message us on Prolific.
+      //   If you can, email ${ERROR_EMAIL} as well so we can fix it ASAP!
+      // `
     }).prependTo(DISPLAY)
 
-    registerEventCallback((info) => {
-      if (info.event == "machine.struggling") {
-        top.showHelp()
+    let totalTries = 0
+
+    registerEventCallback(async (info) => {
+      if (info.event == "machine.enter.incorrect") {
+        totalTries += 1
+        if (totalTries == PARAMS.maxTotalTries) {
+          logEvent('experiment.tooManyTries', {totalTries})
+          terminateExperiment("Code Not Found")
+        }
       }
     })
 

@@ -18,8 +18,12 @@ const DISPLAY = $('#display')
 $(window).on('load', async () => {
   if (local) {
     $('#display').empty()
-    await runExperiment()
-    $('#display').empty()
+    try {
+      await runExperiment()
+      $('#display').empty()
+    } catch (error) {
+      handleError(error)
+    }
   } else {
     await saveData()
     if (mode == 'live') {
@@ -174,12 +178,6 @@ async function showCompletionScreen() {
         <h1>Thanks!</h1>
         <p>Your completion code is <b>${PROLIFIC_CODE}</b>.
 
-        <div class="alert alert-warning">
-          <b>Note:</b> we have had some trouble with the completion link recently. Please copy the code
-          <b>BEFORE</b> trying clicking the link. If the link does not work correctly, you can just paste
-          in the code manually. Sorry for the inconvenience
-        </div>
-
         Copy the code, then click this link to submit:<br>
         <a href="https://app.prolific.co/submissions/complete?cc=${PROLIFIC_CODE}">
           https://app.prolific.co/submissions/complete?cc=${PROLIFIC_CODE}
@@ -189,6 +187,25 @@ async function showCompletionScreen() {
   }
 };
 
+async function terminateExperiment(message) {
+  logEvent('experiment.terminate', {message})
+  $("#display").html(`
+    <h1>The experiment encountered an error!</h1>
+    
+    We have recorded the error. There is no need to report it to us.
+
+    <br><br>
+    <div class="alert alert-info">
+      <p><b>👉 IMPORTANT:</b>
+        Despite what we said earlier, <b>you should submit the study!</b>
+    </div>
+    <br>
+    <button class="btn btn-primary" id="submit">See completion code</button>
+    </div>
+  `)
+  $('#submit').click(completeExperiment);
+
+}
 
 function handleError(err) {
   let msg = err.stack ?? `${err}`
