@@ -273,122 +273,85 @@ class MachinePuzzle {
     }
   }
 
-  createDials(speedFactor = 50) {
-    let dialWidth = 60; // Base width per dial
+  createDials() {
+    let dialWidth = 60;
     let containerWidth = this.dialContainerWidth = this.codeLength * dialWidth;
 
     let dialContainer = this.dialContainer = $('<div></div>').css({
-      'display': 'flex',
-      'justify-content': 'space-between',    // Evenly space the dials
-      'align-items': 'center',               // Vertically center the dials
-      'margin-top': '20px',
-      'border-radius': '10px',
-      'border': '3px solid black',
-      'padding': '10px',
-      'width': `${containerWidth}px`,        // Scale total width of the container by codeLength
-      'height': '60px',
-      'position': 'relative',
-      'margin-left': 'auto',
-      'margin-right': 'auto',
-      'overflow': 'hidden',
-      'background': 'white',
+        'display': 'flex',
+        'justify-content': 'space-between',
+        'align-items': 'center',
+        'margin-top': '20px',
+        'border-radius': '10px',
+        'border': '3px solid black',
+        'padding': '10px',
+        'width': `${containerWidth}px`,
+        'height': '60px',
+        'position': 'relative',
+        'margin-left': 'auto',
+        'margin-right': 'auto',
+        'overflow': 'hidden',
+        'background': 'white',
     });
 
-    let dialStyle = {
-      'flex': '1',
-      'text-align': 'center',
-      'font-size': `${40 - this.codeLength * 2}px`, // Scale font size based on codeLength
-      'font-weight': 'bold',
-      'line-height': '40px',                       // Vertical alignment of numbers
-      'cursor': 'pointer',
-      'user-select': 'none',
-      'position': 'relative',
-      'height': '100%',
-      'display': 'flex',
-      'align-items': 'center',                     // Vertically center the number in each dial
-      'justify-content': 'center',                 // Horizontally center the number in each dial
-      'width': 'auto'                              // Let the flexbox handle the width
-    };
-
-    this.numberEls = []; // Store number elements for updating later
+    this.numberEls = [];
 
     for (let i = 0; i < this.codeLength; i++) {
-      let dialWrapper = $('<div></div>').addClass('dial').attr('id', `dial-${i}`).css(dialStyle).data('index', i);
-      let numberElement = $('<div></div>').addClass('dial-number').text(this.currentCode[i]);
+        let dialWrapper = $('<div></div>').addClass('dial').attr('id', `dial-${i}`).css({
+            'flex': '1',
+            'text-align': 'center',
+            'height': '100%',
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'width': 'auto'
+        });
 
-      this.numberEls.push(numberElement); // Store each number element in the array for later updates
+        let select = $('<select></select>').css({
+            'font-size': `${40 - this.codeLength * 2}px`,
+            'font-weight': 'bold',
+            'border': 'none',
+            'outline': 'none',
+            'background': 'transparent',
+            'text-align': 'center',
+            'text-align-last': 'center',
+            '-webkit-appearance': 'none',
+            '-moz-appearance': 'none',
+            'cursor': 'pointer'
+        });
 
-      dialWrapper.append(numberElement);
+        // Add options 1 through maxDigit
+        for (let j = 1; j <= this.maxDigit; j++) {
+            select.append($('<option></option>').val(j).text(j));
+        }
 
-      let isDragging = false;
-      let startY = 0;
-      let currentNumber = this.currentCode[i];
-      let mouseDownTime = 0;
+        select.val(this.currentCode[i]);
 
-      // Attach mousedown handler (namespaced for this trial)
-      dialWrapper.on('mousedown.machine', (event) => {
-        this.logEvent('nosave.machine.dials.mousedown', { dial: i })
-        if (this.dialsDisabled) return  // HACK to fix clearHandlers not working
-        isDragging = false;
-        startY = event.pageY;
-        mouseDownTime = Date.now(); // Record the mousedown time
+        select.on('change', () => {
+            this.currentCode[i] = parseInt(select.val());
+            console.log('currentCode', this.currentCode)
+            this.lastAction = `select.${i}`;
+            this.checkCode();
+        });
 
-        const dragHandler = (event) => {
-          let deltaY = event.pageY - startY;
-          if (Math.abs(deltaY) > 5) { // Only trigger dragging if there's significant movement
-            isDragging = true;
-          }
+        this.numberEls.push(select);
+        dialWrapper.append(select);
+        dialContainer.append(dialWrapper);
 
-          if (isDragging) {
-            let change = Math.round(deltaY * this.dialSpeed); // Control how fast the numbers change
-            currentNumber = ((this.currentCode[i] - change - 1 + this.maxDigit) % this.maxDigit + this.maxDigit) % this.maxDigit + 1;
-            numberElement.text(currentNumber);
-          }
-        };
-
-        const mouseUpHandler = (event) => {
-          let mouseUpTime = Date.now(); // Record the mouseup time
-
-          // If the click is quick and no drag occurred
-          if (this.allowClicks && mouseUpTime - mouseDownTime < this.clickTime && Math.abs(event.pageY - startY) < 5) {
-            this.currentCode[i] = (this.currentCode[i] % this.maxDigit) + 1;
-            this.lastAction = `click.${i}`;
-
-          } else {
-            // Ensure currentNumber stays between 1 and maxDigit after dragging
-            currentNumber = ((Math.round(currentNumber) - 1) % this.maxDigit + this.maxDigit) % this.maxDigit + 1;
-            this.currentCode[i] = currentNumber;
-            this.lastAction = `drag.${i}`;
-          }
-
-          // Check the code after the change
-          this.updateAndCheckCode();
-
-          // Clean up the event handlers after the mouse is released
-          $(document).off('mousemove.machine', dragHandler);
-          $(document).off('mouseup.machine', mouseUpHandler);
-        };
-
-        // Attach the event handlers
-        $(document).on('mousemove.machine', dragHandler);
-        $(document).on('mouseup.machine', mouseUpHandler);
-      });
-
-      dialContainer.append(dialWrapper);
-
-      // Add separator line between dials (except the last one)
-      if (i < this.codeLength - 1) {
-        dialContainer.append($('<div></div>').css({
-          'height': '30px',         // Shorter height for the separator
-          'width': '2px',
-          'background-color': 'lightgray',
-          'margin': '0 5px',        // Horizontal margin for spacing
-          'align-self': 'center'    // Vertically center the line
-        }));
-      }
+        // Add separator line between dials (except the last one)
+        if (i < this.codeLength - 1) {
+            dialContainer.append($('<div></div>').css({
+                'height': '30px',
+                'width': '2px',
+                'background-color': 'lightgray',
+                'margin': '0 5px',
+                'align-self': 'center'
+            }));
+        }
     }
 
     this.machineDiv.append(dialContainer);
+    this.checkCode()
   }
 
   
@@ -474,14 +437,15 @@ class MachinePuzzle {
 
   
   tryNextCode() {
-    this.logEvent('nosave.machine.nextCode')
-    this.lastAction = 'nextCode'
+    this.logEvent("nosave.machine.nextCode")
+    this.lastAction = "nextCode"
     if (this.nextCodeDisabled) return // HACK to fix clearHandlers not working
     let incrementDial = (position) => {
       if (position < 0) return
       if (this.dialLocked[position]) return incrementDial(position - 1)
       // Increment the number at the current position
-      this.currentCode[position] = (this.currentCode[position] % this.maxDigit) + 1
+      this.currentCode[position] =
+        (this.currentCode[position] % this.maxDigit) + 1
 
       // Check if carrying is needed (i.e., if we incremented from maxDigit to 1)
       if (this.currentCode[position] === 1) {
@@ -490,7 +454,11 @@ class MachinePuzzle {
       }
     }
     incrementDial(this.codeLength - 1)
-    this.updateAndCheckCode()
+    // update display
+    for (let j = 0; j < this.codeLength; j++) {
+      this.numberEls[j].val(this.currentCode[j])
+    }
+    this.checkCode()
   }
 
 
@@ -571,12 +539,9 @@ class MachinePuzzle {
     this.logEvent('machine.handlers.cleared'); // Add this line
   }
 
-  updateAndCheckCode() {
+  checkCode() {
     // Update the display for each dial
     this.nTry += 1
-    for (let j = 0; j < this.codeLength; j++) {
-      this.numberEls[j].text(this.currentCode[j])
-    }
     // Compare the current code with the correct code
     let input = this.currentCode.join("")
     let info = { code: input, action: this.lastAction }
