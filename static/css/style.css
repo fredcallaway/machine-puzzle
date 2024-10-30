@@ -120,9 +120,9 @@
   font-size: 20pt !important;
 }
 
-button.btn:disabled {
+/* button.btn:disabled {
     opacity: .5;
-}
+} */
 
 .mono-text {
   font-family: monospace;

@@ -2,6 +2,11 @@ function randomUUID() {
   return Date.now() + Math.random().toString(36).substring(2)
 }
 
+
+function uniformRandom(min, max) {
+  return min + Math.random() * (max - min)
+}
+
 class ConditionBuilder {
   constructor(condition) {
     this.state = condition;

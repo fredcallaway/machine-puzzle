@@ -237,6 +237,7 @@ function parseQuizText(text) {
   return questions
 }
 
+
 class Quiz {
   constructor(questions) {
     if (typeof questions == "string") {
@@ -311,6 +312,13 @@ class MachineInstructions extends Instructions {
       _1122_2
       11____2
     `
+    this.shape13 = `
+      11__2__
+      _112222
+      __11222
+      _112222
+      11__2__
+    `
     this.shape21 = `
       1____22
       1_1222_
@@ -318,28 +326,58 @@ class MachineInstructions extends Instructions {
       1_1222_
       1____22
     `
-
-    this.manual = []
+    this.shape22 = `
+      1_____2
+      1_122_2
+      1111222
+      1_122_2
+      1_____2
+    `
+    this.shape32 = `
+      __1___2
+      11122_2
+      1111222
+      11122_2
+      __1___2
+    `
+    this.shape33 = `
+      __1_1__
+      1112222
+      1111222
+      1112222
+      __1_1__
+    `
     window.instruct = this
 
     // Define the codes used in the instructions
     this.codes = {
-      intro: "1234",
-      left1: "42",
-      right1: "13",
-      left2: "32",
-      right2: "44",
+      besp11: "1234",
+      left1: "42", right1: "13",
+      left2: "32", right2: "44",
+      left3: "14", right3: "22",
+      besp33: "2332"
     }
     this.codes.comp11 = this.codes.left1 + this.codes.right1
     this.codes.comp12 = this.codes.left1 + this.codes.right2
+    this.codes.comp13 = this.codes.left1 + this.codes.right3
     this.codes.comp21 = this.codes.left2 + this.codes.right1
+    this.codes.comp22 = this.codes.left2 + this.codes.right2
+    this.codes.comp32 = this.codes.left3 + this.codes.right2
+    this.codes.comp33 = this.codes.left3 + this.codes.right3
+
+    this.manual = [
+      {task: 'null', blockString: this.shape11, compositional: false, code: this.codes.besp11},
+      {task: 'null', blockString: this.shape11, compositional: true, code: this.codes.comp11},
+      {task: 'null', blockString: this.shape13, compositional: true, code: this.codes.comp13},
+      {task: 'null', blockString: this.shape33, compositional: false, code: this.codes.besp33},
+      {task: 'null', blockString: this.shape32, compositional: true, code: this.codes.comp32},
+    ]
   }
 
   getPuzzle(opts = {}) {
     let mp = new MachinePuzzle({
       ...this.params,
       maxDigit: 4,
-      blockString: this.shape11,
       machineColor: "#ffe852",
       suppressSuccess: true,
       manual: this.manual,
@@ -355,6 +393,7 @@ class MachineInstructions extends Instructions {
   async stage_welcome() {
     let mp = this.getPuzzle({
       trialID: "instruct.welcome",
+      blockString: this.shape11,
       solutions: {},
     })
     mp.drawTarget("blank")
@@ -369,14 +408,17 @@ class MachineInstructions extends Instructions {
   async stage_intro() {
     let mp = this.getPuzzle({
       trialID: "instruct.intro",
+      blockString: this.shape11,
       solutions: { [this.codes.intro]: "bespoke" },
     })
     this.instruct(`
       On each round, a shape will appear on the screen. 
       Your job is to find a code that reveals this shape. 
-      You can drag the dials up and down to change the code (click and hold to drag).
+      Click on a dial to change its number.
       As soon as you land on the right code, the shape will be revealed. 
       _Try entering the code ${this.codes.intro}._
+
+      _Tip: It's faster if you hold down the mouse and let go to select a number._
     `)
     await mp.done
     // this.prompt.append('<b>Nice!</b>');
@@ -385,6 +427,7 @@ class MachineInstructions extends Instructions {
   async stage_multiple() {
     let mp = this.getPuzzle({
       trialID: "instruct.multiple",
+      blockString: this.shape11,
       solutions: {},
     })
     this.instruct(`
@@ -393,7 +436,7 @@ class MachineInstructions extends Instructions {
     `)
 
     await this.eventPromise(
-      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 15
+      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 10
     )
     this.currentCode = mp.currentCode.join("")
     await alert_failure({
@@ -406,25 +449,26 @@ class MachineInstructions extends Instructions {
   async stage_trynext() {
     let mp = this.getPuzzle({
       trialID: "instruct.trynext",
-      initialCode: this.codes.comp11[0] + "132",
+      blockString: this.shape11,
       solutions: { [this.codes.comp11]: "compositional" },
       showNextCodeButton: true,
+      maxTry: 5,
     })
     mp.dialsDisabled = true
     this.instruct(`
       To make cracking codes easier, we've added a new green button next to the dial. 
-      When you click it, the machine will automatically try the next possible code.
+      When you click it, the machine will automatically try a code you haven't tried yet.
       If you don't know what the code is, just click this button repeatedly until you find the right one.
       Give it a try!
     `)
 
-    this.registerEventCallback((info) => {
-      if (info.event.startsWith("nosave.machine.dials.mousedown")) {
-        alert_failure({
-          title: "Try the green button!",
-          html: "<em>The dials are disabled on this round of the instructions</em>",
-        })
-      }
+    $('.dial-select').css('pointer-events', 'none').css('opacity', 1)
+    $(".dial").on('click', (e) => {
+      logEvent("instruct.hint.trygreen")
+      alert_failure({
+        title: "Try the green button!",
+        html: "<em>The dials are disabled on this round of the instructions</em>",
+      })
     })
 
     await mp.done
@@ -445,7 +489,7 @@ class MachineInstructions extends Instructions {
     this.instruct(`
       To help you remember what you've learned about the machine, we'll keep an updated manual for you.
       Every time you crack a new code, we'll add it to the manual. 
-      You can see your previously discovered codes there now.
+      You can see your previously discovered codes there now. We added some new ones too!
       
     `)
   }
@@ -457,23 +501,43 @@ class MachineInstructions extends Instructions {
       blockString: this.shape12,
       showNextCodeButton: true,
       solutions: { [this.codes.comp12]: "compositional" },
-      initialCode: "1121",
+      maxTry: 1000,
     })
     this.instruct(`
       Here's a new shape. Try to crack its code.
       
       _Hint: You can use the manual to help you!_
     `)
+    mp.nextCodeButton.off('click')
+    mp.nextCodeButton.on('click', () => {
+      logEvent("instruct.hint.trymanual")
+      alert_info({
+        html: `Try using the manual on this round.`,
+      })
+    })
+
+    let color1 = (txt) => `<span style="font-weight: bold; color: ${COLORS[1]};">${txt}</span>`
+    let color2 = (txt) => `<span style="font-weight: bold; color: ${COLORS[2]};">${txt}</span>`
+    let color12 = (txt) => color1(txt.slice(0, 2)) + color2(txt.slice(2))
+
     this.registerEventCallback((event) => {
-      if (
-        event.event.startsWith("machine.enter") &&
-        mp.nTry > 0 &&
-        mp.nTry % 10 == 0 &&
-        !mp.currentCode.join("").startsWith(this.codes.comp11[0])
-      ) {
-        alert_info({
-          html: `Look at the shape with code ${this.codes.comp11} in the manual. Focus on the blue part.`,
-        })
+      if (event.event.startsWith("machine.enter")) {
+        let msg = {
+          5: `Look at the shapes in the manual that are built from two pieces.`,
+          2: `Notice how two pieces have codes that start with ${color1(this.codes.left1)}`,
+          15: `Does that red T shape at the end of the manual look familiar?`,
+          20: `This shape is a combination of two shapes in the manual, with codes 
+              ${color1(this.codes.left1) + this.codes.right1} and 
+              ${this.codes.left3 + color2(this.codes.right2)}`,
+        }[mp.nTry]
+        // maybe "crash" the experiment if they take too long
+        if (msg) {
+          logEvent(`instruct.hint.compositional.${mp.nTry}`)
+          saveData()
+          alert_info({
+            html: msg
+          })
+        }
       }
     })
     await mp.done
@@ -486,10 +550,16 @@ class MachineInstructions extends Instructions {
       blockString: this.shape21,
       showNextCodeButton: true,
       showLocks: true,
+      maxTryPartial: 5,
+      manual: [
+        ...this.manual,
+        {task: 'null', blockString: this.shape12, compositional: true, code: this.codes.comp12},
+      ],
       solutions: { [this.codes.comp21]: "compositional" },
     })
     this.instruct(`
-      When you know part of the code for a shape, you can lock those dials.
+      Sometimes you'll know part of the code for a shape but not the whole thing.
+      In this case, you can lock the dials you already know.
       Then you can use the green button to crack the rest of the code without messing
       up the part you already entered. _Try cracking the code with this strategy._
     `)
@@ -497,11 +567,13 @@ class MachineInstructions extends Instructions {
       if (
         event.event.startsWith("machine.enter") &&
         mp.nTry > 0 &&
-        mp.nTry % 10 == 0
+        mp.nTry % 5 == 0
       ) {
         let correctEnd = mp.currentCode.join("").endsWith(this.codes.right1)
         let locked = mp.dialLocked[2] && mp.dialLocked[3]
         if (!correctEnd || !locked) {
+          logEvent(`instruct.hint.locks.${mp.nTry}`)
+          saveData()
           alert_info({
             html: `Look at the shape with code ${this.codes.comp11} in the manual. Focus on the red part. Make sure to lock the dials you already know!`,
           })
@@ -532,7 +604,7 @@ class MachineInstructions extends Instructions {
       initialCode: this.codes.comp11
     })
     this.registerEventCallback((event) => {
-      if (event.event.startsWith("machine.enter") && mp.nTry == 15) {
+      if (event.event.startsWith("machine.enter") && mp.nTry == 10) {
         alert_info({
           title: 'FYI',
           html: `You can move on from this screen whenever you'e ready!`,

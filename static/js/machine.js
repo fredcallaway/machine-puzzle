@@ -121,6 +121,13 @@ _11222_
 11___22
 `
 
+function sampleUniform(rng) {
+  if (typeof rng == 'number') {
+    return rng  
+  }
+  return Math.floor(Math.random() * (rng[1] - rng[0] + 1)) + rng[0]
+}
+
 class MachinePuzzle {
   
   constructor(options = {}) {
@@ -143,6 +150,8 @@ class MachinePuzzle {
         blockSize: 40,
         width: 7, // Width in block units, not including padding
         height: 5, // Height in block units, not including padding
+        maxTry: 100,
+        maxTryPartial: 10,
         manualScale: 0.25,
         initialCode: "random",
         drawingMode: false,
@@ -163,6 +172,23 @@ class MachinePuzzle {
       this.height = 30
       this.blockSize = 30
     }
+    
+    // initialize state variables
+    this.dialLocked = Array(this.codeLength).fill(false)
+    this.triedCodes = new Set()
+    this.nTry = 0
+    this.nTryPartial = 0
+  
+    if (this.initialCode == 'random') {
+      // Generate a random starting code that's not in solutions
+      do {
+        this.currentCode = Array(this.codeLength).fill().map(() => Math.floor(Math.random() * this.maxDigit) + 1);
+      } while (this.solutions[this.currentCode.join('')]);
+    } else {
+      this.currentCode = this.initialCode.split('').map(Number);
+    }
+
+    this.compositionalSolution = Object.entries(this.solutions).find(([_, type]) => type === 'compositional')?.[0];
 
     this.screenWidth = (this.width + 2) * this.blockSize; // +2 for padding
     this.screenHeight = (this.height + 2) * this.blockSize; // +2 for padding
@@ -180,17 +206,6 @@ class MachinePuzzle {
     if (this.drawingMode) {
       this.createDrawingInterface();
       return
-    }
-    
-    this.dialLocked = Array(this.codeLength).fill(false)
-    this.nTry = 0
-    if (this.initialCode == 'random') {
-      // Generate a random starting code that's not in solutions
-      do {
-        this.currentCode = Array(this.codeLength).fill().map(() => Math.floor(Math.random() * this.maxDigit) + 1);
-      } while (this.solutions[this.currentCode.join('')]);
-    } else {
-      this.currentCode = this.initialCode.split('').map(Number);
     }
     
     this.logEvent('machine.initialize', _.pick(this, ['task', 'currentCode', 'solutions', 'blockString', 'manual']))
@@ -307,7 +322,9 @@ class MachinePuzzle {
             'width': 'auto'
         });
 
-        let select = $('<select></select>').css({
+        let select = $('<select></select>')
+          .addClass('dial-select')
+          .css({
             'font-size': `${40 - this.codeLength * 2}px`,
             'font-weight': 'bold',
             'border': 'none',
@@ -351,7 +368,6 @@ class MachinePuzzle {
     }
 
     this.machineDiv.append(dialContainer);
-    this.checkCode()
   }
 
   
@@ -403,7 +419,7 @@ class MachinePuzzle {
   }
 
   createNextCodeButton() {
-    const nextCodeButton = $('<button>')
+    this.nextCodeButton = $('<button>')
       .text('?')
       .css({
         'color': 'white',
@@ -424,43 +440,80 @@ class MachinePuzzle {
       .on('click', async () => {
         this.tryNextCode();
         if (this.nextCodeDelay) {
-          nextCodeButton.prop('disabled', true)
-          nextCodeButton.css('background-color', NEXT_CODE_DISABLED_COLOR)
+          this.nextCodeButton.prop('disabled', true)
+          this.nextCodeButton.css('background-color', NEXT_CODE_DISABLED_COLOR)
           await sleep(this.nextCodeDelay)
-          nextCodeButton.prop('disabled', false)
-          nextCodeButton.css('background-color', NEXT_CODE_COLOR)
+          this.nextCodeButton.prop('disabled', false)
+          this.nextCodeButton.css('background-color', NEXT_CODE_COLOR)
         }
       });
 
-    this.machineDiv.append(nextCodeButton);
+    this.machineDiv.append(this.nextCodeButton);
   }
 
-  
-  tryNextCode() {
-    this.logEvent("nosave.machine.nextCode")
-    this.lastAction = "nextCode"
-    if (this.nextCodeDisabled) return // HACK to fix clearHandlers not working
-    let incrementDial = (position) => {
-      if (position < 0) return
-      if (this.dialLocked[position]) return incrementDial(position - 1)
-      // Increment the number at the current position
-      this.currentCode[position] =
-        (this.currentCode[position] % this.maxDigit) + 1
+  hasPartialSolution() {
+    let split = this.codeLength / 2
+    let current = this.currentCode.join('')
 
-      // Check if carrying is needed (i.e., if we incremented from maxDigit to 1)
-      if (this.currentCode[position] === 1) {
-        // Recursively apply the carrying step to the number to the left
-        incrementDial(position - 1)
+    if (
+      this.dialLocked.slice(0, split).every(_.identity) && 
+      this.compositionalSolution.slice(0, split) == current.slice(0, split)
+    ) return "left"
+    if (
+      this.dialLocked.slice(-split).every(_.identity) && 
+      this.compositionalSolution.slice(-split) == current.slice(-split)
+    ) return "right"
+    return false
+  }
+
+  getNextCode() {
+    let partialSolution = this.hasPartialSolution()
+    console.log('getNextCode', this.nTry, this.nTryPartial, partialSolution)
+
+    // if we've hit the limit on pulls, reveal the solution
+    if (partialSolution && this.nTryPartial >= this.maxTryPartial-1) {
+      // pick a random solution
+      this.logEvent("machine.getNextCode.maxTryPartial")
+      return this.compositionalSolution.split("").map(Number)
+    } else if (this.nTry >= this.maxTry-1) {
+      this.logEvent("machine.getNextCode.maxTry")
+      return _.sample(Object.keys(this.solutions)).split("").map(Number)  
+    } else {
+      const code = this.currentCode.slice()
+      for (let j = 0; j < 1000; j++) {
+        for (let i = 0; i < this.codeLength; i++) {
+          if (!this.dialLocked[i]) {
+              code[i] = Math.floor(Math.random() * this.maxDigit) + 1
+            }
+        }
+        if (!this.triedCodes.has(code.join(''))) {
+          return code
+        }
       }
     }
-    incrementDial(this.codeLength - 1)
-    // update display
+    // couldn't find a code
+    this.logEvent("machine.getNextCode.failure")
+    saveData()
+    Swal.fire({
+      title: "No code found!",
+      html: `Try unlocking the dials`,
+      icon: "warning",
+      confirmButtonText: "Got it!",
+      allowOutsideClick: false,
+    })
+    return this.currentCode
+  }
+  
+  tryNextCode() {
+    this.lastAction = "nextCode"
+
+    this.currentCode = this.getNextCode()
+    // Update display
     for (let j = 0; j < this.codeLength; j++) {
-      this.numberEls[j].val(this.currentCode[j])
+        this.numberEls[j].val(this.currentCode[j])
     }
     this.checkCode()
   }
-
 
   addSolutionToManual(entry) {
     if (typeof entry == 'string') {
@@ -501,7 +554,10 @@ class MachinePuzzle {
       el.css('color', COLORS[colors[idx]])
     })
     this.dialsDisabled = true
-    this.nextCodeDisabled = true
+    $(".dial-select").css("pointer-events", "none")
+    
+    this.nextCodeButton?.css("pointer-events", "none")
+      
     this.clearHandlers()
     // checkmark on goal
     $("<p>")
@@ -540,19 +596,27 @@ class MachinePuzzle {
   }
 
   checkCode() {
-    // Update the display for each dial
     this.nTry += 1
-    // Compare the current code with the correct code
-    let input = this.currentCode.join("")
-    let info = { code: input, action: this.lastAction }
-    if (this.solutions[input]) {
-      this.logEvent("machine.enter.correct", info)
-      this.showSolution(this.solutions[input])
-    } else {
-      // this.drawShape(this.ctx, this.blockString, 'gray'); // Keep the shape gray if incorrect
-      this.logEvent("machine.enter.incorrect", info)
+    if (this.hasPartialSolution()) {
+      this.nTryPartial += 1
     }
-  }
+    
+    let input = this.currentCode.join("")
+    this.triedCodes.add(input)
+    let info = { code: input, action: this.lastAction }
+    // Compare the current code with the correct code
+    if (this.solutions[input]) {
+        this.logEvent("machine.enter.correct", info)
+        this.showSolution(this.solutions[input])
+    } else {
+        this.logEvent("machine.enter.incorrect", info)
+        if (this.nTry > this.maxTry || this.nTryPartial > this.maxTryPartial) {
+          this.logEvent("machine.hitmax", { nTry: this.nTry, nTryPartial: this.nTryPartial })
+          saveData()
+          alert_info({html: "Try the green button!"})
+        }
+    }
+}
 
   createManual() {
     // Create the manual div
