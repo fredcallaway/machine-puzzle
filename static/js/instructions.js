@@ -450,7 +450,7 @@ class MachineInstructions extends Instructions {
       blockString: this.shape11,
       solutions: { [this.codes.comp11]: "compositional" },
       showNextCodeButton: true,
-      maxTry: 5,
+      maxTry: 20,
     })
     mp.dialsDisabled = true
     this.instruct(`
@@ -553,7 +553,7 @@ class MachineInstructions extends Instructions {
       blockString: this.shape21,
       showNextCodeButton: true,
       showLocks: true,
-      maxTryPartial: 5,
+      maxTryPartial: 10,
       manual: [
         ...this.manual,
         {task: 'null', blockString: this.shape12, compositional: true, code: this.codes.comp12},
