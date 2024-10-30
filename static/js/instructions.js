@@ -409,16 +409,14 @@ class MachineInstructions extends Instructions {
     let mp = this.getPuzzle({
       trialID: "instruct.intro",
       blockString: this.shape11,
-      solutions: { [this.codes.intro]: "bespoke" },
+      solutions: { [this.codes.besp11]: "bespoke" },
     })
     this.instruct(`
       On each round, a shape will appear on the screen. 
       Your job is to find a code that reveals this shape. 
       Click on a dial to change its number.
       As soon as you land on the right code, the shape will be revealed. 
-      _Try entering the code ${this.codes.intro}._
-
-      _Tip: It's faster if you hold down the mouse and let go to select a number._
+      _Try entering the code ${this.codes.besp11}._
     `)
     await mp.done
     // this.prompt.append('<b>Nice!</b>');
@@ -432,7 +430,7 @@ class MachineInstructions extends Instructions {
     })
     this.instruct(`
       Each shape can be revealed by multiple codes. 
-      _Try to find another code that reveals this shape_ (we disabled ${this.codes.intro}).
+      _Try to find another code that reveals this shape_ (we disabled ${this.codes.besp11}).
     `)
 
     await this.eventPromise(
@@ -458,6 +456,7 @@ class MachineInstructions extends Instructions {
     this.instruct(`
       To make cracking codes easier, we've added a new green button next to the dial. 
       When you click it, the machine will automatically try a code you haven't tried yet.
+
       If you don't know what the code is, just click this button repeatedly until you find the right one.
       Give it a try!
     `)
@@ -524,7 +523,7 @@ class MachineInstructions extends Instructions {
       if (event.event.startsWith("machine.enter")) {
         let msg = {
           5: `Look at the shapes in the manual that are built from two pieces.`,
-          2: `Notice how two pieces have codes that start with ${color1(this.codes.left1)}`,
+          10: `Notice how two pieces have codes that start with ${color1(this.codes.left1)}`,
           15: `Does that red T shape at the end of the manual look familiar?`,
           20: `This shape is a combination of two shapes in the manual, with codes 
               ${color1(this.codes.left1) + this.codes.right1} and 
@@ -541,6 +540,10 @@ class MachineInstructions extends Instructions {
       }
     })
     await mp.done
+    this.instruct(`
+      Well done! You've discovered that you can sometimes crack codes by combining the codes
+      for other shapes.
+    `)
   }
 
   async stage_locks() {
@@ -558,7 +561,7 @@ class MachineInstructions extends Instructions {
       solutions: { [this.codes.comp21]: "compositional" },
     })
     this.instruct(`
-      Sometimes you'll know part of the code for a shape but not the whole thing.
+      Sometimes you'll only know part of the code for a shape from the manual.
       In this case, you can lock the dials you already know.
       Then you can use the green button to crack the rest of the code without messing
       up the part you already entered. _Try cracking the code with this strategy._

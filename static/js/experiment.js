@@ -1,6 +1,10 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
-  config_dir: "code-pilot"
+  config_dir: "code-pilot",
+  maxTryPartial: 100,
+  // these are the .75 quantiles of the Geometrics
+  maxTry: 90,
+  maxTryPartial: 50,
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
