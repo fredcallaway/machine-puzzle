@@ -234,7 +234,7 @@ class DrawingInterface {
     const { x, y } = this.getGridCoordinates(e)
     const { row, col } = this.currentScreen
     const currentGrid = this.screenMatrix[row][col].grid
-    const colorIdx = row == 0 ? 1 : col == 0 ? 2 : 0
+    const colorIdx = row == 0 ? 2 : col == 0 ? 1 : 0
 
     if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
       currentGrid[y][x] = this.isErasing ? 0 : colorIdx

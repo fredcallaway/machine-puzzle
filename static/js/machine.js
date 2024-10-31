@@ -44,7 +44,7 @@ class MachinePuzzle {
         maxDigit: null, // max digit allowed on each dial
         trialID: randomUUID(), // unique trial ID
         blockSize: 40,
-        width: 7, // Width in block units, not including padding
+        width: 8, // Width in block units, not including padding
         height: 5, // Height in block units, not including padding
         maxTry: 100,
         maxTryPartial: 10,
@@ -218,6 +218,7 @@ class MachinePuzzle {
             'font-size': `${40 - this.codeLength * 2}px`,
             'font-weight': 'bold',
             'border': 'none',
+            'width': '100%',
             'outline': 'none',
             'background': 'transparent',
             'text-align': 'center',

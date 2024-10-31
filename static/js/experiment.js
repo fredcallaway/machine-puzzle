@@ -13,7 +13,7 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 async function runExperiment() {
   if (urlParams.draw) {
-    new DrawingInterface({}).attach(DISPLAY)
+    new DrawingInterface(_.pick(PARAMS, 'width', 'height', 'blockSize', 'numScreens')).attach(DISPLAY)
     await make_promise()
   }
   let configFile = `static/json/${PARAMS.config_dir}/${CONDITION}.json`

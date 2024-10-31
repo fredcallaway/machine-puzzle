@@ -15,40 +15,30 @@ N_MANUAL = 8
 CONFIG_DIR = 'code-pilot'
 N_CONFIG = 50
 MAXTRY_QUANTILE = 0.5
-
+STIMULI_FILE = 'stimuli/oct31.json'
+PARAMS = {
+    'width': 6,
+    'height': 5
+}
 # %% --------
 
-def separate_shapes(shape_def):
-    # Split the string into rows
-    rows = shape_def.strip().split('\n')
-    
-    # Find all shapes
-    shapes = []
-    for start_y in range(1, len(rows), 6):
-        shape = [row[1:8] for row in rows[start_y:start_y+5]]
-        shapes.append(shape)
-    
-    # Separate 1s and 2s for each shape
-    result = []
-    for shape in shapes:
-        shape_1 = [''.join(['1' if c == '1' else '_' for c in row]) for row in shape]
-        shape_2 = [''.join(['2' if c == '2' else '_' for c in row]) for row in shape]
-        result.extend(['\n'.join(shape_1), '\n'.join(shape_2)])
-    
-    return result
-
 def parse_shape_definition():
-    with open('shape_definition.txt', 'r') as file:
-        shape_definition = file.read()
+    with open(STIMULI_FILE, 'r') as file:
+        shapes = json.load(file)
+    
+    def to_block_string(shape):
+        padding = shapes.get('padding', {})
+        trimmed = [row[padding.get('left', 0):-padding.get('right', 0)] if padding else row for row in shape]
+        return '\n'.join(''.join('1' if x == 1 else '2' if x == 2 else '_' for x in row) for row in trimmed)
+    
+    return {
+        'left': [to_block_string(shape) for shape in shapes['left']],
+        'right': [to_block_string(shape) for shape in shapes['right']]
+    }
 
-    separated_shapes = separate_shapes(shape_definition)
+parse_shape_definition()
 
-    # Separate shapes into lists for 1s and 2s
-    left_shapes = separated_shapes[::2]  # Every even-indexed shape (0, 2, 4, ...)
-    right_shapes = separated_shapes[1::2]  # Every odd-indexed shape (1, 3, 5, ...)
-
-    return {'left': left_shapes, 'right': right_shapes}
-
+# %% --------
 
 class TaskCodeGenerator:
     def __init__(self, max_digit=MAX_DIGIT, code_length=CODE_LENGTH, n_part=N_PART, solutions_per_task=SOLUTIONS_PER_TASK):
@@ -311,6 +301,7 @@ def generate_config(i):
     return {
         'trials': trials,
         'params': {
+            **PARAMS,
             'maxDigit': MAX_DIGIT,
             'codeLength': CODE_LENGTH,
             'nPart': N_PART,
