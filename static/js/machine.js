@@ -3,6 +3,7 @@ const COLORS = [
   '#548df0',
   '#e96060',
   '#b46cc6',
+  '#000000',
 ]
 
 const NEXT_CODE_COLOR = "#4abf41"
@@ -49,7 +50,6 @@ class MachinePuzzle {
         maxTryPartial: 10,
         manualScale: 0.25,
         initialCode: "random",
-        drawingMode: false,
         machineColor: "#707374",
         allowClicks: false,
         suppressSuccess: false,
@@ -62,11 +62,11 @@ class MachinePuzzle {
       options
     )
     window.cp = this;
-    if (this.drawingMode) {
-      this.width = 30
-      this.height = 30
-      this.blockSize = 30
-    }
+    // if (this.drawingMode) {
+    //   this.width = 30
+    //   this.height = 30
+    //   this.blockSize = 30
+    // }
     
     // initialize state variables
     this.dialLocked = Array(this.codeLength).fill(false)
@@ -97,11 +97,6 @@ class MachinePuzzle {
       margin: '0 auto'
     });
     this.createMachine();
-    
-    if (this.drawingMode) {
-      this.createDrawingInterface();
-      return
-    }
     
     this.logEvent('machine.initialize', _.pick(this, ['task', 'currentCode', 'solutions', 'blockString', 'manual']))
     this.done = make_promise(); // promise to resolve when the task is completed
@@ -584,250 +579,6 @@ class MachinePuzzle {
 
     manualContainer.append(examplesContainer)
     this.manualDiv.append(manualContainer) // Append to manualDiv instead of div
-  }
-
-  createDrawingInterface() {
-    this.copiedShape = null;
-    this.drawingColor = 1; // Default color index
-    this.isDrawing = false;
-    this.isErasing = false;
-    this.grid = Array(this.height).fill().map(() => Array(this.width).fill(0));
-
-    // Add color selection buttons
-    const colorSelector = $('<div>').css({
-      'display': 'flex',
-      'justify-content': 'center',
-      'margin-bottom': '10px'
-    });
-
-    COLORS.forEach((color, index) => {
-      if (index === 0) return; // Skip the first color (lightgray)
-      const button = $('<button>')
-        .text(index)
-        .css({
-          'background-color': color,
-          'width': '30px',
-          'height': '30px',
-          'margin': '0 5px',
-          'border': 'none',
-          'border-radius': '50%',
-          'cursor': 'pointer'
-        })
-        .click(() => {
-          this.drawingColor = index;
-        });
-      colorSelector.append(button);
-    });
-
-    // Add copy button
-    const copyButton = $('<button>')
-      .text('Copy')
-      .css({
-        'margin-left': '10px'
-      })
-      .click(() => {
-        this.copyGridAsString();
-        this.logEvent('machine.drawing.copy'); // Add this line
-      });
-
-    colorSelector.append(copyButton);
-
-    this.machineDiv.prepend(colorSelector);
-
-    // Add copy/paste buttons
-    // const copyPasteButtons = $('<div>').css({
-    //   'display': 'flex',
-    //   'justify-content': 'center',
-    //   'margin-bottom': '10px'
-    // });
-
-    // const copyButton = $('<button>').text('Copy (X)').click(() => this.setCopyMode());
-    // const pasteButton = $('<button>').text('Paste (V)').click(() => this.setPasteMode());
-
-    // copyPasteButtons.append(copyButton, pasteButton);
-    // this.machineDiv.prepend(copyPasteButtons);
-
-    // Modify existing keydown event listener
-    $(document).on('keydown.drawing', (e) => {
-      if (e.key >= '1' && e.key <= '4') {
-        this.drawingColor = parseInt(e.key);
-      } else if (e.key.toLowerCase() === 'c') {
-        this.copyGridAsString();
-      } else if (e.key.toLowerCase() === 'x') {
-        this.setCopyMode();
-      } else if (e.key.toLowerCase() === 'v') {
-        this.setPasteMode();
-      }
-    });
-
-    this.mode = 'draw'; // 'draw', 'copy', or 'paste'
-
-    // Set up event listeners
-    this.screen.on('mousedown.drawing', (e) => this.startDrawing(e));
-    this.screen.on('mousemove.drawing', (e) => this.draw(e));
-    this.screen.on('mouseup.drawing', () => this.stopDrawing());
-    this.screen.on('mouseleave.drawing', () => this.stopDrawing());
-
-    this.redrawGrid(); // Add this line to draw the initial grid
-  }
-
-  setCopyMode() {
-    this.mode = 'copy';
-    this.logEvent('machine.drawing.mode', { mode: 'copy' }); // Add this line
-  }
-
-  setPasteMode() {
-    if (this.copiedShape) {
-      this.mode = 'paste';
-      this.logEvent('machine.drawing.mode', { mode: 'paste' }); // Add this line
-    } else {
-      alert('No shape copied yet!');
-      this.logEvent('machine.drawing.paste.error', { error: 'No shape copied' }); // Add this line
-    }
-  }
-
-  startDrawing(e) {
-    const { x, y } = this.getGridCoordinates(e);
-    if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-      if (this.mode === 'draw') {
-        this.isDrawing = true;
-        this.isErasing = this.grid[y][x] !== 0;
-        this.draw(e);
-        this.logEvent('machine.drawing.start', { mode: 'draw', x, y, isErasing: this.isErasing }); // Add this line
-      } else if (this.mode === 'copy') {
-        this.copyShape(x, y);
-        this.logEvent('machine.drawing.start', { mode: 'copy', x, y }); // Add this line
-      } else if (this.mode === 'paste') {
-        this.pasteShape(x, y);
-        this.logEvent('machine.drawing.start', { mode: 'paste', x, y }); // Add this line
-      }
-    }
-  }
-
-  stopDrawing() {
-    this.isDrawing = false;
-    this.isErasing = false;
-  }
-
-  draw(e) {
-    if (!this.isDrawing) return;
-
-    const { x, y } = this.getGridCoordinates(e);
-
-    if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-      if (this.isErasing) {
-        this.grid[y][x] = 0;
-      } else {
-        this.grid[y][x] = this.drawingColor;
-      }
-      this.redrawGrid();
-    }
-  }
-
-  getGridCoordinates(e) {
-    const rect = this.screen[0].getBoundingClientRect();
-    const x = Math.floor((e.clientX - rect.left) / this.blockSize) - 1;
-    const y = Math.floor((e.clientY - rect.top) / this.blockSize) - 1;
-    return { x, y };
-  }
-
-  redrawGrid() {
-    this.ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
-
-    // Draw grid lines
-    this.ctx.strokeStyle = 'lightgray';
-    this.ctx.lineWidth = 1;
-
-    // Vertical lines
-    for (let x = 0; x <= this.width; x++) {
-      this.ctx.beginPath();
-      this.ctx.moveTo((x + 1) * this.blockSize, this.blockSize);
-      this.ctx.lineTo((x + 1) * this.blockSize, (this.height + 1) * this.blockSize);
-      this.ctx.stroke();
-    }
-
-    // Horizontal lines
-    for (let y = 0; y <= this.height; y++) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.blockSize, (y + 1) * this.blockSize);
-      this.ctx.lineTo((this.width + 1) * this.blockSize, (y + 1) * this.blockSize);
-      this.ctx.stroke();
-    }
-
-    // Draw colored blocks
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        if (this.grid[y][x] !== 0) {
-          this.ctx.fillStyle = COLORS[this.grid[y][x]];
-          this.ctx.fillRect((x + 1) * this.blockSize, (y + 1) * this.blockSize, this.blockSize, this.blockSize);
-        }
-      }
-    }
-  }
-
-  copyGridAsString() {
-    let result = '';
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        result += this.grid[y][x] === 0 ? '_' : this.grid[y][x];
-      }
-      result += '\n';
-    }
-    console.log(result.trim()); // Output to console
-    navigator.clipboard.writeText(result.trim())
-  }
-
-  copyShape(startX, startY) {
-    const color = this.grid[startY][startX];
-    if (color === 0) {
-      alert('Cannot copy empty space!');
-      return;
-    }
-
-    const visited = new Set();
-    const shape = [];
-    let minX = startX, minY = startY;
-
-    const dfs = (x, y) => {
-      if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
-      const key = `${x},${y}`;
-      if (visited.has(key) || this.grid[y][x] !== color) return;
-
-      visited.add(key);
-      shape.push({x: x - startX, y: y - startY});
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-
-      dfs(x+1, y);
-      dfs(x-1, y);
-      dfs(x, y+1);
-      dfs(x, y-1);
-    };
-
-    dfs(startX, startY);
-
-    // Normalize shape to top-left corner
-    this.copiedShape = {
-      color: color,
-      parts: shape.map(part => ({x: part.x - (minX - startX), y: part.y - (minY - startY)}))
-    };
-
-    this.mode = 'paste';
-  }
-
-  pasteShape(x, y) {
-    if (!this.copiedShape) return;
-
-    this.copiedShape.parts.forEach(part => {
-      const newX = x + part.x;
-      const newY = y + part.y;
-      if (newX >= 0 && newX < this.width && newY >= 0 && newY < this.height) {
-        this.grid[newY][newX] = this.copiedShape.color;
-      }
-    });
-
-    this.redrawGrid();
-    this.mode = 'draw'; // Reset to draw mode after pasting
   }
 }
 

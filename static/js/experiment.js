@@ -13,7 +13,7 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 async function runExperiment() {
   if (urlParams.draw) {
-    new MachinePuzzle({...PARAMS, drawingMode: true}).run(DISPLAY)
+    new DrawingInterface({}).attach(DISPLAY)
     await make_promise()
   }
   let configFile = `static/json/${PARAMS.config_dir}/${CONDITION}.json`
