@@ -4,10 +4,12 @@ const PARAMS = {
   maxTryPartial: 100,
   nextCodeDelay: 100,
   maxTotalTries: 600,
+  width: 6,
+  height: 5,
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
-updateExisting(PARAMS, urlParams)
+_.extend(PARAMS, urlParams)
 psiturk.recordUnstructuredData('params', PARAMS);
 
 
@@ -19,6 +21,7 @@ async function runExperiment() {
   let configFile = `static/json/${PARAMS.config_dir}/${CONDITION}.json`
   try {
     config = await $.getJSON(configFile)
+    console.log('config', config)
   } catch(err) {
     console.log("ERR HERE")
     throw new Error(`${configFile} does not exist`)
@@ -33,7 +36,7 @@ async function runExperiment() {
   async function instructions() {
     logEvent('experiment.instructions')
     await new MachineInstructions({
-      ...PARAMS,
+      ...config.instructions,
     }).run(DISPLAY)
   }
 

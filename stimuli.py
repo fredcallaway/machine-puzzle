@@ -15,15 +15,16 @@ N_MANUAL = 8
 CONFIG_DIR = 'code-pilot'
 N_CONFIG = 50
 MAXTRY_QUANTILE = 0.5
-STIMULI_FILE = 'stimuli/oct31.json'
+MAIN_STIMULI_FILE = 'stimuli/oct31.json'
+INSTRUCT_STIMULI_FILE = 'stimuli/instruct3.json'
 PARAMS = {
     'width': 6,
     'height': 5
 }
 # %% --------
 
-def parse_shape_definition():
-    with open(STIMULI_FILE, 'r') as file:
+def parse_shapes(filepath):
+    with open(filepath, 'r') as file:
         shapes = json.load(file)
     
     def to_block_string(shape):
@@ -35,8 +36,6 @@ def parse_shape_definition():
         'left': [to_block_string(shape) for shape in shapes['left']],
         'right': [to_block_string(shape) for shape in shapes['right']]
     }
-
-parse_shape_definition()
 
 # %% --------
 
@@ -172,14 +171,14 @@ class RandomStimuliGenerator:
         trials = self.generate_trials()
         return trials, manual
 
-    def generate_manual(self):
+    def generate_manual(self, n):
         manual = []
-        for task, solutions in random.sample(list(self.task_code_mapping.items()), N_MANUAL):
+        for task, solutions in random.sample(list(self.task_code_mapping.items()), n):
             blockString = compose_block_strings(self.parts['left'][int(task[0])-1], self.parts['right'][int(task[1])-1])
             code = list(solutions.keys())[random.choice((0, 1))]
             compositional = solutions[code] == 'compositional'
-            if not compositional:
-                blockString = make_bespoke(blockString)
+            # if not compositional:
+            # blockString = make_bespoke(blockString)
 
             manual.append({
                 'task': task,
@@ -189,10 +188,10 @@ class RandomStimuliGenerator:
             })
         return manual
 
-    def generate_trials(self):
+    def generate_trials(self, n=N_TASK):
         trials = []
         # bespoke (present/absent) x compositional (exact/full/partial/none)
-        for (task, solutions) in random.choices(list(self.task_code_mapping.items()), k=N_TASK):
+        for (task, solutions) in random.choices(list(self.task_code_mapping.items()), n):
             blockString = compose_block_strings(self.parts['left'][int(task[0])-1], self.parts['right'][int(task[1])-1])
             trials.append({
                 'task': task,
@@ -288,15 +287,43 @@ class InformativeStimuliGenerator:
 
         return C, B, tasks
 
+
 def max_try(p):
     # quantile of geometric distribution
     return stats.geom(p).ppf(.5)
+    
 
+def generate_instructions():
+    with open(INSTRUCT_STIMULI_FILE, 'r') as file:
+        return json.load(file)
+
+def generate_instructions():
+    parts = parse_shapes(INSTRUCT_STIMULI_FILE)
+    n_part = len(parts['left'])
+    task_code_mapping = TaskCodeGenerator(max_digit=4, n_part=n_part, solutions_per_task=2).generate()
+    return {
+        'params': {
+            'width': 6,
+            'height': 3,
+            'maxDigit': 4
+        },
+        'shapes': {
+            f"{i+1}{j+1}": compose_block_strings(parts['left'][i], parts['right'][j])
+            for i, j in product(range(n_part), repeat=2)
+        },
+        'codes': {
+            task: {
+                "compositional": next(code for code, type in solutions.items() if type == 'compositional'),
+                "bespoke": next(code for code, type in solutions.items() if type == 'bespoke')
+            }
+            for task, solutions in task_code_mapping.items()
+        }
+    }
 
 def generate_config(i):
     random.seed(i)
     task_code_mapping = TaskCodeGenerator().generate()
-    parts = parse_shape_definition()
+    parts = parse_shapes(MAIN_STIMULI_FILE)
     trials, manual = InformativeStimuliGenerator(task_code_mapping, parts).generate()
     return {
         'trials': trials,
@@ -309,8 +336,11 @@ def generate_config(i):
             'manual': manual,
             'maxTry': max_try(SOLUTIONS_PER_TASK / (MAX_DIGIT ** CODE_LENGTH)),
             'maxTryPartial': max_try(1 / (MAX_DIGIT ** (CODE_LENGTH/2))),
-        }
+        },
+        'instructions': generate_instructions()
     }
+
+# %% --------
 
 os.makedirs(f'static/json/{CONFIG_DIR}', exist_ok=True)
 for i in range(N_CONFIG):

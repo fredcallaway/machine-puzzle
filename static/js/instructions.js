@@ -281,7 +281,6 @@ class Quiz {
     let pass = _.every(_.zip(answers, this.correct), ([a, c]) => {
       return a == c
     })
-    console.log("pass", pass)
     if (pass) {
       alert_success()
       this.done.resolve()
@@ -295,106 +294,48 @@ class Quiz {
 }
 
 class MachineInstructions extends Instructions {
-  constructor(params) {
+  constructor({params, shapes, codes}) {
     super({ contentWidth: 1200, promptHeight: 200 })
     this.params = _.cloneDeep(params)
-    this.shape11 = `
-      11___22
-      _11222_
-      __112__
-      _11222_
-      11___22
-    `
-    this.shape12 = `
-      11____2
-      _1122_2
-      __11222
-      _1122_2
-      11____2
-    `
-    this.shape13 = `
-      11__2__
-      _112222
-      __11222
-      _112222
-      11__2__
-    `
-    this.shape21 = `
-      1____22
-      1_1222_
-      11112__
-      1_1222_
-      1____22
-    `
-    this.shape22 = `
-      1_____2
-      1_122_2
-      1111222
-      1_122_2
-      1_____2
-    `
-    this.shape32 = `
-      __1___2
-      11122_2
-      1111222
-      11122_2
-      __1___2
-    `
-    this.shape33 = `
-      __1_1__
-      1112222
-      1111222
-      1112222
-      __1_1__
-    `
+    this.shapes = shapes
+    this.codes = codes
     window.instruct = this
-
-    // Define the codes used in the instructions
-    this.codes = {
-      besp11: "1234",
-      left1: "42", right1: "13",
-      left2: "32", right2: "44",
-      left3: "14", right3: "22",
-      besp33: "2332"
-    }
-    this.codes.comp11 = this.codes.left1 + this.codes.right1
-    this.codes.comp12 = this.codes.left1 + this.codes.right2
-    this.codes.comp13 = this.codes.left1 + this.codes.right3
-    this.codes.comp21 = this.codes.left2 + this.codes.right1
-    this.codes.comp22 = this.codes.left2 + this.codes.right2
-    this.codes.comp32 = this.codes.left3 + this.codes.right2
-    this.codes.comp33 = this.codes.left3 + this.codes.right3
-
-    this.manual = [
-      {task: 'null', blockString: this.shape11, compositional: false, code: this.codes.besp11},
-      {task: 'null', blockString: this.shape11, compositional: true, code: this.codes.comp11},
-      {task: 'null', blockString: this.shape13, compositional: true, code: this.codes.comp13},
-      {task: 'null', blockString: this.shape33, compositional: false, code: this.codes.besp33},
-      {task: 'null', blockString: this.shape32, compositional: true, code: this.codes.comp32},
-    ]
   }
+    // Define the codes used in the instructions
 
-  getPuzzle(opts = {}) {
+  getPuzzle(task, opts = {}) {
+    assert(this.shapes[task], `unknown task: ${task}`)
+    let solutions = opts.solutionType
+      ? { [this.codes[task][opts.solutionType]]: opts.solutionType }
+      : {}
+    let blockString = this.shapes[task]
+    console.log(blockString, solutions)
     let mp = new MachinePuzzle({
       ...this.params,
+      trialID: this.stages[this.stage].name.replace("stage_", "instruct."),
+      task,
+      solutions,
+      blockString,
       maxDigit: 4,
       machineColor: "#ffe852",
       suppressSuccess: true,
-      manual: this.manual,
       showLocks: false,
       showNextCodeButton: false,
-      showManual: false,
       ...opts,
     })
     mp.attach(this.content)
     return mp
   }
 
+  buildManual(pairs) {
+    return pairs.map(([task, type]) => ({
+      task, blockString: this.shapes[task], compositional: type == "compositional", code: this.codes[task][type]
+    }))
+  }
+
   async stage_welcome() {
-    let mp = this.getPuzzle({
+    let mp = this.getPuzzle("11", {
       trialID: "instruct.welcome",
-      blockString: this.shape11,
-      solutions: {},
     })
     mp.drawTarget("blank")
 
@@ -406,53 +347,56 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_intro() {
-    let mp = this.getPuzzle({
-      trialID: "instruct.intro",
-      blockString: this.shape11,
-      solutions: { [this.codes.besp11]: "bespoke" },
+    let mp = this.getPuzzle("11", {
+      solutionType: "bespoke",
     })
     this.instruct(`
       On each round, a shape will appear on the screen. 
-      Your job is to find a code that reveals this shape. 
+      Your job is to find a code that creates this shape. 
       Click on a dial to change its number.
-      As soon as you land on the right code, the shape will be revealed. 
-      _Try entering the code ${this.codes.besp11}._
+      As soon as you land on the right code, the shape will be created. 
+      _Try entering the code ${this.codes["11"].bespoke}._
     `)
     await mp.done
     // this.prompt.append('<b>Nice!</b>');
   }
 
-  async stage_multiple() {
-    let mp = this.getPuzzle({
-      trialID: "instruct.multiple",
-      blockString: this.shape11,
-      solutions: {},
+  async stage_compositional() {
+    let mp = this.getPuzzle("11", {
+      solutionType: "compositional",
     })
     this.instruct(`
-      Each shape can be revealed by multiple codes. 
-      _Try to find another code that reveals this shape_ (we disabled ${this.codes.besp11}).
+      Each shape can be created by multiple codes. 
+      Try entering ${this.codes["11"].compositional} this time.
     `)
-
-    await this.eventPromise(
-      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 10
-    )
-    this.currentCode = mp.currentCode.join("")
-    await alert_failure({
-      title: "This isn't working...",
-      html: "<em>Let's try a different approach!</em>",
-    })
-    this.runNext()
+    await this.eventPromise("machine.animationDone")
+    this.instruct(`
+      Huh! It looks like you found part of the code for this shape,
+      but we're still missing the other half. Complete the shape
+      by entering the rest of the code (${this.codes["11"].compositional}).
+    `)
+    await mp.done
   }
 
   async stage_trynext() {
-    let mp = this.getPuzzle({
-      trialID: "instruct.trynext",
-      blockString: this.shape11,
-      solutions: { [this.codes.comp11]: "compositional" },
+    let mp = this.getPuzzle("33", {
       showNextCodeButton: true,
       maxTry: 20,
     })
     mp.dialsDisabled = true
+    this.instruct(`
+      Here's a new shape. Try to crack its code.
+    `)
+
+    await this.eventPromise(
+      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 5
+    )
+    await alert_info({
+      title: "This is gonna take forever!",
+      html: "<em>Let's try a different approach!</em>",
+    })
+
+    mp.solutions = { [this.codes["33"].bespoke]: "bespoke" }
     this.instruct(`
       To make cracking codes easier, we've added a new green button next to the dial. 
       When you click it, the machine will automatically try a code you haven't tried yet.
@@ -477,27 +421,10 @@ class MachineInstructions extends Instructions {
     `)
   }
 
-  async stage_manual() {
-
-    let mp = this.getPuzzle({
-      trialID: "instruct.manual",
-      showManual: true,
-    })
-    mp.machineDiv.css("visibility", "hidden")
-
-    this.instruct(`
-      To help you remember what you've learned about the machine, we'll keep an updated manual for you.
-      Every time you crack a new code, we'll add it to the manual. 
-      You can see your previously discovered codes there now. We added some new ones too!
-      
-    `)
-  }
-
-  async stage_compositional() {
+  async stage_full() {
     let mp = this.getPuzzle({
       trialID: "instruct.compositional",
       showManual: true,
-      blockString: this.shape12,
       showNextCodeButton: true,
       solutions: { [this.codes.comp12]: "compositional" },
       maxTry: 1000,
@@ -550,7 +477,6 @@ class MachineInstructions extends Instructions {
     let mp = this.getPuzzle({
       trialID: "instruct.locks",
       showManual: true,
-      blockString: this.shape21,
       showNextCodeButton: true,
       showLocks: true,
       maxTryPartial: 10,
@@ -589,7 +515,7 @@ class MachineInstructions extends Instructions {
   async stage_only_target() {
     this.instruct(`
       One last note.
-      _You can only reveal the shape currently on the screen._
+      _You can only create the shape currently on the screen._
       If you enter a code for a different shape, nothing will happen.
       
       See the example below and continue when you're ready—_no need to click anything!_
@@ -651,7 +577,7 @@ class MachineInstructions extends Instructions {
           - True
           * False
         # What does the green button do?
-          - It reveals the shape
+          - It creates the shape
           * It tries the next possible code
           - It locks the dials that are in the correct position
         # What do the locks do?

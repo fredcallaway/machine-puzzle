@@ -3,7 +3,7 @@ const psiturk = new PsiTurk(uniqueId, adServerLoc, mode);
 const urlParams = mapObject(Object.fromEntries(new URLSearchParams(window.location.search)), maybeJson)
 const prolific = true;
 const local = (mode === "demo" || mode === "{{ mode }}")
-
+const catchErrors = false
 const CONDITION =
   urlParams.condition ??
   (condition == "{{ condition }}" ? 0 : parseInt(condition, 10))
@@ -20,9 +20,13 @@ $(window).on('load', async () => {
     $('#display').empty()
     try {
       await runExperiment()
-      $('#display').empty()
     } catch (error) {
-      handleError(error)
+      if (catchErrors) {
+        $('#display').empty()
+        handleError(error)
+      } else {
+        throw error
+      }
     }
   } else {
     await saveData()

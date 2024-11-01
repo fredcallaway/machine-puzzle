@@ -24,6 +24,11 @@ function sampleUniform(rng) {
   return Math.floor(Math.random() * (rng[1] - rng[0] + 1)) + rng[0]
 }
 
+function randCode(maxDigit, codeLength) {
+  let code = Array(codeLength).fill().map(() => Math.floor(Math.random() * maxDigit) + 1);
+  return code.join('')
+}
+
 class MachinePuzzle {
   
   constructor(options = {}) {
@@ -74,17 +79,18 @@ class MachinePuzzle {
     this.nTry = 0
     this.nTryPartial = 0
   
-    if (this.initialCode == 'random') {
-      // Generate a random starting code that's not in solutions
-      do {
-        this.currentCode = Array(this.codeLength).fill().map(() => Math.floor(Math.random() * this.maxDigit) + 1);
-      } while (this.solutions[this.currentCode.join('')]);
-    } else {
-      this.currentCode = this.initialCode.split('').map(Number);
-    }
-
     this.compositionalSolution = Object.entries(this.solutions).find(([_, type]) => type === 'compositional')?.[0];
-
+    let split = this.codeLength / 2
+    this.leftSolution = this.compositionalSolution?.slice(0, split)
+    this.rightSolution = this.compositionalSolution?.slice(-split)
+    
+    if (this.initialCode == 'random') {
+      console.log('initialCode', this.initialCode)
+      do {
+        this.initialCode = randCode(this.maxDigit, this.codeLength);
+      } while (this.getSolutionType(this.initialCode));
+    }
+    
     this.screenWidth = (this.width + 2) * this.blockSize; // +2 for padding
     this.screenHeight = (this.height + 2) * this.blockSize; // +2 for padding
     this.machineWidth = this.screenWidth + 100;
@@ -98,14 +104,15 @@ class MachinePuzzle {
     });
     this.createMachine();
     
-    this.logEvent('machine.initialize', _.pick(this, ['task', 'currentCode', 'solutions', 'blockString', 'manual']))
+    this.logEvent('machine.initialize', _.pick(this, ['task', 'initialCode', 'solutions', 'blockString', 'manual']))
     this.done = make_promise(); // promise to resolve when the task is completed
+    this.partialSolution = false // state variable
 
     this.createDials();
     this.drawTarget()
     if (this.showNextCodeButton) this.createNextCodeButton()
     if (this.showLocks) this.createLocks()
-    if (this.showManual) this.createManual()
+    if (this.showManual && this.manual != null) this.createManual()
 }
   
   logEvent(event, info = {}) {
@@ -137,6 +144,19 @@ class MachinePuzzle {
         backgroundColor: this.machineColor,
       }).appendTo(this.div)
 
+    this.light = $("<div>")
+      .css({
+        width: 20,
+        height: 20,
+        borderRadius: "100%",
+        position: "absolute",
+        left: 10,
+        top: 10,
+        backgroundColor: "rgba(255, 255, 255, 0.5)",
+        transition: "background-color 0.2s ease"
+      })
+      .appendTo(this.machineDiv)
+
     this.screen = $('<canvas></canvas>').attr({
       width: this.screenWidth,
       height: this.screenHeight
@@ -147,9 +167,23 @@ class MachinePuzzle {
       'display': 'block',
       'border-radius': '10px',
       'background-color': 'white',
+      'position': 'relative',
     }).appendTo(this.machineDiv)  
 
+    this.animationCanvas = $('<canvas></canvas>').attr({
+      width: this.screenWidth,
+      height: this.screenHeight
+    }).css({
+      'border': '3px solid transparent',
+      'position': 'absolute',
+      'top': this.blockSize + 'px',
+      'left': '50%',
+      'transform': 'translateX(-50%)',
+      'pointer-events': 'none',
+    }).appendTo(this.machineDiv)
+
     this.ctx = this.screen[0].getContext('2d');
+    this.animationCtx = this.animationCanvas[0].getContext('2d');
   }
 
   drawTarget(mode='target') {
@@ -157,14 +191,23 @@ class MachinePuzzle {
   }
 
   drawShape(ctx, blockString, mode, manual=false) {
+    console.log('drawShape', mode)
     let blockSize = manual ? this.blockSize * this.manualScale : this.blockSize
     
     // Clear the screen (canvas context)
-    ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
-    if (mode == 'blank') return
+    if (mode == 'blank') {
+      ctx.clearRect(0, 0, this.screenWidth, this.screenHeight);
+      return
+    }
 
-    if (mode == 'compositional') {
+    if (mode == 'compositional' || mode == 'left' || mode == 'right') {
       let blocks = string2blockSplit(blockString, 1, 1)
+
+      if (mode == 'left') {
+        blocks[1].color = COLORS[0]
+      } else if (mode == 'right') {
+        blocks[0].color = COLORS[0]
+      }
       for (const b of blocks) {
         b.draw(ctx, blockSize);
       }
@@ -233,11 +276,9 @@ class MachinePuzzle {
             select.append($('<option></option>').val(j).text(j));
         }
 
-        select.val(this.currentCode[i]);
+        select.val(this.initialCode[i]);
 
         select.on('change', () => {
-            this.currentCode[i] = parseInt(select.val());
-            console.log('currentCode', this.currentCode)
             this.lastAction = `select.${i}`;
             this.checkCode();
         });
@@ -259,6 +300,15 @@ class MachinePuzzle {
     }
 
     this.machineDiv.append(dialContainer);
+  }
+
+  getCode() {
+    return this.numberEls.map(el => el.val()).join('')
+  }
+  setCode(code) {
+    this.numberEls.forEach((el, idx) => {
+      el.val(code[idx])
+    })
   }
 
   
@@ -342,76 +392,59 @@ class MachinePuzzle {
     this.machineDiv.append(this.nextCodeButton);
   }
 
-  hasPartialSolution() {
-    let split = this.codeLength / 2
-    let current = this.currentCode.join('')
-
-    if (
-      this.dialLocked.slice(0, split).every(_.identity) && 
-      this.compositionalSolution.slice(0, split) == current.slice(0, split)
-    ) return "left"
-    if (
-      this.dialLocked.slice(-split).every(_.identity) && 
-      this.compositionalSolution.slice(-split) == current.slice(-split)
-    ) return "right"
-    return false
+  getSolutionType(code) {
+    let full = this.solutions[code]
+    let result = full ? full :
+      code.startsWith(this.leftSolution) ? "left" :
+      code.endsWith(this.rightSolution) ? "right" :
+      false
+    console.log('getSolutionType', code, result)
+    return result
   }
 
   getNextCode() {
-    let partialSolution = this.hasPartialSolution()
-
     // if we've hit the limit on pulls, reveal the solution
-    if (partialSolution && this.nTryPartial >= this.maxTryPartial-1) {
-      // pick a random solution
+    if (this.partialSolution && this.nTryPartial >= this.maxTryPartial-1) {
       this.logEvent("machine.getNextCode.maxTryPartial")
-      return this.compositionalSolution.split("").map(Number)
+      return this.compositionalSolution
     } else if (this.nTry >= this.maxTry-1) {
       this.logEvent("machine.getNextCode.maxTry")
-      return _.sample(Object.keys(this.solutions)).split("").map(Number)  
+      return _.sample(Object.keys(this.solutions))
     } else {
-      const code = this.currentCode.slice()
+      let code
       for (let j = 0; j < 1000; j++) {
-        for (let i = 0; i < this.codeLength; i++) {
-          if (!this.dialLocked[i]) {
-              code[i] = Math.floor(Math.random() * this.maxDigit) + 1
-            }
-        }
+        code = this.partialSolution == "left" ? this.leftSolution + randCode(this.maxDigit, this.codeLength - this.leftSolution.length) :
+          this.partialSolution == "right" ? randCode(this.maxDigit, this.codeLength - this.rightSolution.length) + this.rightSolution :
+          randCode(this.maxDigit, this.codeLength)
         if (!this.triedCodes.has(code.join(''))) {
           return code
         }
       }
     }
-    // couldn't find a code
+    // This really shouldn't happen
     this.logEvent("machine.getNextCode.failure")
-    saveData()
-    Swal.fire({
-      title: "No code found!",
-      html: `Try unlocking the dials`,
-      icon: "warning",
-      confirmButtonText: "Got it!",
-      allowOutsideClick: false,
-    })
-    return this.currentCode
+    if (this.partialSolution) {
+      return this.compositionalSolution
+    } else {
+      return _.sample(Object.keys(this.solutions))
+    }
   }
   
   tryNextCode() {
     this.lastAction = "nextCode"
-
-    this.currentCode = this.getNextCode()
-    // Update display
-    for (let j = 0; j < this.codeLength; j++) {
-        this.numberEls[j].val(this.currentCode[j])
-    }
+    const code = this.getNextCode()
+    this.setCode(code)
     this.checkCode()
   }
 
   addSolutionToManual(entry) {
+    if (this.manual == null) return
     if (typeof entry == 'string') {
       entry = {
         task: this.task,
         blockString: this.blockString,
         compositional: entry == "compositional",
-        code: this.currentCode.join(""),
+        code: this.getCode(),
       }
     }
 
@@ -423,9 +456,7 @@ class MachinePuzzle {
     // Check if this entry already exists in the manual
     const existingEntry = this.manual.find(e2 => 
       e2.task === entry.task &&
-      e2.blockString === entry.blockString &&
-      e2.compositional === entry.compositional &&
-      e2.code === entry.code
+      e2.compositional === entry.compositional
     );
     
     // If the entry doesn't exist, add it to the manual
@@ -435,47 +466,115 @@ class MachinePuzzle {
     }
   }
 
-  async showSolution(solutionType) {
-    this.logEvent("machine.solved", {solutionType})
-    this.addSolutionToManual(solutionType)
-    this.drawTarget(solutionType); // Draw blue shape on success
-    let colors = solutionType == 'compositional' ? [1, 1, 2, 2] : [3, 3, 3, 3]
-    this.numberEls.forEach((el, idx) => {
-      el.css('color', COLORS[colors[idx]])
-    })
-    this.dialsDisabled = true
-    $(".dial-select").css("pointer-events", "none")
-    
-    this.nextCodeButton?.css("pointer-events", "none")
-      
-    this.clearHandlers()
-    // checkmark on goal
-    $("<p>")
-      .html("&#x2713")
-      .css({
-        position: "absolute",
-        fontSize: 200,
-        top: -140,
-        // marginTop: -200,
-        zIndex: 5,
-      })
-      .appendTo(this.goalBox)
-
-    // party parrot
-    $("<img>", { src: "static/img/parrot.gif" })
-      .css({
-        position: "absolute",
-        left: 0,
-        top: -53,
-        width: 50,
-        zIndex: 10,
-      })
-      .appendTo(this.machineDiv)
-    await sleep(500)
-    if (!this.suppressSuccess) {
-      await alert_success()
+  async flashScreen() {
+    let speeds = Array(10).fill().map((_, i) => Math.round(150 + 400 / (1 + Math.exp(i * 0.8))))
+    console.log(_.sum(speeds))
+    for (let speed of speeds) {
+      this.screen.css("transition", `background-color ${speed}ms ease`)
+      await sleep(speed)
+      this.screen.css("background-color", "#555")
+      await sleep(speed)
+      this.screen.css("background-color", "#fff")
     }
-    this.done.resolve()
+  }
+
+  async animateSolution(solutionType) {
+    const squareSize = this.blockSize;
+
+    const drawSquare = (x, y, on=true) => {
+      this.animationCtx.fillStyle = '#333'
+      let args = [(x) * squareSize, (y) * squareSize, squareSize, squareSize]
+      if (on) {
+        this.animationCtx.fillRect(...args)
+      } else {
+        this.animationCtx.clearRect(...args)
+      }
+    }
+    this.drawTarget(solutionType)
+    this.drawShape(this.animationCtx, this.blockString, this.partialSolution)
+
+    // await sleep(500)
+    // for (let i = 0; i < 2; i++) {
+    //   drawSquare(0, 0, true)
+    //   await sleep(150)
+    //   drawSquare(0, 0, false)
+    //   await sleep(150)
+    // }
+    // drawSquare(0, 0, true)
+
+    // await sleep(1000)
+    
+    const delay = 50;
+    for (let y = 0; y < this.height+2; y++) {
+      const xRange = y % 2 === 0 
+        ? _.range(0, this.width +2)
+        : _.range(this.width + 1, -1, -1);
+        
+      for (let x of xRange) {
+        drawSquare(x, y, true)
+        await sleep(delay);
+        drawSquare(x, y, false)
+      }
+    }
+    this.animationCtx.clearRect(0, 0, this.screenWidth, this.screenHeight);
+    this.logEvent(`machine.animationDone`)
+  }
+
+  async showSolution(solutionType, opts = {}) {
+    assert(solutionType, "invalid solutionType: " + solutionType)
+    this.logEvent(`machine.solution.${solutionType}`)
+    
+    let dials = {
+      bespoke: [3,3,3,3],
+      left: [1,1,0,0],
+      right: [0,0,2,2],
+      compositional: [1,1,2,2],
+    }[solutionType]
+
+    this.numberEls.forEach((el, idx) => {
+      if (dials[idx]) {
+        el.css({
+          'color': COLORS[dials[idx]],
+          'pointer-events': 'none',
+        // 'font-weight': 'bold',
+        })
+      }
+    })
+
+    if (opts.skipAnimation) {
+      this.drawTarget(solutionType)
+    } else {
+      $(".dial-select").prop("disabled", true).css('opacity', 1)
+      this.nextCodeButton?.prop("disabled", true)
+      // await this.flashScreen()
+      await this.animateSolution(solutionType)
+      this.nextCodeButton?.prop("disabled", false)
+      $(".dial-select").prop("disabled", false)
+    }
+    
+    this.partialSolution = solutionType
+
+
+    if (solutionType == "compositional" || solutionType == "bespoke") {
+      this.addSolutionToManual(solutionType)
+      this.nextCodeButton?.css("pointer-events", "none")
+      this.clearHandlers()
+      // party parrot
+      $("<img>", { src: "static/img/parrot.gif", id: "parrot" })
+        .css({
+          position: "absolute",
+          left: 0,
+          top: -53,
+          width: 50,
+          zIndex: 10,
+        })
+        .appendTo(this.machineDiv)
+      await sleep(500)
+      if (!this.suppressSuccess) {
+        await alert_success()
+      }
+      this.done.resolve()
+    }
   }
 
   clearHandlers() {
@@ -487,24 +586,23 @@ class MachinePuzzle {
 
   checkCode() {
     this.nTry += 1
-    if (this.hasPartialSolution()) {
+    if (this.partialSolution) {
       this.nTryPartial += 1
     }
-    
-    let input = this.currentCode.join("")
-    this.triedCodes.add(input)
-    let info = { code: input, action: this.lastAction }
-    // Compare the current code with the correct code
-    if (this.solutions[input]) {
-        this.logEvent("machine.enter.correct", info)
-        this.showSolution(this.solutions[input])
+
+    let code = this.getCode()
+    this.triedCodes.add(code)
+    this.logEvent("machine.enter", { code, action: this.lastAction })
+
+    let sol = this.getSolutionType(code)
+    if (sol != this.partialSolution) {
+      this.showSolution(sol)
     } else {
-        this.logEvent("machine.enter.incorrect", info)
-        if (this.nTry > this.maxTry || this.nTryPartial > this.maxTryPartial) {
-          this.logEvent("machine.hitmax", { nTry: this.nTry, nTryPartial: this.nTryPartial })
-          saveData()
-          alert_info({html: "Try the green button!"})
-        }
+      if (this.nTry > this.maxTry || this.nTryPartial > this.maxTryPartial) {
+        this.logEvent("machine.hitmax", { nTry: this.nTry, nTryPartial: this.nTryPartial })
+        saveData()
+        alert_info({html: "Try the green button!"})
+      }
     }
 }
 
@@ -580,6 +678,13 @@ class MachinePuzzle {
 
     manualContainer.append(examplesContainer)
     this.manualDiv.append(manualContainer) // Append to manualDiv instead of div
+  }
+
+  setLight(color) {
+    this.light.css("backgroundColor", color);
+    if (color !== "rgba(255, 255, 255, 0.5)") {
+      setTimeout(() => this.setLight("rgba(255, 255, 255, 0.5)"), 500);
+    }
   }
 }
 
