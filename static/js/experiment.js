@@ -3,7 +3,7 @@ const PARAMS = {
   config_dir: "code-pilot",
   maxTryPartial: 100,
   nextCodeDelay: 100,
-  maxTotalTries: 600,
+  maxTotalTries: 700,
   width: 6,
   height: 5,
 }
@@ -26,7 +26,7 @@ async function runExperiment() {
     console.log("ERR HERE")
     throw new Error(`${configFile} does not exist`)
   }
-  window.config = config
+  window.config = config // note I actually use this in instructions.js (HACK) but don't remove it!
 
   _.extend(PARAMS, config.params)
 
@@ -37,36 +37,9 @@ async function runExperiment() {
     logEvent('experiment.instructions')
     await new MachineInstructions({
       ...config.instructions,
+      mainParams: PARAMS,
     }).run(DISPLAY)
   }
-
-  async function social() {
-    if (config.params.manual.length == 0) return
-    logEvent('experiment.social')
-    
-    let workspace = $('<div>').appendTo(DISPLAY)
-    let prompt = $('<div>').css({
-      'max-width': 700,
-      // 'min-height': 100,
-      'margin': 'auto',
-      'margin-bottom': 20,
-    }).appendTo(workspace)
-
-    let mp = new MachinePuzzle({...PARAMS}).attach($('<div>').appendTo(workspace))
-    mp.machineDiv.hide()
-    mp.manualDiv.css('margin', 'auto')
-
-    prompt.html(markdown(`
-      # Instructions complete
-
-      You're now ready to start the main experiment. 
-      There will be ${config.trials.length} rounds.
-      Try to complete them all as quickly as possible, using the manual as much as you can.
-      To start you off, we've filled in your manual with some codes used by previous operators of this machine.
-    `))
-    await button(prompt).promise()
-  }
-
 
   async function main() {
     logEvent('experiment.main')
@@ -76,19 +49,14 @@ async function runExperiment() {
       nTrial: config.trials.length,
       height: 70,
       width: 1150,
-      // helpTitle: 'Feeling stuck?',
-      // help: `
-      //   Check the manual to see if you have any usable information.
-      //   Remember that you can combine codes from shapes that are built
-      //   from the same parts as the one you're trying to crack!
-        
-      //   You can always find a code by brute force. Just repeatedly click on
-      //   the rightmost dial (the last digit) and you will eventually find one
-      //   of the correct codes. It should never require more than ${Math.max(250, PARAMS.maxTryPartial)} clicks. 
-      //   If that doesn't work, there's probably a bug in the experiment. Please
-      //   submit your study without a completion code and message us on Prolific.
-      //   If you can, email ${ERROR_EMAIL} as well so we can fix it ASAP!
-      // `
+      helpTitle: 'Feeling stuck?',
+      help: `
+        Check the manual to see if you have any usable information.
+        Remember that you can combine codes from shapes that are built
+        from the same parts as the one you're trying to crack! You 
+        can also search for the code by repeatedly clicking the green button.
+        It may take a while, but you will eventually find it!
+      `,
     }).prependTo(DISPLAY)
 
     let totalTries = 0
@@ -104,7 +72,13 @@ async function runExperiment() {
     })
 
     let workspace = $('<div>').appendTo(DISPLAY)
-
+    if (urlParams.main) {
+      const n = parseInt(urlParams.main) - 1
+      for (let i = 0; i < n; i++) {
+        top.incrementCounter()
+      }
+      config.trials = config.trials.slice(n)
+    }
     for (let trial of config.trials) {
       await new MachinePuzzle({...PARAMS, ...trial}).run(workspace)
       top.incrementCounter()
@@ -148,7 +122,6 @@ async function runExperiment() {
 
   await runTimeline(
     instructions,
-    social,
     main,
     debrief
   )

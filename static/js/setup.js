@@ -88,7 +88,7 @@ function eventPromise(predicate) {
   let func = (info) => {
     if (predicate(info)) {
       logEvent('eventPromise.resolve', {match})
-      promise.resolve()
+      promise.resolve(info)
     }
   }
   promise.finally(() => removeEventCallback(func))

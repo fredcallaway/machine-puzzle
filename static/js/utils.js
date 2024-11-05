@@ -98,6 +98,9 @@ function enforceScreenSize(width, height, display='#display') {
 
 async function runTimeline(...blocks) {
   let start = _.map(blocks, 'name').indexOf(urlParams.block)
+  if (start == -1) {
+    start = blocks.findIndex(block => block.name in urlParams);
+  }
   if (start != -1) {
     blocks = blocks.slice(start)
   }

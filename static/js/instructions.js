@@ -183,6 +183,10 @@ class Instructions {
     }
   }
 
+  restartStage() {
+    this.runStage(this.stage)
+  }
+
   runNext() {
     saveData()
     logEvent("instructions.runNext")
@@ -260,7 +264,6 @@ class Quiz {
     this.button = $("<button>", { class: "btn btn-primary" })
       .text("check answers")
       .appendTo(this.div)
-      .click(() => this.check())
   }
 
   attach(div) {
@@ -275,14 +278,14 @@ class Quiz {
     return this.done
   }
 
-  check() {
+  async check() {
     let answers = this.inputs.map((i) => i.val())
     logEvent("quiz.check", { answers, correct: this.correct })
     let pass = _.every(_.zip(answers, this.correct), ([a, c]) => {
       return a == c
     })
     if (pass) {
-      alert_success()
+      await alert_success()
       this.done.resolve()
     } else {
       alert_failure({
@@ -294,11 +297,12 @@ class Quiz {
 }
 
 class MachineInstructions extends Instructions {
-  constructor({params, shapes, codes}) {
+  constructor({params, shapes, codes, mainParams}) {
     super({ contentWidth: 1200, promptHeight: 200 })
     this.params = _.cloneDeep(params)
     this.shapes = shapes
     this.codes = codes
+    this.mainParams = mainParams
     window.instruct = this
   }
     // Define the codes used in the instructions
@@ -319,8 +323,6 @@ class MachineInstructions extends Instructions {
       maxDigit: 4,
       machineColor: "#ffe852",
       suppressSuccess: true,
-      showLocks: false,
-      showNextCodeButton: false,
       ...opts,
     })
     mp.attach(this.content)
@@ -333,79 +335,119 @@ class MachineInstructions extends Instructions {
     }))
   }
 
-  async stage_welcome() {
-    let mp = this.getPuzzle("11", {
-      trialID: "instruct.welcome",
-    })
-    mp.drawTarget("blank")
-
-    this.instruct(`
-      Welcome! In this experiment, you will be cracking codes using the machine below.
-      
-      _Click the pulsing arrow on the right to continue._
-    `)
-  }
-
+  
   async stage_intro() {
     let mp = this.getPuzzle("11", {
       solutionType: "bespoke",
+      manual: this.buildManual([
+        ["11", "bespoke"]
+      ]),
     })
+    mp.drawTarget("blank")
+    mp.nextCodeButton.hide()
+    mp.manualDiv.hide()
+    mp.lockInput()
+
+    this.instruct(`
+      Welcome! In this experiment, you will be cracking codes using the machine below.
+    `)
+    await this.button()
+    
+    mp.drawTarget()
     this.instruct(`
       On each round, a shape will appear on the screen. 
-      Your job is to find a code that creates this shape. 
-      Click on a dial to change its number.
+      Your job is to find a code that creates this shape.
+    `)
+    await this.button()
+    
+    mp.manualDiv.show()
+    this.instruct(`
+      To make things easier, you'll have a manual that provides codes
+      for some of the shapes you might have to build.
+    `)
+    await this.button()  
+
+    mp.unlockInput()
+    this.instruct(`
+      Give it a try! Click on a dial to change its number.
       As soon as you land on the right code, the shape will be created. 
-      _Try entering the code ${this.codes["11"].bespoke}._
     `)
     await mp.done
+    this.instruct(`
+      Well done!
+    `)
+    await this.button()
+    this.runNext()
     // this.prompt.append('<b>Nice!</b>');
   }
 
   async stage_compositional() {
     let mp = this.getPuzzle("11", {
       solutionType: "compositional",
+      manual: this.buildManual([
+        ["11", "bespoke"],
+        ["11", "compositional"],
+      ])
     })
+
     this.instruct(`
       Each shape can be created by multiple codes. 
-      Try entering ${this.codes["11"].compositional} this time.
+      Try entering the new code from the manual
+      (we disabled ${this.codes["11"].bespoke}).
     `)
+
+    this.registerEventCallback((event) => {
+      console.log('callback', event)
+      if (event.event.startsWith("machine.enter") && event.code == this.codes["11"].bespoke) {
+        alert_info({html: `We disabled ${this.codes["11"].bespoke}. Try the other code from the manual!`})
+      }
+    })
+
     await this.eventPromise("machine.animationDone")
     this.instruct(`
-      Huh! It looks like you found part of the code for this shape,
-      but we're still missing the other half. Complete the shape
-      by entering the rest of the code (${this.codes["11"].compositional}).
+      Some codes build the shape in two parts. Complete the code
+      to build the other half!
     `)
     await mp.done
+    this.instruct("Perfect!")
+    await this.button()
+    this.runNext()
   }
 
   async stage_trynext() {
-    let mp = this.getPuzzle("33", {
+    let mp = this.getPuzzle("22", {
       showNextCodeButton: true,
-      maxTry: 20,
+      maxTry: 5,
+      manual: this.buildManual([
+        ["11", "bespoke"],
+        ["11", "compositional"],
+      ])
     })
-    mp.dialsDisabled = true
+    mp.nextCodeButton.hide()
     this.instruct(`
-      Here's a new shape. Try to crack its code.
+      Sometimes the manual won't have a code for the shape you're trying to crack.
+      In this case, you'll have to figure it out yourself. Give it a shot!
     `)
 
     await this.eventPromise(
-      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 5
+      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 3
     )
+
     await alert_info({
       title: "This is gonna take forever!",
-      html: "<em>Let's try a different approach!</em>",
+      html: "<em>Let's try a different approach...</em>",
+      confirmButtonText: 'OK',
     })
-
-    mp.solutions = { [this.codes["33"].bespoke]: "bespoke" }
+    mp.nextCodeButton.show()
+    
+    mp.solutions = { [this.codes["22"].bespoke]: "bespoke" }
     this.instruct(`
       To make cracking codes easier, we've added a new green button next to the dial. 
       When you click it, the machine will automatically try a code you haven't tried yet.
-
-      If you don't know what the code is, just click this button repeatedly until you find the right one.
-      Give it a try!
+      
+      Try using the green button to crack the code!
     `)
 
-    $('.dial-select').css('pointer-events', 'none').css('opacity', 1)
     $(".dial").on('click', (e) => {
       logEvent("instruct.hint.trygreen")
       alert_failure({
@@ -413,34 +455,37 @@ class MachineInstructions extends Instructions {
         html: "<em>The dials are disabled on this round of the instructions</em>",
       })
     })
-
     await mp.done
-
-    this.instruct(`
-      Huh! That code seemed to make the shape out of two pieces. Neat!
-    `)
+    this.instruct(` You got it! `)
+    await this.button()
+    this.runNext()
   }
-
+  
   async stage_full() {
-    let mp = this.getPuzzle({
+    let mp = this.getPuzzle("12", {
       trialID: "instruct.compositional",
       showManual: true,
       showNextCodeButton: true,
-      solutions: { [this.codes.comp12]: "compositional" },
+      solutionType: "compositional",
+      manual: this.buildManual([
+        ["11", "bespoke"],
+        ["11", "compositional"],
+        ["22", "bespoke"],
+        ["22", "compositional"],
+      ]),
       maxTry: 1000,
     })
     this.instruct(`
-      Here's a new shape. Try to crack its code.
-      
-      _Hint: You can use the manual to help you!_
+      Here's a new shape. Try to crack its code using the manual.
+
+      _Hint: you might need to combine multiple codes!_
     `)
-    mp.nextCodeButton.off('click')
-    mp.nextCodeButton.on('click', () => {
+    mp.altNextCode = () => {
       logEvent("instruct.hint.trymanual")
       alert_info({
         html: `Try using the manual on this round.`,
       })
-    })
+    }
 
     let color1 = (txt) => `<span style="font-weight: bold; color: ${COLORS[1]};">${txt}</span>`
     let color2 = (txt) => `<span style="font-weight: bold; color: ${COLORS[2]};">${txt}</span>`
@@ -448,13 +493,12 @@ class MachineInstructions extends Instructions {
 
     this.registerEventCallback((event) => {
       if (event.event.startsWith("machine.enter")) {
+        if (event.code == this.codes["12"].compositional) {
+          return
+        }
         let msg = {
-          5: `Look at the shapes in the manual that are built from two pieces.`,
-          10: `Notice how two pieces have codes that start with ${color1(this.codes.left1)}`,
-          15: `Does that red T shape at the end of the manual look familiar?`,
-          20: `This shape is a combination of two shapes in the manual, with codes 
-              ${color1(this.codes.left1) + this.codes.right1} and 
-              ${this.codes.left3 + color2(this.codes.right2)}`,
+          5: `Focus on the shapes in the manual that are built from two pieces.`,
+          10: `Notice that the target shape has an O shape and a fork shape.`,
         }[mp.nTry]
         // maybe "crash" the experiment if they take too long
         if (msg) {
@@ -468,48 +512,97 @@ class MachineInstructions extends Instructions {
     })
     await mp.done
     this.instruct(`
-      Well done! You've discovered that you can sometimes crack codes by combining the codes
-      for other shapes.
+      Well done! You can sometimes crack new codes
+      by combining two different codes from the manual.
     `)
+    await this.button()
+    this.instruct(`
+      But take note! Only the blue and red codes can be combined.
+      The purple codes are unique and only make one shape.
+      `)
+      await this.button()
+      this.runNext()
   }
 
-  async stage_locks() {
-    let mp = this.getPuzzle({
-      trialID: "instruct.locks",
-      showManual: true,
+  async stage_partial() {
+    let mp = this.getPuzzle("32", {
+      maxTryPartial: 5,
       showNextCodeButton: true,
-      showLocks: true,
-      maxTryPartial: 10,
-      manual: [
-        ...this.manual,
-        {task: 'null', blockString: this.shape12, compositional: true, code: this.codes.comp12},
-      ],
-      solutions: { [this.codes.comp21]: "compositional" },
+      manual: this.buildManual([
+        ["11", "bespoke"],
+        ["11", "compositional"],
+        ["22", "bespoke"],
+        ["22", "compositional"],
+        ["12", "compositional"],
+      ]),
+      solutionType: "compositional",
     })
+    mp.lockInput()
     this.instruct(`
-      Sometimes you'll only know part of the code for a shape from the manual.
-      In this case, you can lock the dials you already know.
-      Then you can use the green button to crack the rest of the code without messing
-      up the part you already entered. _Try cracking the code with this strategy._
+      Sometimes the manual will only include half of the code for the
+      shape you're trying to crack.
     `)
+    await this.button()
+    this.instruct(`
+      In this case, you can start by entering the part of the code you already know...
+    `)
+    mp.unlockInput()
+    
+    mp.altNextCode = () => {
+      logEvent("instruct.hint.trymanual")
+      alert_info({
+        html: `Try using the manual on this round.`,
+      })
+    }
+    
     this.registerEventCallback((event) => {
       if (
         event.event.startsWith("machine.enter") &&
         mp.nTry > 0 &&
         mp.nTry % 5 == 0
       ) {
-        let correctEnd = mp.currentCode.join("").endsWith(this.codes.right1)
-        let locked = mp.dialLocked[2] && mp.dialLocked[3]
-        if (!correctEnd || !locked) {
-          logEvent(`instruct.hint.locks.${mp.nTry}`)
+        if (!mp.partialSolution) {
+          logEvent(`instruct.hint.partial.${mp.nTry}`)
           saveData()
           alert_info({
-            html: `Look at the shape with code ${this.codes.comp11} in the manual. Focus on the red part. Make sure to lock the dials you already know!`,
+            html: `Focus on the red parts of the shapes in the manual.`,
           })
         }
       }
     })
-    await mp.done
+    
+    let solution = await this.eventPromise("machine.solution")
+    if (solution.event.endsWith('right')) {
+      // this is the intended path
+      logEvent('instruct.partial.right_first')
+      this.instruct("That's it!")
+      await this.eventPromise("machine.animationDone")
+      this.instruct(`
+        Now you can use the green button to search for the rest of the code.
+      `)
+      mp.altNextCode = null
+      await mp.done
+      this.instruct(`
+        Alright!
+      `)
+      await this.button()
+      this.runNext()
+    } else {
+      // participant accidentally found the left half, try again
+      logEvent('instruct.partial.left_first')
+      mp.div.remove()
+      await alert_failure({
+        title: "Something went wrong!",
+        html: `
+          Let's try this round again. Make sure to follow
+          the instructions closely! You should start by
+          entering the right half of the code (which you 
+          know from the manual).
+        `
+      })
+      this.restartStage()
+      throw new Error("restart stage")
+    }
   }
 
   async stage_only_target() {
@@ -518,19 +611,16 @@ class MachineInstructions extends Instructions {
       _You can only create the shape currently on the screen._
       If you enter a code for a different shape, nothing will happen.
       
-      See the example below and continue when you're ready—_no need to click anything!_
+      See the example below and click continue when you're ready—_no need to click anything!_
     `)
 
-    let mp = this.getPuzzle({
-      blockString: this.shape21,
+    let mp = this.getPuzzle("33", {
       showManual: true,
-      manual: [
-        {task: 'null', blockString: this.shape11, compositional: true, code: this.codes.comp11}
-      ],
+      manual: this.buildManual([
+        ["11", "compositional"],
+      ]),
       showNextCodeButton: true,
-      showLocks: true,
-      solutions: { "0000": null },
-      initialCode: this.codes.comp11
+      initialCode: this.codes["11"].compositional
     })
     this.registerEventCallback((event) => {
       if (event.event.startsWith("machine.enter") && mp.nTry == 10) {
@@ -540,23 +630,24 @@ class MachineInstructions extends Instructions {
         })
       }
     })
+    await this.button()
+    this.runNext()
   }
 
   async stage_new_machine() {
-    let mp = this.getPuzzle({
-      machineColor: "#656565",
-      solutions: { "0000": null },
-      ...this.params,
-      showNextCodeButton: true,
-      showLocks: true,
-    })
+    let mp = new MachinePuzzle({
+      ...this.mainParams,
+    }).attach(this.content)
     mp.drawTarget("blank")
 
     this.instruct(`
-      For the rest of the experiment, you'll be working on this new machine.
-      It operates in the same way as the yellow practice machine, 
-      but it has more possible codes and makes more shapes.
+      For the rest of the study, you'll be working on this new machine.
+      It operates in the same way as the yellow machine, 
+      but its codes are much harder to crack!
+      To start you off, we've filled in your manual with some codes used by previous operators of this machine.
     `)
+    await this.button()
+    this.runNext()
   }
 
   async stage_quiz() {
@@ -577,19 +668,12 @@ class MachineInstructions extends Instructions {
           - True
           * False
         # What does the green button do?
-          - It creates the shape
-          * It tries the next possible code
-          - It locks the dials that are in the correct position
-        # What do the locks do?
-          - They show you which dials are in the correct position
-          * They prevent the green button from changing some positions of the code
+          - It reveals the correct code, letting you give up on the round
+          * It tries a code you haven't tried yet
         # If you enter the code for a different shape, what will happen?
           * Nothing will happen
           - The machine will break and you'll have to start over
-          - The machine will update the manual
-        # The codes you learned on the practice machine will work later in the experiment.
-          - True
-          * False
+          - The machine will add the code to the manual
       `)
     await this.quiz.run($("<div>").appendTo(this.prompt))
     this.runNext()
@@ -598,6 +682,9 @@ class MachineInstructions extends Instructions {
   async stage_final() {
     this.instruct(`
       You've finished the instructions, and are ready to move onto the main phase of the experiment.
+
+      There will be ${config.trials.length} rounds.
+      Try to complete them all as quickly as possible, using the manual as much as you can.
 
       <div class="alert alert-danger">
         <b>Warning!</b><br>
