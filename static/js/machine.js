@@ -59,7 +59,6 @@ class MachinePuzzle {
         allowClicks: false,
         suppressSuccess: false,
         showNextCodeButton: true,
-        showLocks: false,
         showManual: true,
         codeLength: 4,
         contentWidth: 1200,
@@ -74,7 +73,6 @@ class MachinePuzzle {
     // }
     
     // initialize state variables
-    this.dialLocked = Array(this.codeLength).fill(false)
     this.triedCodes = new Set()
     this.nTry = 0
     this.nTryPartial = 0
@@ -110,7 +108,6 @@ class MachinePuzzle {
     this.createDials();
     this.drawTarget()
     if (this.showNextCodeButton) this.createButtons()
-    if (this.showLocks) this.createLocks()
     if (this.showManual && this.manual != null) this.createManual()
 }
   
@@ -310,54 +307,6 @@ class MachinePuzzle {
     this.numberEls.forEach((el, idx) => {
       el.val(code[idx])
     })
-  }
-
-  
-  createLocks() {
-    // Add lock icons below each dial
-    const lockContainer = $("<div>")
-      .css({
-        display: "flex",
-        "justify-content": "space-around",
-        width: `${this.dialContainerWidth}px`,
-        "margin-bottom": "20px",
-        "margin-top": "10px",
-        "margin-left": "auto",
-        "margin-right": "auto",
-      })
-      .appendTo(this.machineDiv)
-
-    for (let i = 0; i < this.codeLength; i++) {
-      const lockIcon = $("<i>")
-        .addClass("fas fa-lock-open")
-        .css({
-          "font-size": "20px",
-          color: NEXT_CODE_COLOR,
-          cursor: "pointer",
-          width: "20px", // Set a fixed width
-          "text-align": "center", // Center the icon within its container
-          display: "inline-block", // Ensure inline-block display
-        })
-        .on("click", () => {
-          if (lockIcon.hasClass("fa-lock")) {
-            this.logEvent("machine.locks.unlock", { 
-              dial: i })
-            lockIcon
-              .removeClass("fa-lock")
-              .addClass("fa-lock-open")
-              .css({ color: NEXT_CODE_COLOR })
-            this.dialLocked[i] = false
-          } else {
-            this.logEvent("machine.locks.lock", { dial: i })
-            lockIcon
-              .removeClass("fa-lock-open")
-              .addClass("fa-lock")
-              .css({ color: "black" })
-            this.dialLocked[i] = true
-          }
-        })
-        .appendTo(lockContainer)
-    }
   }
 
   async createButtons() {
