@@ -16,6 +16,7 @@ var QUIET = false
 const DISPLAY = $('#display')
 
 $(window).on('load', async () => {
+  console.log('\n\n---------- BEGIN EXPERIMENT ----------\n\n')
   if (local) {
     $('#display').empty()
     try {
