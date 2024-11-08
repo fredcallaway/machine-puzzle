@@ -1,3 +1,5 @@
+const MAX_TRIES = 400;
+
 const COLORS = [
   'lightgray',
   '#548df0',
@@ -50,11 +52,10 @@ class MachinePuzzle {
         blockString: testBlock, // default block
         probRandComp: 0.05,
         nClickBespoke: 5,
-        nClickPartial: 5,
-        nClickComplete: 2,
+        nClickPartial: 3,
         dialSpeed: 0.03, // speed of dial drag
         clickTime: 200, // time threshold for a quick click
-        nextCodeDelay: 300, // delay after clicking next code button
+        nextCodeDelay: 1000, // delay after clicking next code button
         maxDigit: null, // max digit allowed on each dial
         trialID: randomUUID(), // unique trial ID
         blockSize: 40,
@@ -71,6 +72,8 @@ class MachinePuzzle {
         showManual: true,
         codeLength: 4,
         contentWidth: 1200,
+        searchCodes: 3, // Number of random codes to show when searching
+        searchDelay: 150, // Delay between each code during search
       },
       options
     )
@@ -79,8 +82,9 @@ class MachinePuzzle {
     // initialize state variables
     this.triedCodes = new Set()
     this.nTry = 0
+    this.nDial = 0
     this.clicksLeft = {
-      full: this.nClickBespoke,
+      bespoke: this.nClickBespoke,
       left: this.nClickPartial,
       right: this.nClickPartial,
     }
@@ -227,55 +231,24 @@ class MachinePuzzle {
 
   createDials() {
     let dialWidth = 60;
-    let containerWidth = this.dialContainerWidth = this.codeLength * dialWidth;
+    this.dialContainerWidth = this.codeLength * dialWidth;
 
-    let dialContainer = this.dialContainer = $('<div></div>').css({
-        'display': 'flex',
-        'justify-content': 'space-between',
-        'align-items': 'center',
-        'margin-top': '20px',
-        'border-radius': '10px',
-        'border': '3px solid black',
-        'padding': '10px',
-        'width': `${containerWidth}px`,
-        'height': '60px',
-        'position': 'relative',
-        'margin-left': 'auto',
-        'margin-right': 'auto',
-        'overflow': 'hidden',
-        'background': 'white',
-    });
+    let dialContainer = this.dialContainer = $('<div></div>')
+      .addClass('dial-container')
+      .css('width', `${this.dialContainerWidth}px`);
 
     this.numberEls = [];
 
     for (let i = 0; i < this.codeLength; i++) {
-        let dialWrapper = $('<div></div>').addClass('dial').attr('id', `dial-${i}`).css({
-            'flex': '1',
-            'text-align': 'center',
-            'height': '100%',
-            'display': 'flex',
-            'align-items': 'center',
-            'justify-content': 'center',
-            'width': 'auto'
-        });
+        let dialWrapper = $('<div></div>')
+          .addClass('dial')
+          .attr('id', `dial-${i}`);
 
         let side = i >= this.codeLength / 2 ? "right" : "left"
 
         let select = $('<select></select>')
           .addClass(`dial-select dial-select-${i} dial-select-${side}`)
-          .css({
-            'font-size': `${40 - this.codeLength * 2}px`,
-            'font-weight': 'bold',
-            'border': 'none',
-            'width': '100%',
-            'outline': 'none',
-            'background': 'transparent',
-            'text-align': 'center',
-            'text-align-last': 'center',
-            '-webkit-appearance': 'none',
-            '-moz-appearance': 'none',
-            'cursor': 'pointer'
-        });
+          .css('font-size', `${40 - this.codeLength * 2}px`);
 
         // Add options 1 through maxDigit
         for (let j = 1; j <= this.maxDigit; j++) {
@@ -283,7 +256,6 @@ class MachinePuzzle {
         }
 
         select.val(this.initialCode[i]);
-
         select.on('change', () => {
             this.lastAction = `select.${i}`;
             this.checkCode();
@@ -293,15 +265,8 @@ class MachinePuzzle {
         dialWrapper.append(select);
         dialContainer.append(dialWrapper);
 
-        // Add separator line between dials (except the last one)
         if (i < this.codeLength - 1) {
-            dialContainer.append($('<div></div>').css({
-                'height': '30px',
-                'width': '2px',
-                'background-color': 'lightgray',
-                'margin': '0 5px',
-                'align-self': 'center'
-            }));
+            dialContainer.append($('<div></div>').addClass('dial-separator'));
         }
     }
 
@@ -318,57 +283,68 @@ class MachinePuzzle {
   }
 
   async createButtons() {
-    const css = {
-      'color': 'white',
-      'font-weight': 'bold',
-      // 'transition': 'background-color 0.02s ease',
-      'outline': 'none',
-      'cursor': 'pointer',
-      'border': '3px solid black',
-      'border-radius': '10px',
-      // 'position': 'absolute',
-      // 'right': '30px',  // Adjust this value as needed to position the button correctly
-      // 'top': this.blockSize + this.screenHeight + 35,
-      'margin': '10px 10px 0px',
-      'font-size': '25px',
-      'cursor': 'pointer'
-    }
-    this.nextCodeButton = $('<button>')
-      .addClass('code-btn code-btn-full')
-      .text('?')
-      .css({...css, 'width': this.dialContainerWidth - 20, 'background-color': COLOR_MAP.bespoke})
-      .on('click', async () => {
-        if (this.altNextCode) {
-          this.altNextCode()
-          return
-        }
-        this.tryNextCode('full');
-      })
+    const container = $('<div>')
+    .addClass('code-btn-container')
+      .css({ width: this.dialContainerWidth })
       .appendTo(this.machineDiv)
-    this.compositionalButtons = $('<div>')
-      .css({display: 'flex', justifyContent: 'space-between', 'width': this.dialContainerWidth, margin: 'auto'})
-      .appendTo(this.machineDiv)
-    for (let side of ['left', 'right']) {
+
+    for (let kind of ['bespoke','left', 'right']) {
       $("<button>")
-        .addClass(`code-btn code-btn-${side}`)
-        .text("?")
-        .on('click', () => {
-          this.tryNextCode(side)
+        .addClass(`code-btn code-btn-${kind}`)
+        .css({ backgroundColor: COLOR_MAP[kind] })
+        .on('click', async (e) => {
+          if (this._lockReason) return
+          if (this.altNextCode) {  // TODO instructions can just lock
+            this.altNextCode()
+            return
+          }
+          await this.animateSearch(kind)
+          this.tryNextCode(kind);
         })
-        .css({ ...css, width: this.dialContainerWidth / 2 - 8, 'background-color': COLOR_MAP[side]})
-        .appendTo(this.compositionalButtons)
+        .appendTo(container)
     }
-    if (this.nextCodeDelay) {
-      await sleep(0)
-      $('.code-btn').on('click', async (e) => {
-        if (this._lockReason) return
-        $(e.currentTarget).css('filter', 'brightness(1.2)')
-        this.lockInput('delay')
-        await sleep(this.nextCodeDelay)
-        $(e.currentTarget).css('filter', 'brightness(1)')
-        this.unlockInput('delay')
-      })
+
+    // if (this.nextCodeDelay) {
+    //   await sleep(0)  // wait for the buttons to be created
+    //   $('.code-btn').on('click', async (e) => {
+    //     if (this._lockReason) return
+    //     $(e.currentTarget).addClass('clicked')
+    //     this.lockInput('delay')
+    //     this.nextCodeDelay = 2000
+    //     await sleep(this.nextCodeDelay)
+    //     $(e.currentTarget).removeClass('clicked')
+    //     this.unlockInput('delay')
+    //   })
+    // }
+  }
+
+  async animateSearch(kind) {
+    console.log('animateSearch', kind)
+    this.lockInput('delay')
+
+    const changed = kind == 'bespoke' ? ['left', 'right'] : [kind]
+    if (changed.includes(this.partialSolution)) {
+      this.drawTarget()
     }
+
+    for (let k of changed) {
+      $(`.code-btn-${k}`).addClass('clicked')
+      $(`.code-btn-${k}`).removeClass('solved')
+      $(`.dial-select-${k}`).css('color', 'black')
+    }
+
+    let speed = kind == 'bespoke' ? 30 : 3
+
+    let t = Date.now()
+    for (let i = 0; i < speed; i++) {
+      this.setCode(this.generateCode(kind))
+      await sleep(this.nextCodeDelay / speed)
+    }
+    console.log('animateSearch', this.nextCodeDelay, Date.now() - t)
+    
+    // await sleep(this.nextCodeDelay)
+    $(`.code-btn-${kind}`).removeClass('clicked')
+    this.unlockInput('delay')
   }
 
   getSolutionType(code) {
@@ -379,40 +355,42 @@ class MachinePuzzle {
       false
   }
 
-  generateCode(side, correct=false) {
-    console.log("generateCode", side, correct)
+  generateCode(kind, correct=false) {
     let code = this.getCode()
-    const partial = () => {
-      switch (`${side}-${correct}`) {
-        case 'left-true': return this.leftSolution;
-        case 'right-true': return this.rightSolution;
-        case 'left-false': return randCode(this.maxDigit, this.leftSolution.length);
-        case 'right-false': return randCode(this.maxDigit, this.rightSolution.length);
-        default: assert(false, `invalid args to generateCode: ${side} ${correct}`);
-      }
-    }
-
-    if (side == 'left') {
-      return partial() + code.slice(this.rightSolution.length)
-    } else if (side == 'right') {
-      return code.slice(0, this.leftSolution.length) + partial()
-    } else {
+    if (kind == 'bespoke') {
       if (correct) {
         return _.sample(Object.keys(this.solutions))
       } else {
         return randCode(this.maxDigit, this.codeLength)
       }
     }
+    const partial = () => {
+      switch (`${kind}-${correct}`) {
+        case 'left-true': return this.leftSolution;
+        case 'right-true': return this.rightSolution;
+        case 'left-false': return randCode(this.maxDigit, this.leftSolution.length);
+        case 'right-false': return randCode(this.maxDigit, this.rightSolution.length);
+        default: assert(false, `invalid args to generateCode: ${kind} ${correct}`);
+      }
+    }
+
+    if (kind == 'left') {
+      return partial() + code.slice(this.rightSolution.length)
+    } else if (kind == 'right') {
+      return code.slice(0, this.leftSolution.length) + partial()
+    } else {
+      assert(false, `invalid args to generateCode: ${kind} ${correct}`);
+    }
   }
 
-  getNextCode(side) {
+  getNextCode(kind) {
     // if we've hit the limit on pulls, reveal the solution
-    if (this.clicksLeft[side] <= 0) {
-      return this.generateCode(side, true)
+    if (this.clicksLeft[kind] <= 0) {
+      return this.generateCode(kind, true)
     }
     let code
     for (let j = 0; j < 1000; j++) {
-      code = this.generateCode(side)
+      code = this.generateCode(kind)
       if (!this.triedCodes.has(code)) {
         return code
       }
@@ -420,18 +398,17 @@ class MachinePuzzle {
     assert(false, "getNextCode failed")
     // This really shouldn't happen
     this.logEvent("machine.getNextCode.failure")
-    if (this.partialSolution) {
+    if (this.partialSolution) {  // TODO
       return this.compositionalSolution
     } else {
       return _.sample(Object.keys(this.solutions))
     }
   }
   
-  tryNextCode(side) {
-    console.log("tryNextCode", side)
-    this.lastAction = `nextCode.${side}`
-    this.clicksLeft[side] -= 1
-    this.setCode(this.getNextCode(side))
+  tryNextCode(kind) {
+    this.lastAction = `nextCode.${kind}`
+    this.clicksLeft[kind] -= 1
+    this.setCode(this.getNextCode(kind))
     this.checkCode()
   }
 
@@ -517,25 +494,42 @@ class MachinePuzzle {
     this.logEvent(`machine.animationDone`)
   }
 
+  updateDialColors(solutionType) {
+    console.log('updateDialColors', solutionType)
+    $(".dial-select").css('color', 'black')
+    if (solutionType === "compositional") {
+      $(".dial-select-left").css('color', COLOR_MAP.left)
+      $(".dial-select-right").css('color', COLOR_MAP.right)
+    } else if (solutionType === "left") {
+      $(".dial-select-left").css('color', COLOR_MAP.left)
+    } else if (solutionType === "right") {
+      $(".dial-select-right").css('color', COLOR_MAP.right)
+    } else if (solutionType === "bespoke") {
+      $(".dial-select").css('color', COLOR_MAP.bespoke)
+    }
+  }
+
   async showSolution(solutionType, opts = {}) {
+    const prevSolution = this.partialSolution
+    this.partialSolution = solutionType
+    this.updateDialColors(solutionType)
+
+    if (!solutionType) {
+      this.logEvent("machine.undo-partial")
+      $(`.code-btn-${solutionType}`).removeClass("solved")
+      this.drawTarget()
+      return
+    }
+
+    $(`.dial-select.${solutionType}`).addClass('solved')
+      
     this.lockInput('showSolution')
     assert(solutionType, "invalid solutionType: " + solutionType)
     this.logEvent(`machine.solution.${solutionType}`)
 
-    if (solutionType == "bespoke") {
-      $(".dial-select").css('color', COLORS[3])
-    } else {
-      if (solutionType != "right") {
-        $(".dial-select-left").css('color', COLORS[1])
-      }
-      if (solutionType != "left") {
-        $(".dial-select-right").css('color', COLORS[2])
-      }
-    }
-    $(`.code-btn-${solutionType}`).css('filter', 'brightness(1.2)')
+    // Mark button as solved
+    $(`.code-btn-${solutionType}`).addClass('solved')
     
-    const prevSolution = this.partialSolution
-    this.partialSolution = solutionType
     if (opts.skipAnimation) {
       this.drawTarget(solutionType)
     } else {
@@ -561,35 +555,29 @@ class MachinePuzzle {
       }
       this.done.resolve()
     } else {
+      console.log("👉 UNLOCKING")
       this.unlockInput('showSolution')
     }
   }
 
   lockInput(reason = 'none') {
-    console.log("lockInput", reason)
     this._lockReason = reason
-    $(".code-btn").prop("disabled", true)
-    $(".dial-select").css('pointer-events', 'none')
+    $('.code-btn').addClass('locked')
+    $('.code-btn.clicked').removeClass('locked')
   }
   
   unlockInput(reason = 'none') {
-    console.log("unlockInput", reason, this._lockReason)
     if (this._lockReason != reason) return
     assert(this._lockReason)
     this._lockReason = undefined
-    $(".code-btn")
-      .css("pointer-events", "auto")
-      .prop("disabled", false)
-    $(".dial-select").css('pointer-events', 'auto')
+    $(".code-btn").removeClass('locked clicked')
+    // $(".dial-select").css('pointer-events', 'auto')
     
-    if (this.partialSolution) {
-      console.log("HERE", this.partialSolution)
-      $(".dial-select-" + this.partialSolution).css('pointer-events', 'off')
-      $(`.code-btn-${this.partialSolution}`).css({
-        "filter": "brightness(1.2)",
-        "pointer-events": "none",
-      }).prop("disabled", true)
-    }
+    // if (this.partialSolution) {
+    //   $(".dial-select-" + this.partialSolution).css('pointer-events', 'off')
+    //   $(`.code-btn-${this.partialSolution}`)
+    //     .addClass('locked')
+    // }
   }
 
   clearHandlers() {
@@ -601,33 +589,19 @@ class MachinePuzzle {
 
   checkCode() {
     this.nTry += 1
-    if (this.partialSolution) {
-      this.nTryPartial += 1
-    }
 
     let code = this.getCode()
     this.triedCodes.add(code)
     this.logEvent("machine.enter", { code, action: this.lastAction })
 
     let sol = this.getSolutionType(code)
-    if (sol != this.partialSolution) {
-      console.log('checkCode', {sol});
-      if (sol == "left") {
-        this.clicksLeft.right = Math.min(this.nClickComplete, this.clicksLeft.right)
-        console.log('checkCode', {right: this.clicksLeft.right});
-      } else if (sol == "right") {
-        this.clicksLeft.left = Math.min(this.nClickComplete, this.clicksLeft.left)
-        console.log('checkCode', {left: this.clicksLeft.left});
-      }
+    if (!sol && this.nTry > MAX_TRIES) {
+      this.logEvent("machine.hitmax", { nTry: this.nTry, clicksLeft: this.clicksLeft })
+      terminateExperiment("hitmax")
+    } else if (sol != this.partialSolution) {
       this.showSolution(sol)
-    } else {
-      if (this.nTry > this.maxTry || this.nTryPartial > this.maxTryPartial) {
-        this.logEvent("machine.hitmax", { nTry: this.nTry, nTryPartial: this.nTryPartial })
-        saveData()
-        alert_info({html: "Try the green button!"})
-      }
-    }
-}
+    } 
+  }
 
   createManual() {
     // Create the manual div

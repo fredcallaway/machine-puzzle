@@ -601,7 +601,7 @@ class MachineInstructions extends Instructions {
         `
       })
       this.restartStage()
-      throw new Error("restart stage")
+      throw new Error("restart stage")  
     }
   }
 

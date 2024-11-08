@@ -2,7 +2,7 @@ const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
   config_dir: "code-pilot",
   maxTryPartial: 100,
-  nextCodeDelay: 100,
+  // nextCodeDelay: 100,
   maxTotalTries: 700,
   width: 6,
   height: 5,
