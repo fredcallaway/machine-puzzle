@@ -70,13 +70,14 @@
   pointer-events: none;
 }
 
-.code-btn.locked {
+.code-btn.locked, .code-btn.disabled {
   filter: brightness(0.8);
   pointer-events: none;
 }
 
 .code-btn.clicked,
-.code-btn.locked {
+.code-btn.locked,
+.code-btn.disabled {
   pointer-events: none;
 }
 

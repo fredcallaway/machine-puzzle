@@ -320,7 +320,7 @@ class MachineInstructions extends Instructions {
       task,
       solutions,
       blockString,
-      maxDigit: 4,
+      maxDigit: 6,
       machineColor: "#ffe852",
       suppressSuccess: true,
       ...opts,
@@ -335,7 +335,6 @@ class MachineInstructions extends Instructions {
     }))
   }
 
-  
   async stage_intro() {
     let mp = this.getPuzzle("11", {
       solutionType: "bespoke",
@@ -344,7 +343,7 @@ class MachineInstructions extends Instructions {
       ]),
     })
     mp.drawTarget("blank")
-    mp.nextCodeButton.hide()
+    mp.buttonDiv.hide()
     mp.manualDiv.hide()
     mp.lockInput()
 
@@ -389,6 +388,7 @@ class MachineInstructions extends Instructions {
         ["11", "compositional"],
       ])
     })
+    mp.buttonDiv.hide()
 
     this.instruct(`
       Each shape can be created by multiple codes. 
@@ -413,79 +413,23 @@ class MachineInstructions extends Instructions {
     await this.button()
     this.runNext()
   }
-
-  async stage_trynext() {
-    let mp = this.getPuzzle("22", {
-      showNextCodeButton: true,
-      maxTry: 5,
-      manual: this.buildManual([
-        ["11", "bespoke"],
-        ["11", "compositional"],
-      ])
-    })
-    mp.nextCodeButton.hide()
-    this.instruct(`
-      Sometimes the manual won't have a code for the shape you're trying to crack.
-      In this case, you'll have to figure it out yourself. Give it a shot!
-    `)
-
-    await this.eventPromise(
-      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 3
-    )
-
-    await alert_info({
-      title: "This is gonna take forever!",
-      html: "<em>Let's try a different approach...</em>",
-      confirmButtonText: 'OK',
-    })
-    mp.nextCodeButton.show()
-    
-    mp.solutions = { [this.codes["22"].bespoke]: "bespoke" }
-    this.instruct(`
-      To make cracking codes easier, we've added a new green button next to the dial. 
-      When you click it, the machine will automatically try a code you haven't tried yet.
-      
-      Try using the green button to crack the code!
-    `)
-
-    $(".dial").on('click', (e) => {
-      logEvent("instruct.hint.trygreen")
-      alert_failure({
-        title: "Try the green button!",
-        html: "<em>The dials are disabled on this round of the instructions</em>",
-      })
-    })
-    await mp.done
-    this.instruct(` You got it! `)
-    await this.button()
-    this.runNext()
-  }
   
   async stage_full() {
     let mp = this.getPuzzle("12", {
       trialID: "instruct.compositional",
-      showManual: true,
-      showNextCodeButton: true,
       solutionType: "compositional",
       manual: this.buildManual([
         ["11", "bespoke"],
         ["11", "compositional"],
-        ["22", "bespoke"],
         ["22", "compositional"],
       ]),
-      maxTry: 1000,
     })
+    mp.buttonDiv.hide()
     this.instruct(`
       Here's a new shape. Try to crack its code using the manual.
 
       _Hint: you might need to combine multiple codes!_
     `)
-    mp.altNextCode = () => {
-      logEvent("instruct.hint.trymanual")
-      alert_info({
-        html: `Try using the manual on this round.`,
-      })
-    }
 
     let color1 = (txt) => `<span style="font-weight: bold; color: ${COLORS[1]};">${txt}</span>`
     let color2 = (txt) => `<span style="font-weight: bold; color: ${COLORS[2]};">${txt}</span>`
@@ -524,16 +468,115 @@ class MachineInstructions extends Instructions {
       this.runNext()
   }
 
-  async stage_partial() {
-    let mp = this.getPuzzle("32", {
-      maxTryPartial: 5,
-      showNextCodeButton: true,
+  async stage_forever() {
+    let mp = this.getPuzzle("33", {
+      nClickBespoke: 5,
       manual: this.buildManual([
         ["11", "bespoke"],
         ["11", "compositional"],
-        ["22", "bespoke"],
         ["22", "compositional"],
-        ["12", "compositional"],
+      ])
+    })
+    mp.buttonDiv.hide()
+    this.instruct(`
+      Sometimes the manual won't have a code for the shape you're trying to crack.
+      In this case, you'll have to figure it out yourself. Give it a shot!
+    `)
+
+    await this.eventPromise(
+      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 3
+    )
+
+    await alert_info({
+      title: "This is gonna take forever!",
+      html: "<em>Let's try a different approach...</em>",
+      confirmButtonText: 'OK',
+    })
+    this.runNext()
+  }
+
+  async stage_bespoke_button() {
+    let mp = this.getPuzzle("33", {
+      nClickBespoke: 5,
+      solutionType: "bespoke",
+      manual: this.buildManual([
+        ["11", "bespoke"],
+        ["11", "compositional"],
+        ["22", "compositional"],
+      ])
+    })
+
+    $('.code-btn-left').hide()
+    $('.code-btn-right').hide()
+    
+    this.instruct(`
+      To make cracking codes easier, the machine has a _Smart Button_&trade; that automatically
+      searches for the correct code. Using the smart button is much faster than guessing randomly.
+      Give it a shot!
+    `)
+    
+    $('.dial').css('pointer-events', 'none')
+    mp.dialContainer.on('click', (e) => {
+      logEvent("instruct.hint.blockdials")
+      alert_failure({
+        title: "Try using the Smart Button!",
+        html: "<em>The dials are disabled on this round of the instructions</em>",
+      })
+    })
+    await mp.done
+    this.instruct(`You got it! Note that the purple Smart Button will usually find purple codes.`)
+    await this.button()
+    this.runNext()
+  }
+
+  async stage_comp_buttons() {
+    let mp = this.getPuzzle("33", {
+      nClickPartial: 4,
+      solutionType: "compositional",
+      manual: this.buildManual([
+        ["11", "bespoke"],
+        ["11", "compositional"],
+        ["22", "compositional"],
+        ["33", "bespoke"],
+      ])
+    })
+    $('')
+    $('.code-btn-bespoke').addClass('disabled')
+    
+    this.instruct(`
+      There are two additional Smart Buttons on the machine. These ones will only
+      search for one part of the code at a time. Try them out!
+    `)
+
+    $('.dial').css('pointer-events', 'none')
+    mp.dialContainer.on('click', (e) => {
+      logEvent("instruct.hint.blockdials")
+      alert_failure({
+        title: "Try using the Smart Buttons!",
+        html: "<em>The dials are disabled on this round of the instructions</em>",
+      })
+    })
+    
+    await this.eventPromise("machine.solution")
+    this.prompt.append("You solved half of the code! Now use the other Smart Button to finish it.")
+    await mp.done
+    this.instruct(`
+      That's it! The red and blue Smart Buttons will usually find red and blue codes.
+      However, this usually takes longer than searching for a purple code.
+    `)
+    await this.button()
+    this.runNext()
+  }
+
+  async stage_partial() {
+    let mp = this.getPuzzle("13", {
+      maxTryPartial: 5,
+      manual: this.buildManual([
+        ["11", "bespoke"],
+        ["11", "compositional"],
+        ["22", "compositional"],
+        ["33", "bespoke"],
+        ["33", "compositional"],
       ]),
       solutionType: "compositional",
     })
@@ -551,7 +594,7 @@ class MachineInstructions extends Instructions {
     mp.altNextCode = () => {
       logEvent("instruct.hint.trymanual")
       alert_info({
-        html: `Try using the manual on this round.`,
+        html: `Try using the manual first!`,
       })
     }
     
@@ -578,7 +621,7 @@ class MachineInstructions extends Instructions {
       this.instruct("That's it!")
       await this.eventPromise("machine.animationDone")
       this.instruct(`
-        Now you can use the green button to search for the rest of the code.
+        Now you can use the blue Smart Button to search for the rest of the code.
       `)
       mp.altNextCode = null
       await mp.done
@@ -619,7 +662,6 @@ class MachineInstructions extends Instructions {
       manual: this.buildManual([
         ["11", "compositional"],
       ]),
-      showNextCodeButton: true,
       initialCode: this.codes["11"].compositional
     })
     this.registerEventCallback((event) => {
@@ -667,9 +709,9 @@ class MachineInstructions extends Instructions {
         # You can only use the manual if it has the exact shape you're trying to crack.
           - True
           * False
-        # What does the green button do?
-          - It reveals the correct code, letting you give up on the round
-          * It tries a code you haven't tried yet
+        # What do the Smart Buttons do?
+          - They reveal the correct code, letting you give up on the round
+          * They search for the correct code
         # If you enter the code for a different shape, what will happen?
           * Nothing will happen
           - The machine will break and you'll have to start over

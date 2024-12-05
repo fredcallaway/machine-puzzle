@@ -51,33 +51,30 @@ class MachinePuzzle {
         manual: null,
         blockString: testBlock, // default block
         probRandComp: 0.05,
-        nClickBespoke: 5,
-        nClickPartial: 3,
-        dialSpeed: 0.03, // speed of dial drag
-        clickTime: 200, // time threshold for a quick click
-        nextCodeDelay: 1000, // delay after clicking next code button
+        initialCode: "random",
+        nClickBespoke: 20,
+        nClickPartial: 15,
+        buttonDelay: 1000, // delay after clicking next code button
         maxDigit: null, // max digit allowed on each dial
-        trialID: randomUUID(), // unique trial ID
+        codeLength: 4,
         blockSize: 40,
         width: 8, // Width in block units, not including padding
         height: 5, // Height in block units, not including padding
-        maxTry: 100,
-        maxTryPartial: 10,
         manualScale: 0.25,
-        initialCode: "random",
         machineColor: "#707374",
-        allowClicks: false,
-        suppressSuccess: false,
-        showNextCodeButton: true,
-        showManual: true,
-        codeLength: 4,
         contentWidth: 1200,
-        searchCodes: 3, // Number of random codes to show when searching
-        searchDelay: 150, // Delay between each code during search
+        suppressSuccess: false,
+        trialID: randomUUID(), // unique trial ID
       },
       options
     )
     window.mp = this;
+
+    // compositional solution
+    this.compositionalSolution = Object.entries(this.solutions).find(([_, type]) => type === 'compositional')?.[0];
+    let split = this.codeLength / 2
+    this.leftSolution = this.compositionalSolution?.slice(0, split)
+    this.rightSolution = this.compositionalSolution?.slice(-split)
 
     // initialize state variables
     this.triedCodes = new Set()
@@ -88,23 +85,22 @@ class MachinePuzzle {
       left: this.nClickPartial,
       right: this.nClickPartial,
     }
-  
-    this.compositionalSolution = Object.entries(this.solutions).find(([_, type]) => type === 'compositional')?.[0];
-    let split = this.codeLength / 2
-    this.leftSolution = this.compositionalSolution?.slice(0, split)
-    this.rightSolution = this.compositionalSolution?.slice(-split)
-    
+    this.done = make_promise(); // promise to resolve when the task is completed
+    this.partialSolution = false
     if (this.initialCode == 'random') {
       do {
         this.initialCode = randCode(this.maxDigit, this.codeLength);
       } while (this.getSolutionType(this.initialCode));
     }
+    this.logEvent('machine.initialize', _.pick(this, ['task', 'initialCode', 'solutions', 'blockString', 'manual']))
     
+    // layout
     this.screenWidth = (this.width + 2) * this.blockSize; // +2 for padding
     this.screenHeight = (this.height + 2) * this.blockSize; // +2 for padding
     this.machineWidth = this.screenWidth + 100;
     this.machineHeight = this.screenHeight + 200;
     
+    // build UI
     this.div = $("<div>").addClass('puzzle-container').css({
       display: 'flex',
       justifyContent: 'space-between',
@@ -112,15 +108,10 @@ class MachinePuzzle {
       margin: '0 auto'
     });
     this.createMachine();
-    
-    this.logEvent('machine.initialize', _.pick(this, ['task', 'initialCode', 'solutions', 'blockString', 'manual']))
-    this.done = make_promise(); // promise to resolve when the task is completed
-    this.partialSolution = false // state variable
-
     this.createDials();
     this.drawTarget()
-    if (this.showNextCodeButton) this.createButtons()
-    if (this.showManual && this.manual != null) this.createManual()
+    this.createButtons()
+    this.createManual()
   }
 
   logEvent(event, info = {}) {
@@ -153,18 +144,18 @@ class MachinePuzzle {
         userSelect: 'none',
       }).appendTo(this.div)
 
-    this.light = $("<div>")
-      .css({
-        width: 20,
-        height: 20,
-        borderRadius: "100%",
-        position: "absolute",
-        left: 10,
-        top: 10,
-        backgroundColor: "rgba(255, 255, 255, 0.5)",
-        transition: "background-color 0.2s ease"
-      })
-      .appendTo(this.machineDiv)
+    // this.light = $("<div>")
+    //   .css({
+    //     width: 20,
+    //     height: 20,
+    //     borderRadius: "100%",
+    //     position: "absolute",
+    //     left: 10,
+    //     top: 10,
+    //     backgroundColor: "rgba(255, 255, 255, 0.5)",
+    //     transition: "background-color 0.2s ease"
+    //   })
+    //   .appendTo(this.machineDiv)
 
     this.screen = $('<canvas></canvas>').attr({
       width: this.screenWidth,
@@ -283,8 +274,8 @@ class MachinePuzzle {
   }
 
   async createButtons() {
-    const container = $('<div>')
-    .addClass('code-btn-container')
+    this.buttonDiv = $('<div>')
+      .addClass('code-btn-container')
       .css({ width: this.dialContainerWidth })
       .appendTo(this.machineDiv)
 
@@ -301,17 +292,17 @@ class MachinePuzzle {
           await this.animateSearch(kind)
           this.tryNextCode(kind);
         })
-        .appendTo(container)
+        .appendTo(this.buttonDiv)
     }
 
-    // if (this.nextCodeDelay) {
+    // if (this.buttonDelay) {
     //   await sleep(0)  // wait for the buttons to be created
     //   $('.code-btn').on('click', async (e) => {
     //     if (this._lockReason) return
     //     $(e.currentTarget).addClass('clicked')
     //     this.lockInput('delay')
-    //     this.nextCodeDelay = 2000
-    //     await sleep(this.nextCodeDelay)
+    //     this.buttonDelay = 2000
+    //     await sleep(this.buttonDelay)
     //     $(e.currentTarget).removeClass('clicked')
     //     this.unlockInput('delay')
     //   })
@@ -333,16 +324,15 @@ class MachinePuzzle {
       $(`.dial-select-${k}`).css('color', 'black')
     }
 
-    let speed = kind == 'bespoke' ? 30 : 3
-
-    let t = Date.now()
-    for (let i = 0; i < speed; i++) {
+    let done = make_promise()
+    sleep(this.buttonDelay).then(() => done.resolve())
+    const animate = () => {
+      if (done.resolved) return
       this.setCode(this.generateCode(kind))
-      await sleep(this.nextCodeDelay / speed)
+      requestAnimationFrame(animate)
     }
-    console.log('animateSearch', this.nextCodeDelay, Date.now() - t)
-    
-    // await sleep(this.nextCodeDelay)
+    animate()
+        
     $(`.code-btn-${kind}`).removeClass('clicked')
     this.unlockInput('delay')
   }
@@ -564,6 +554,7 @@ class MachinePuzzle {
     this._lockReason = reason
     $('.code-btn').addClass('locked')
     $('.code-btn.clicked').removeClass('locked')
+    $(".dial-select").addClass('locked')
   }
   
   unlockInput(reason = 'none') {
@@ -571,8 +562,7 @@ class MachinePuzzle {
     assert(this._lockReason)
     this._lockReason = undefined
     $(".code-btn").removeClass('locked clicked')
-    // $(".dial-select").css('pointer-events', 'auto')
-    
+    $(".dial-select").removeClass('locked')
     // if (this.partialSolution) {
     //   $(".dial-select-" + this.partialSolution).css('pointer-events', 'off')
     //   $(`.code-btn-${this.partialSolution}`)
