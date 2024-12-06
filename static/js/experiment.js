@@ -5,7 +5,8 @@ const PARAMS = {
   height: 5,
   nClickBespoke: 10,
   nClickPartial: 7,
-  buttonDelay: 1000
+  buttonDelay: 1000,
+  maxTotalTries: 300,
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
@@ -53,9 +54,9 @@ async function runExperiment() {
       help: `
         Check the manual to see if you have any usable information.
         Remember that you can combine codes from shapes that are built
-        from the same parts as the one you're trying to crack! You 
-        can also search for the code by repeatedly clicking the green button.
-        It may take a while, but you will eventually find it!
+        from the same parts as the one you're trying to crack. You 
+        can also search for the code by repeatedly clicking the smart buttons.
+        It should never take more than 20 clicks to find a valid code.
       `,
     }).prependTo(DISPLAY)
 
