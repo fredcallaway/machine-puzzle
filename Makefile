@@ -1,3 +1,7 @@
+deploy:
+	git commit -am "heroku deploy"
+	git push -f heroku HEAD:master
+
 .PHONY: serve dev
 
 PYTHON=$(shell if [ -f env/bin/python ]; then echo env/bin/python; else echo python; fi)
