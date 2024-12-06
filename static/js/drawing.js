@@ -11,9 +11,37 @@ class DrawingInterface {
 
     Object.assign(this, defaults, options)
 
-    this.storageKey = `gridState_${this.width}x${this.height}_${this.numScreens}screens`
+    this.div = $("<div>")
+      .addClass("drawing-container")
+      .css({
+        width: this.containerWidth + "px",
+        margin: "0 auto",
+      })
 
-    // Create matrix of screens
+    // restore state from localStorage
+    // const state = localStorage.getItem(this.storageKey)
+    const state = `{"right":[[[0,0,0,0,0,2],[0,0,0,2,2,2],[0,0,0,0,0,2]],[[0,0,0,0,2,2],[0,0,0,2,2,0],[0,0,0,0,2,2]],[[0,0,0,0,2,0],[0,0,0,2,2,2],[0,0,0,0,2,0]]],"left":[[[1,1,1,0,0,0],[1,0,1,0,0,0],[1,1,1,0,0,0]],[[1,1,1,0,0,0],[0,0,1,0,0,0],[1,1,1,0,0,0]],[[1,1,1,0,0,0],[1,1,1,0,0,0],[1,1,1,0,0,0]]]}`
+    if (state) {
+      try {
+        this.loadState(state)
+      } catch (e) {
+        console.error("Failed to load state", e)
+        localStorage.removeItem(this.storageKey)
+      }
+    }
+    if (!this.screenMatrix) {
+      this.initialize()
+    }
+  }
+
+  initialize() {
+    this.div.empty()
+    this.storageKey = `gridState_${this.width}x${this.height}_${this.numScreens}screens`
+    this.isDrawing = false
+    this.isErasing = false
+    this.currentScreen = null
+    this.screenMatrix = null
+
     this.screenMatrix = Array(this.numScreens + 1)
       .fill()
       .map((_, i) =>
@@ -31,28 +59,6 @@ class DrawingInterface {
             }
           })
       )
-
-    this.isDrawing = false
-    this.isErasing = false
-    this.currentScreen = null
-
-    this.div = $("<div>")
-      .addClass("drawing-container")
-      .css({
-        width: this.containerWidth + "px",
-        margin: "0 auto",
-      })
-
-      
-      // restore state from localStorage
-      const state = localStorage.getItem(this.storageKey)
-      if (state) {
-      try {
-        this.loadState(state)
-      } catch (e) {
-        console.error("Failed to load state", e)
-      }
-    }
     this.setupInterface()
     this.setupEventListeners()
     this.redrawAllGrids()
@@ -61,22 +67,34 @@ class DrawingInterface {
   loadState(stateString) {
     assert(stateString.startsWith("{"), "State string must start with {")
     const state = JSON.parse(stateString)
-    console.log('loading state', state)
+    console.log("loading state", state)
+    window.state = state
+    this.numScreens = state.right.length + 1
+    this.height = state.right[0].length
+    this.width = state.right[0][0].length
+    this.initialize()
+    console.log("storageKey", this.storageKey)
+
     // Restore top row (skip [0][0])
     for (let j = 1; j <= this.numScreens; j++) {
-      this.screenMatrix[0][j].grid = state.right[j-1]
+      if (state.right[j - 1]) {
+        this.screenMatrix[0][j].grid = state.right[j - 1]
+      }
     }
     // Restore left column (skip [0][0])
     for (let i = 1; i <= this.numScreens; i++) {
-      this.screenMatrix[i][0].grid = state.left[i-1]
+      if (state.left[i - 1]) {
+        this.screenMatrix[i][0].grid = state.left[i - 1]
+      }
     }
     this.redrawAllGrids()
   }
 
+
   createStateString() {
     return JSON.stringify({
-      right: this.screenMatrix[0].slice(1).map(screen => screen.grid),
-      left: this.screenMatrix.slice(1).map(row => row[0].grid)
+      right: this.screenMatrix[0].slice(1).map((screen) => screen.grid),
+      left: this.screenMatrix.slice(1).map((row) => row[0].grid),
     })
   }
 
@@ -124,13 +142,15 @@ class DrawingInterface {
       }
     }
 
-    this.buttonContainer = $("<div>").css({
-      display: "flex",
-      justifyContent: "center",
-      gap: "10px",
-    }).appendTo(this.div)
+    this.buttonContainer = $("<div>")
+      .css({
+        display: "flex",
+        justifyContent: "center",
+        gap: "10px",
+      })
+      .appendTo(this.div)
 
-     $("<button>")
+    $("<button>")
       .text("Copy State")
       .css({
         margin: "10px",
@@ -138,8 +158,8 @@ class DrawingInterface {
       })
       .click(() => this.copyState())
       .appendTo(this.buttonContainer)
-     
-      $("<button>")
+
+    $("<button>")
       .text("Load State")
       .css({
         margin: "10px",
@@ -180,7 +200,9 @@ class DrawingInterface {
   }
 
   clearAllGrids() {
-    this.screenMatrix.forEach((row) => row.forEach((screen) => screen?.grid.forEach((row) => row.fill(0))))
+    this.screenMatrix.forEach((row) =>
+      row.forEach((screen) => screen?.grid.forEach((row) => row.fill(0)))
+    )
     this.redrawAllGrids()
   }
 
@@ -252,6 +274,7 @@ class DrawingInterface {
 
   redrawGrid(row, col) {
     const screen = this.screenMatrix[row][col]
+    if (!screen.grid) throw new Error(`Screen ${row},${col} not found`)
     const ctx = screen.canvas[0].getContext("2d")
 
     // For middle rows, combine top and bottom screens
@@ -260,7 +283,10 @@ class DrawingInterface {
       const leftGrid = this.screenMatrix[row][0].grid
       for (let y = 0; y < this.height; y++) {
         for (let x = 0; x < this.width; x++) {
-          screen.grid[y][x] = (topGrid[y][x] && leftGrid[y][x]) ? 4 : (topGrid[y][x] || leftGrid[y][x])
+          screen.grid[y][x] =
+            topGrid[y][x] && leftGrid[y][x]
+              ? 4
+              : topGrid[y][x] || leftGrid[y][x]
         }
       }
       // pretty print
@@ -280,7 +306,7 @@ class DrawingInterface {
 
     // Draw vertical lines (add 1 to include rightmost line)
     for (let x = 0; x <= this.width + 1; x++) {
-      if (x === Math.floor(this.width/2) + 1) {
+      if (x === Math.floor(this.width / 2) + 1) {
         ctx.strokeStyle = "#999"
         ctx.lineWidth = 2
       } else {
@@ -323,7 +349,7 @@ class DrawingInterface {
   }
 
   redrawAllGrids() {
-    console.log('saving state')
+    console.log("saving state")
     localStorage.setItem(this.storageKey, this.createStateString())
 
     for (let i = 0; i < this.numScreens + 1; i++) {
