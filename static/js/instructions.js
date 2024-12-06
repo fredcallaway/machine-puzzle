@@ -321,6 +321,9 @@ class MachineInstructions extends Instructions {
       solutions,
       blockString,
       maxDigit: 6,
+      nClickBespoke: 10,
+      nClickPartial: 7,
+      buttonDelay: 300,
       machineColor: "#ffe852",
       suppressSuccess: true,
       ...opts,
@@ -475,6 +478,7 @@ class MachineInstructions extends Instructions {
         ["11", "bespoke"],
         ["11", "compositional"],
         ["22", "compositional"],
+        ["12", "compositional"],
       ])
     })
     mp.buttonDiv.hide()
@@ -503,6 +507,7 @@ class MachineInstructions extends Instructions {
         ["11", "bespoke"],
         ["11", "compositional"],
         ["22", "compositional"],
+        ["12", "compositional"],
       ])
     })
 
@@ -511,7 +516,7 @@ class MachineInstructions extends Instructions {
     
     this.instruct(`
       To make cracking codes easier, the machine has a _Smart Button_&trade; that automatically
-      searches for the correct code. Using the smart button is much faster than guessing randomly,
+      searches for a valid code. Using the smart button is much faster than guessing randomly,
       but it can still take a few tries. Give it a shot!
     `)
     
@@ -531,12 +536,12 @@ class MachineInstructions extends Instructions {
 
   async stage_comp_buttons() {
     let mp = this.getPuzzle("33", {
-      nClickPartial: 4,
       solutionType: "compositional",
       manual: this.buildManual([
         ["11", "bespoke"],
         ["11", "compositional"],
         ["22", "compositional"],
+        ["12", "compositional"],
         ["33", "bespoke"],
       ])
     })
@@ -569,12 +574,13 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_partial() {
-    let mp = this.getPuzzle("13", {
+    let mp = this.getPuzzle("42", {
       maxTryPartial: 5,
       manual: this.buildManual([
         ["11", "bespoke"],
         ["11", "compositional"],
         ["22", "compositional"],
+        ["12", "compositional"],
         ["33", "bespoke"],
         ["33", "compositional"],
       ]),
@@ -710,8 +716,8 @@ class MachineInstructions extends Instructions {
           - True
           * False
         # What do the Smart Buttons do?
-          - They reveal the correct code, letting you give up on the round
-          * They search for the correct code
+          - They reveal a valid code, letting you give up on the round
+          * They search for a valid code
         # If you enter the code for a different shape, what will happen?
           * Nothing will happen
           - The machine will break and you'll have to start over

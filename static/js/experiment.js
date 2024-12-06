@@ -1,16 +1,18 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
   config_dir: "code-pilot",
-  maxTryPartial: 100,
-  maxTotalTries: 700,
   width: 6,
   height: 5,
+  nClickBespoke: 10,
+  nClickPartial: 7,
+  buttonDelay: 1000
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
 
 async function runExperiment() {
   if (urlParams.draw) {
+    _.extend(PARAMS, urlParams)
     new DrawingInterface(_.pick(PARAMS, 'width', 'height', 'blockSize', 'numScreens')).attach(DISPLAY)
     await make_promise()
   }

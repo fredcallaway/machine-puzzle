@@ -31,9 +31,16 @@ function sampleUniform(rng) {
   return Math.floor(Math.random() * (rng[1] - rng[0] + 1)) + rng[0]
 }
 
-function randCode(maxDigit, codeLength) {
-  let code = Array(codeLength).fill().map(() => Math.floor(Math.random() * maxDigit) + 1);
-  return code.join('')
+function randCode(maxDigit, codeLength, blocked='') {
+  let code;
+  if (typeof blocked == 'string') {
+    blocked = (code) => code == blocked
+  }
+  for (let i = 0; i < 1000; i++) {
+    code = Array(codeLength).fill().map(() => Math.floor(Math.random() * maxDigit) + 1).join('');
+    if (!blocked(code)) return code
+  }
+  throw new Error(`Could not find a code that is not blocked`)
 }
 
 class MachinePuzzle {
@@ -51,6 +58,7 @@ class MachinePuzzle {
         manual: null,
         blockString: testBlock, // default block
         probRandComp: 0.05,
+        allowAccidentalSolution: false,
         initialCode: "random",
         nClickBespoke: 20,
         nClickPartial: 15,
@@ -88,9 +96,7 @@ class MachinePuzzle {
     this.done = make_promise(); // promise to resolve when the task is completed
     this.partialSolution = false
     if (this.initialCode == 'random') {
-      do {
-        this.initialCode = randCode(this.maxDigit, this.codeLength);
-      } while (this.getSolutionType(this.initialCode));
+      this.initialCode = randCode(this.maxDigit, this.codeLength, (code) => this.getSolutionType(code))
     }
     this.logEvent('machine.initialize', _.pick(this, ['task', 'initialCode', 'solutions', 'blockString', 'manual']))
     
@@ -289,8 +295,7 @@ class MachinePuzzle {
             this.altNextCode()
             return
           }
-          await this.animateSearch(kind)
-          this.tryNextCode(kind);
+          this.handleButton(kind);
         })
         .appendTo(this.buttonDiv)
     }
@@ -310,7 +315,6 @@ class MachinePuzzle {
   }
 
   async animateSearch(kind) {
-    console.log('animateSearch', kind)
     this.lockInput('delay')
 
     const changed = kind == 'bespoke' ? ['left', 'right'] : [kind]
@@ -332,6 +336,7 @@ class MachinePuzzle {
       requestAnimationFrame(animate)
     }
     animate()
+    await done
         
     $(`.code-btn-${kind}`).removeClass('clicked')
     this.unlockInput('delay')
@@ -345,42 +350,50 @@ class MachinePuzzle {
       false
   }
 
-  generateCode(kind, correct=false) {
+  generateCode(kind, mode='rand') {
+    console.log('generateCode', kind, mode)
     let code = this.getCode()
     if (kind == 'bespoke') {
-      if (correct) {
+      if (mode == 'correct') {
         return _.sample(Object.keys(this.solutions))
+      } else if (mode == 'rand') {
+        return randCode(this.maxDigit, this.codeLength, (code) => this.getSolutionType(code))
+      } else if (mode == 'incorrect') {
+        return randCode(this.maxDigit, this.codeLength, (code) => this.getSolutionType(code))
       } else {
-        return randCode(this.maxDigit, this.codeLength)
+        assert(false, `invalid args to generateCode: ${kind} ${mode}`);
       }
-    }
-    const partial = () => {
-      switch (`${kind}-${correct}`) {
-        case 'left-true': return this.leftSolution;
-        case 'right-true': return this.rightSolution;
-        case 'left-false': return randCode(this.maxDigit, this.leftSolution.length);
-        case 'right-false': return randCode(this.maxDigit, this.rightSolution.length);
-        default: assert(false, `invalid args to generateCode: ${kind} ${correct}`);
-      }
-    }
-
-    if (kind == 'left') {
-      return partial() + code.slice(this.rightSolution.length)
-    } else if (kind == 'right') {
-      return code.slice(0, this.leftSolution.length) + partial()
     } else {
-      assert(false, `invalid args to generateCode: ${kind} ${correct}`);
+      const partial = () => {
+        switch (`${kind}-${mode}`) {
+          case 'left-correct': return this.leftSolution;
+          case 'right-correct': return this.rightSolution;
+          case 'left-rand': return randCode(this.maxDigit, this.leftSolution.length);
+          case 'right-rand': return randCode(this.maxDigit, this.rightSolution.length);
+          case 'left-incorrect': return randCode(this.maxDigit, this.leftSolution.length, this.leftSolution);
+          case 'right-incorrect': return randCode(this.maxDigit, this.rightSolution.length, this.rightSolution);
+        }
+      }
+  
+      if (kind == 'left') {
+        return partial() + code.slice(this.rightSolution.length)
+      } else if (kind == 'right') {
+        return code.slice(0, this.leftSolution.length) + partial()
+      } else {
+        assert(false, `invalid args to generateCode: ${kind} ${mode}`);
+      }
     }
   }
 
   getNextCode(kind) {
     // if we've hit the limit on pulls, reveal the solution
     if (this.clicksLeft[kind] <= 0) {
-      return this.generateCode(kind, true)
+      return this.generateCode(kind, 'correct')
     }
     let code
+    let mode = this.allowAccidentalSolution ? 'rand' : 'incorrect'
     for (let j = 0; j < 1000; j++) {
-      code = this.generateCode(kind)
+      code = this.generateCode(kind, mode)
       if (!this.triedCodes.has(code)) {
         return code
       }
@@ -395,7 +408,8 @@ class MachinePuzzle {
     }
   }
   
-  tryNextCode(kind) {
+  async handleButton(kind) {
+    await this.animateSearch(kind)
     this.lastAction = `nextCode.${kind}`
     this.clicksLeft[kind] -= 1
     this.setCode(this.getNextCode(kind))
@@ -528,7 +542,6 @@ class MachinePuzzle {
 
     if (solutionType == "compositional" || solutionType == "bespoke") {
       this.addSolutionToManual(solutionType)
-      this.clearHandlers()
       // party parrot
       $("<img>", { src: "static/img/parrot.gif", id: "parrot" })
         .css({
@@ -568,13 +581,6 @@ class MachinePuzzle {
     //   $(`.code-btn-${this.partialSolution}`)
     //     .addClass('locked')
     // }
-  }
-
-  clearHandlers() {
-    // BROKEN: this doesn't seem to work
-    $(document).off('.machine'); // Remove handlers from document
-    this.div.off('.machine');    // Remove handlers from div elements
-    this.logEvent('machine.handlers.cleared'); // Add this line
   }
 
   checkCode() {
