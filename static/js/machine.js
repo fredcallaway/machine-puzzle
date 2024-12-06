@@ -135,7 +135,8 @@ class MachinePuzzle {
     this.logEvent('machine.run');
     if (display) this.attach(display); // attach the display if provided
     await this.done; // wait until the puzzle is completed
-    this.logEvent('machine.done')
+    const code = this.getCode()
+    this.logEvent('machine.done', {code, solutionType: this.getSolutionType(code)})
   }
 
   createMachine() {
@@ -529,7 +530,7 @@ class MachinePuzzle {
       
     this.lockInput('showSolution')
     assert(solutionType, "invalid solutionType: " + solutionType)
-    this.logEvent(`machine.solution.${solutionType}`)
+    this.logEvent(`machine.solution.${solutionType}`, {code: this.getCode()})
 
     // Mark button as solved
     $(`.code-btn-${solutionType}`).addClass('solved')
@@ -558,7 +559,6 @@ class MachinePuzzle {
       }
       this.done.resolve()
     } else {
-      console.log("👉 UNLOCKING")
       this.unlockInput('showSolution')
     }
   }
