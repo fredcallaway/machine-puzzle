@@ -16,7 +16,7 @@ CONFIG_DIR = 'code-pilot'
 N_CONFIG = 50
 MAXTRY_QUANTILE = 0.5
 MAIN_STIMULI_FILE = 'stimuli/oct31.json'
-INSTRUCT_STIMULI_FILE = 'stimuli/instruct3.json'
+INSTRUCT_STIMULI_FILE = 'stimuli/instruct4.json'
 PARAMS = {
     'width': 6,
     'height': 5
@@ -334,8 +334,8 @@ def generate_config(i):
             'nPart': N_PART,
             'solutionsPerTask': SOLUTIONS_PER_TASK,
             'manual': manual,
-            'maxTry': max_try(SOLUTIONS_PER_TASK / (MAX_DIGIT ** CODE_LENGTH)),
-            'maxTryPartial': max_try(1 / (MAX_DIGIT ** (CODE_LENGTH/2))),
+            # 'nClickBespoke': max_try(SOLUTIONS_PER_TASK / (MAX_DIGIT ** CODE_LENGTH)),
+            # 'nClickPartial': max_try(1 / (MAX_DIGIT ** (CODE_LENGTH/2))),
         },
         'instructions': generate_instructions()
     }
