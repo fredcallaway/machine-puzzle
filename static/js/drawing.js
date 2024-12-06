@@ -6,6 +6,8 @@ class DrawingInterface {
       blockSize: 20,
       numScreens: 4,
       containerWidth: 1500,
+      extraScreens: 0,
+      storageKey: 'default'
     }
     window.D = this
 
@@ -19,8 +21,8 @@ class DrawingInterface {
       })
 
     // restore state from localStorage
-    // const state = localStorage.getItem(this.storageKey)
-    const state = `{"right":[[[0,0,0,0,0,2],[0,0,0,2,2,2],[0,0,0,0,0,2]],[[0,0,0,0,2,2],[0,0,0,2,2,0],[0,0,0,0,2,2]],[[0,0,0,0,2,0],[0,0,0,2,2,2],[0,0,0,0,2,0]]],"left":[[[1,1,1,0,0,0],[1,0,1,0,0,0],[1,1,1,0,0,0]],[[1,1,1,0,0,0],[0,0,1,0,0,0],[1,1,1,0,0,0]],[[1,1,1,0,0,0],[1,1,1,0,0,0],[1,1,1,0,0,0]]]}`
+    const state = localStorage.getItem(this.storageKey)
+    // const state = `{"right":[[[0,0,0,0,0,2],[0,0,0,2,2,2],[0,0,0,0,0,2]],[[0,0,0,0,2,2],[0,0,0,2,2,0],[0,0,0,0,2,2]],[[0,0,0,0,2,0],[0,0,0,2,2,2],[0,0,0,0,2,0]]],"left":[[[1,1,1,0,0,0],[1,0,1,0,0,0],[1,1,1,0,0,0]],[[1,1,1,0,0,0],[0,0,1,0,0,0],[1,1,1,0,0,0]],[[1,1,1,0,0,0],[1,1,1,0,0,0],[1,1,1,0,0,0]]]}`
     if (state) {
       try {
         this.loadState(state)
@@ -36,7 +38,7 @@ class DrawingInterface {
 
   initialize() {
     this.div.empty()
-    this.storageKey = `gridState_${this.width}x${this.height}_${this.numScreens}screens`
+    // this.storageKey = `gridState_${this.width}x${this.height}_${this.numScreens}screens`
     this.isDrawing = false
     this.isErasing = false
     this.currentScreen = null
@@ -69,7 +71,7 @@ class DrawingInterface {
     const state = JSON.parse(stateString)
     console.log("loading state", state)
     window.state = state
-    this.numScreens = state.right.length + 1
+    this.numScreens = state.right.length + this.extraScreens
     this.height = state.right[0].length
     this.width = state.right[0][0].length
     this.initialize()
