@@ -2,16 +2,12 @@ const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
   config_dir: "code-pilot",
   maxTryPartial: 100,
-  // nextCodeDelay: 100,
   maxTotalTries: 700,
   width: 6,
   height: 5,
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
-_.extend(PARAMS, urlParams)
-psiturk.recordUnstructuredData('params', PARAMS);
-
 
 async function runExperiment() {
   if (urlParams.draw) {
@@ -29,6 +25,8 @@ async function runExperiment() {
   window.config = config // note I actually use this in instructions.js (HACK) but don't remove it!
 
   _.extend(PARAMS, config.params)
+  _.extend(PARAMS, urlParams)
+  psiturk.recordUnstructuredData('params', PARAMS);
 
   logEvent('experiment.initialize', {CONDITION, PARAMS})
   enforceScreenSize(1200, 750)

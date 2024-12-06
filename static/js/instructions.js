@@ -511,8 +511,8 @@ class MachineInstructions extends Instructions {
     
     this.instruct(`
       To make cracking codes easier, the machine has a _Smart Button_&trade; that automatically
-      searches for the correct code. Using the smart button is much faster than guessing randomly.
-      Give it a shot!
+      searches for the correct code. Using the smart button is much faster than guessing randomly,
+      but it can still take a few tries. Give it a shot!
     `)
     
     $('.dial').css('pointer-events', 'none')
