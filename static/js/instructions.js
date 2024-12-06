@@ -687,6 +687,7 @@ class MachineInstructions extends Instructions {
       ...this.mainParams,
     }).attach(this.content)
     mp.drawTarget("blank")
+    mp.lockInput()
 
     this.instruct(`
       For the rest of the study, you'll be working on this new machine.
