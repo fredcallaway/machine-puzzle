@@ -34,7 +34,8 @@ function sampleUniform(rng) {
 function randCode(maxDigit, codeLength, blocked='') {
   let code;
   if (typeof blocked == 'string') {
-    blocked = (code) => code == blocked
+    const blockedString = blocked
+    blocked = (code) => code == blockedString
   }
   for (let i = 0; i < 1000; i++) {
     code = Array(codeLength).fill().map(() => Math.floor(Math.random() * maxDigit) + 1).join('');
@@ -399,14 +400,9 @@ class MachinePuzzle {
         return code
       }
     }
-    assert(false, "getNextCode failed")
     // This really shouldn't happen
-    this.logEvent("machine.getNextCode.failure")
-    if (this.partialSolution) {  // TODO
-      return this.compositionalSolution
-    } else {
-      return _.sample(Object.keys(this.solutions))
-    }
+    this.logEvent("machine.WARNING.getNextCode.failure")
+    return this.generateCode(kind, 'correct')
   }
   
   async handleButton(kind) {
@@ -592,7 +588,7 @@ class MachinePuzzle {
 
     let sol = this.getSolutionType(code)
     if (!sol && this.nTry > MAX_TRIES) {
-      this.logEvent("machine.hitmax", { nTry: this.nTry, clicksLeft: this.clicksLeft })
+      this.logEvent("machine.WARNING.hitmax", { nTry: this.nTry, clicksLeft: this.clicksLeft })
       terminateExperiment("hitmax")
     } else if (sol != this.partialSolution) {
       this.showSolution(sol)
