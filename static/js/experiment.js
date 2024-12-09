@@ -102,28 +102,35 @@ async function runExperiment() {
       # You're done!
 
       Thanks for participating! We have a few quick questions before you go.
+      Please answer all the questions, but feel free to be brief.
     `))
 
-    let special = radio_buttons(div, `
-      Did you notice that some codes worked differently from others?
-    `, ['yes', 'no']
-    )
+    const feedback = {
+      manual: text_box(div, `
+        When did you use the smart buttons vs. the manual? Why?
+      `),
 
-    let special2 = text_box(div, `
-      If so, please briefly explain what you noticed.
-    `,
-    )
+      preference: text_box(div, `
+        Did you prefer to use one type of code (purple vs. red/blue)? Why?
+      `),
 
-    let feedback = text_box(div, `
-      Do you have any other feedback? (optional)
-    `)
+      feedback: text_box(div, `
+        Do you have any other feedback? (optional)
+      `)
+    }
+
+    // let special = radio_buttons(div, `
+    //   Did you notice that some codes worked differently from others?
+    // `, ['yes', 'no']
+    // )
+
+    // let special2 = text_box(div, `
+    //   If so, please briefly explain what you noticed.
+    // `,
+    // )
 
     await button(div, 'submit').clicked
-    logEvent('debrief.submitted', {
-      special: special.val(),
-      special2: special2.val(),
-      feedback: feedback.val(),
-    })
+    logEvent('debrief.submitted', _.mapValues(feedback, x => x.val()))
   }
   
   if (urlParams.test) {    
