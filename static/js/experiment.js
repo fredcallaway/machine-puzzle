@@ -36,6 +36,10 @@ async function runExperiment() {
   logEvent('experiment.initialize', {CONDITION, PARAMS})
   enforceScreenSize(1200, 750)
 
+  if (PARAMS.maxTotalTries < 2 * PARAMS.nClickPartial * config.trials.length) {
+    throw new Error("maxTotalTries is too low!")
+  }
+
   async function instructions() {
     logEvent('experiment.instructions')
     await new MachineInstructions({
@@ -65,11 +69,10 @@ async function runExperiment() {
     let totalTries = 0
 
     registerEventCallback(async (info) => {
-      if (info.event == "machine.enter.incorrect") {
+      if (info.event == "machine.enter") {
         totalTries += 1
         if (totalTries == PARAMS.maxTotalTries) {
-          logEvent('experiment.tooManyTries', {totalTries})
-          terminateExperiment("Code Not Found")
+          terminateExperiment("maxTotalTries", {totalTries})
         }
       }
     })

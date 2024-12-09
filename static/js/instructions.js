@@ -323,6 +323,7 @@ class MachineInstructions extends Instructions {
       maxDigit: 6,
       nClickBespoke: 10,
       nClickPartial: 7,
+      maxTries: 50,
       buttonDelay: 300,
       machineColor: "#ffe852",
       suppressSuccess: true,
@@ -447,7 +448,6 @@ class MachineInstructions extends Instructions {
           5: `Focus on the shapes in the manual that are built from two pieces.`,
           10: `Notice that the target shape has an O shape and a fork shape.`,
         }[mp.nTry]
-        // maybe "crash" the experiment if they take too long
         if (msg) {
           logEvent(`instruct.hint.compositional.${mp.nTry}`)
           saveData()

@@ -192,17 +192,17 @@ async function showCompletionScreen() {
   }
 };
 
-async function terminateExperiment(message) {
-  logEvent('experiment.terminate', {message})
+async function terminateExperiment(reason, info) {
+  logEvent(`experiment.terminate.${reason}`, info)
   $("#display").html(`
     <h1>The experiment encountered an error!</h1>
     
-    We have recorded the error. There is no need to report it to us.
-
     <br><br>
     <div class="alert alert-info">
       <p><b>👉 IMPORTANT:</b>
         Despite what we said earlier, <b>you should submit the study!</b>
+        However, please send us a message on Prolific so that we don't accidentally
+        reject your submission for being incomplete.
     </div>
     <br>
     <button class="btn btn-primary" id="submit">See completion code</button>
@@ -227,11 +227,13 @@ function handleError(err) {
     <p>Please describe at what point in the study the error occurred, and include the following information.
     <pre>${message}</pre>
     After reporting the error, click the button below to submit your data and see the completion code.
-    <p><b>
-      NOTE: despite what we said earlier, you should actually submit the study in this case.
-      However, we may accidentally reject your submission if you don't contact us by email
-      or Prolific.
-    </b></p>
+    
+    <div class="alert alert-info">
+      <p><b>👉 IMPORTANT:</b>
+        Despite what we said earlier, <b>you should submit the study!</b>
+        However, we may accidentally reject your submission if you don't contact us by email
+        or Prolific.
+    </div>
     <p><br>
     <button class="btn btn-primary" id="submit">I reported the error</button>
   `);

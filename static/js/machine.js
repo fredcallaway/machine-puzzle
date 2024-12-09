@@ -1,5 +1,3 @@
-const MAX_TRIES = 400;
-
 const COLORS = [
   'lightgray',
   '#548df0',
@@ -73,11 +71,15 @@ class MachinePuzzle {
         machineColor: "#707374",
         contentWidth: 1200,
         suppressSuccess: false,
+        maxTries: 'default',
         trialID: randomUUID(), // unique trial ID
       },
       options
     )
     window.mp = this;
+    if (this.maxTries == 'default') {
+      this.maxTries = Math.max(50, this.nClickBespoke + this.nClickPartial * 2 + 20)
+    }
 
     // compositional solution
     this.compositionalSolution = Object.entries(this.solutions).find(([_, type]) => type === 'compositional')?.[0];
@@ -587,9 +589,8 @@ class MachinePuzzle {
     this.logEvent("machine.enter", { code, action: this.lastAction })
 
     let sol = this.getSolutionType(code)
-    if (!sol && this.nTry > MAX_TRIES) {
-      this.logEvent("machine.WARNING.hitmax", { nTry: this.nTry, clicksLeft: this.clicksLeft })
-      terminateExperiment("hitmax")
+    if (!sol && this.nTry > this.maxTries) {
+      terminateExperiment("hitmax", { nTry: this.nTry, clicksLeft: this.clicksLeft })
     } else if (sol != this.partialSolution) {
       this.showSolution(sol)
     } 
