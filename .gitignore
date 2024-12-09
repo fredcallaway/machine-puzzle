@@ -8,3 +8,4 @@ data
 env
 .vscode/*
 static/js/old-machine.js
+static/json/test.json

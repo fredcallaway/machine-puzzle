@@ -17,7 +17,9 @@ async function runExperiment() {
     new DrawingInterface(_.pick(PARAMS, 'width', 'height', 'blockSize', 'numScreens')).attach(DISPLAY)
     await make_promise()
   }
-  let configFile = `static/json/${PARAMS.config_dir}/${CONDITION}.json`
+  let configFile = urlParams.test ? 
+    'static/json/test.json' :
+    `static/json/${PARAMS.config_dir}/${CONDITION}.json`
   try {
     config = await $.getJSON(configFile)
     console.log('config', config)
@@ -119,6 +121,10 @@ async function runExperiment() {
       special2: special2.val(),
       feedback: feedback.val(),
     })
+  }
+  
+  if (urlParams.test) {    
+    await main()
   }
 
   await runTimeline(

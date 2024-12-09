@@ -340,13 +340,37 @@ def generate_config(i):
         'instructions': generate_instructions()
     }
 
+def test_config():
+    random.seed(0)
+    code_generator = TaskCodeGenerator(max_digit=5)
+    task_code_mapping = code_generator.generate()
+    parts = parse_shapes(MAIN_STIMULI_FILE)
+    trials, manual = InformativeStimuliGenerator(task_code_mapping, parts).generate()
+    return {
+        'trials': trials,
+        'params': {
+            **PARAMS,
+            'maxDigit': code_generator.max_digit,
+            'codeLength': CODE_LENGTH,
+            'nPart': N_PART,
+            'solutionsPerTask': SOLUTIONS_PER_TASK,
+            'manual': manual,
+            'buttonDelay': 0
+            # 'nClickBespoke': max_try(SOLUTIONS_PER_TASK / (MAX_DIGIT ** CODE_LENGTH)),
+            # 'nClickPartial': max_try(1 / (MAX_DIGIT ** (CODE_LENGTH/2))),
+        },
+        'instructions': generate_instructions()
+    }
+
+json.dump(test_config(), open(f'static/json/test.json', 'w'))
+
 # %% --------
 
-os.makedirs(f'static/json/{CONFIG_DIR}', exist_ok=True)
-for i in range(N_CONFIG):
-    config = generate_config(i)
-    json.dump(config, open(f'static/json/{CONFIG_DIR}/{i}.json', 'w'))
-    # print(f'wrote static/json/{CONFIG_DIR}/{i}.json')
+# os.makedirs(f'static/json/{CONFIG_DIR}', exist_ok=True)
+# for i in range(N_CONFIG):
+#     config = generate_config(i)
+#     json.dump(config, open(f'static/json/{CONFIG_DIR}/{i}.json', 'w'))
+#     # print(f'wrote static/json/{CONFIG_DIR}/{i}.json')
 
 
 
