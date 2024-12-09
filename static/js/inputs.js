@@ -94,6 +94,70 @@ class RadioButtons extends Input {
   }
 }
 
+
+class Slider extends Input {
+  promiseEvent = "change"
+  constructor(options = {}) {
+    let {
+      prompt = "",
+      min = 0,
+      max = 100,
+      step = 1,
+      leftLabel = "",
+      rightLabel = "",
+      centerLabel = "",
+    } = options
+    super(options.name)
+
+    // this.div.css("text-align", "center")
+
+    this.prompt = $("<p>").css("margin-top", 20).html(prompt).appendTo(this.div)
+
+    this.sliderContainer = $("<div>").appendTo(this.div).css({
+      width: 500,
+      marginBottom: 50,
+    })
+
+    this.slider = $("<input>")
+      .attr({
+        type: "range",
+        min: min,
+        max: max,
+        step: step,
+        id: this.name,
+        value: "null",
+      })
+      .appendTo(this.sliderContainer)
+
+    this.labelContainer = $("<div>")
+      .appendTo(this.sliderContainer)
+      .css({
+        display: "flex",
+        justifyContent: "space-between",
+        width: "100%"
+      })
+
+    this.leftLabel = $("<label>")
+      .text(leftLabel)
+      .appendTo(this.labelContainer)
+
+    this.centerLabel = $("<label>")
+      .text(centerLabel)
+      .appendTo(this.labelContainer)
+      .css({
+        textAlign: "center"
+      })
+
+    this.rightLabel = $("<label>")
+      .text(rightLabel)
+      .appendTo(this.labelContainer)
+  }
+
+  val() {
+    return this.slider.val()
+  }
+}
+
 // TODO
 // function make_slider(opt) {
 //   let slider = $("<div>")
@@ -139,6 +203,11 @@ function button(div, text, opts) {
 function radio_buttons(div, prompt, choices, opts) {
   return new RadioButtons({prompt, choices, ...opts}).appendTo(div)
 }
+
+function slider(div, prompt, opts) {
+  return new Slider({ prompt, ...opts }).appendTo(div)
+}
+
 
 
 function alert_success(opts = {}) {
