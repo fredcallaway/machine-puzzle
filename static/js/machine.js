@@ -289,7 +289,7 @@ class MachinePuzzle {
       .css({ width: this.dialContainerWidth })
       .appendTo(this.machineDiv)
 
-    for (let kind of ['bespoke','left', 'right']) {
+    for (let kind of ['left', 'right', 'bespoke']) {
       $("<button>")
         .addClass(`code-btn code-btn-${kind}`)
         .css({ backgroundColor: COLOR_MAP[kind] })
@@ -325,10 +325,10 @@ class MachinePuzzle {
     if (changed.includes(this.partialSolution)) {
       this.drawTarget()
     }
+    $(`.code-btn-${kind}`).addClass('clicked')
+    $(`.code-btn-${kind}`).removeClass('solved')
 
     for (let k of changed) {
-      $(`.code-btn-${k}`).addClass('clicked')
-      $(`.code-btn-${k}`).removeClass('solved')
       $(`.dial-select-${k}`).css('color', 'black')
     }
 
@@ -355,7 +355,6 @@ class MachinePuzzle {
   }
 
   generateCode(kind, mode='rand') {
-    console.log('generateCode', kind, mode)
     let code = this.getCode()
     if (kind == 'bespoke') {
       if (mode == 'correct') {
@@ -499,7 +498,6 @@ class MachinePuzzle {
   }
 
   updateDialColors(solutionType) {
-    console.log('updateDialColors', solutionType)
     $(".dial-select").css('color', 'black')
     if (solutionType === "compositional") {
       $(".dial-select-left").css('color', COLOR_MAP.left)

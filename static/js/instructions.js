@@ -321,10 +321,10 @@ class MachineInstructions extends Instructions {
       solutions,
       blockString,
       maxDigit: 6,
-      nClickBespoke: 10,
-      nClickPartial: 7,
       maxTries: 50,
       buttonDelay: 300,
+      nClickBespoke: this.mainParams.nClickBespoke,
+      nClickPartial: this.mainParams.nClickPartial,
       machineColor: "#ffe852",
       suppressSuccess: true,
       ...opts,
@@ -366,19 +366,40 @@ class MachineInstructions extends Instructions {
       Your job is to find a code that creates this shape.
     `)
     await this.button()
-    
+
+    this.instruct(`
+      You can click on each dial to change its number.
+      As soon as you land on the right code, the shape will be created. 
+      Give it a shot!
+    `)
+    mp.unlockInput()
+    await this.eventPromise(
+      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 3
+    )
+
+    await alert_info({
+      title: "This is gonna take forever!",
+      html: "<em>Let's try a different approach...</em>",
+      confirmButtonText: 'OK',
+    })
+    this.runNext()
+  }
+  
+  async stage_manual() {  
+    let mp = this.getPuzzle("11", {
+      solutionType: "bespoke",
+      manual: this.buildManual([
+        ["11", "bespoke"]
+      ]),
+    })
+    mp.buttonDiv.hide()
     mp.manualDiv.show()
     this.instruct(`
       To make things easier, you'll have a manual that provides codes
-      for some of the shapes you might have to build.
+      for some of the shapes you might have to build. Try entering the
+      code from the manual.
     `)
-    await this.button()  
 
-    mp.unlockInput()
-    this.instruct(`
-      Give it a try! Click on a dial to change its number.
-      As soon as you land on the right code, the shape will be created. 
-    `)
     await mp.done
     this.instruct(`
       Well done!
@@ -387,8 +408,19 @@ class MachineInstructions extends Instructions {
     this.runNext()
     // this.prompt.append('<b>Nice!</b>');
   }
+
+  disableDials(mp) {
+    $('.dial').css('pointer-events', 'none')
+    mp.dialContainer.on('click', (e) => {
+      logEvent("instruct.hint.blockdials")
+      alert_failure({
+        title: "Try using the Smart Button!",
+        html: "<em>The dials are disabled on this round of the instructions</em>",
+      })
+    })
+  }
   
-  async stage_full() {
+  async stage_two() {
     let mp = this.getPuzzle("12", {
       trialID: "instruct.compositional",
       solutionType: "compositional",
@@ -413,20 +445,73 @@ class MachineInstructions extends Instructions {
     let color2 = (txt) => `<span style="font-weight: bold; color: ${COLORS[2]};">${txt}</span>`
     let color12 = (txt) => color1(txt.slice(0, 2)) + color2(txt.slice(2))
 
+    mp.lockInput()
     this.instruct(`
-      Hmm... that didn't do anything. But look! There's a new code in the manual.
+      Hmm... that didn't seem to do anything.
+    `)
+    await this.button()
+    
+    mp.unlockInput()
+    this.instruct(`
+      We've added a new code to the manual.
       It makes the same shape, but its split into two parts 
       (${color1(this.codes["11"].compositional.slice(0, 2))} and
       ${color2(this.codes["11"].compositional.slice(2))}).
       Try entering the blue part of the code.
     `)
     mp.addSolutionToManual(this.manualEntry("11", "compositional"))
+
     await this.eventPromise("machine.animationDone")
-    
+    this.runNext()
+
+    // await this.eventPromise("machine.animationDone")
+    // this.instruct(`
+    //   That's it! We added one more code to the manual. Use this code to complete the shape.
+    // `)
+    // mp.addSolutionToManual(this.manualEntry("22", "compositional"))
+    // await mp.done
+    // this.instruct(`
+    //   Well done!
+    // `)
+    // await this.button()
+    // this.runNext()
+
+  }
+  
+  async stage_three() {
+    let mp = this.getPuzzle("12", {
+      trialID: "instruct.compositional",
+      solutionType: "compositional",
+      manual: this.buildManual([
+        ["11", "bespoke"],
+        ["11", "compositional"],
+      ]),
+    })
+    mp.setCode(mp.generateCode('left', 'correct'))
+    mp.showSolution('left', {skipAnimation: true})
+    mp.lockInput()
+    $('.code-btn-bespoke').hide()
+    mp.buttonDiv.hide()
     this.instruct(`
-      That's it! We added one more code to the manual. Use this code to complete the shape.
+      Now what? You could search for the rest of the code manually, but that
+      could take a long time!
     `)
-    mp.addSolutionToManual(this.manualEntry("22", "compositional"))
+    await this.button()
+
+    mp.buttonDiv.show()
+    this.instruct(`
+      To make cracking codes easier, the machine has _Smart Buttons_&trade; that automatically
+      search for codes. Using the Smart Buttons is much faster than guessing randomly,
+      but it can still take a few tries: **around ${mp.nClickPartial} clicks**.
+    `)
+    await this.button()
+
+    mp.unlockInput()
+    this.disableDials(mp)
+    this.instruct(`
+      Try using the red Smart Button to complete the code!
+    `)
+    
     await mp.done
     this.instruct(`
       Well done!
@@ -435,145 +520,47 @@ class MachineInstructions extends Instructions {
     this.runNext()
   }
 
-  async stage_partial() {
-    let mp = this.getPuzzle("32", {
-      maxTryPartial: 5,
+  async stage_bespoke_button() {
+    let mp = this.getPuzzle("33", {
+      solutionType: "bespoke",
       manual: this.buildManual([
         ["11", "bespoke"],
         ["11", "compositional"],
-        ["22", "compositional"],
         ["12", "compositional"],
-        // ["33", "bespoke"],
-        // ["33", "compositional"],
-      ]),
-      solutionType: "compositional",
-    })
-    mp.lockInput()
-    this.instruct(`
-      Sometimes the manual will only include half of the code for the
-      shape you're trying to crack.
-    `)
-    await this.button()
-    this.instruct(`
-      In this case, you can start by entering the part of the code you already know...
-    `)
-    mp.unlockInput()
-    
-    mp.altNextCode = () => {
-      logEvent("instruct.hint.trymanual")
-      alert_info({
-        html: `Try using the manual first!`,
-      })
-    }
-    
-    this.registerEventCallback((event) => {
-      if (
-        event.event.startsWith("machine.enter") &&
-        mp.nTry > 0 &&
-        mp.nTry % 5 == 0
-      ) {
-        if (!mp.partialSolution) {
-          logEvent(`instruct.hint.partial.${mp.nTry}`)
-          saveData()
-          alert_info({
-            html: `Focus on the red parts of the shapes in the manual.`,
-          })
-        }
-      }
-    })
-    
-    let solution = await this.eventPromise("machine.solution")
-    if (solution.event.endsWith('right')) {
-      // this is the intended path
-      logEvent('instruct.partial.right_first')
-      this.instruct("That's it!")
-      await this.eventPromise("machine.animationDone")
-      this.instruct(`
-        Now you can use the blue Smart Button to search for the rest of the code.
-      `)
-      mp.altNextCode = null
-      await mp.done
-      this.instruct(`
-        Alright!
-      `)
-      await this.button()
-      this.runNext()
-    } else {
-      // participant accidentally found the left half, try again
-      logEvent('instruct.partial.left_first')
-      mp.div.remove()
-      await alert_failure({
-        title: "Something went wrong!",
-        html: `
-          Let's try this round again. Make sure to follow
-          the instructions closely! You should start by
-          entering the right half of the code (which you 
-          know from the manual).
-        `
-      })
-      this.restartStage()
-      throw new Error("restart stage")  
-    }
-  }
-
-  // async stage_forever() {
-  //   let mp = this.getPuzzle("33", {
-  //     nClickBespoke: 5,
-  //     manual: this.buildManual([
-  //       // ["11", "compositional"],
-  //       // ["22", "compositional"],
-  //       // ["12", "compositional"],
-  //     ])
-  //   })
-  //   mp.buttonDiv.hide()
-  //   this.instruct(`
-  //     Sometimes the manual won't have a code for the shape you're trying to crack.
-  //     In this case, you'll have to figure it out yourself. Give it a shot!
-  //   `)
-
-  //   await this.eventPromise(
-  //     (event) => event.event.startsWith("machine.enter") && mp.nTry >= 3
-  //   )
-
-  //   await alert_info({
-  //     title: "This is gonna take forever!",
-  //     html: "<em>Let's try a different approach...</em>",
-  //     confirmButtonText: 'OK',
-  //   })
-  //   this.runNext()
-  // }
-
-  async stage_bespoke_button() {
-    let mp = this.getPuzzle("33", {
-      nClickBespoke: 5,
-      solutionType: "bespoke",
-      manual: this.buildManual([
-        // ["11", "bespoke"],
-        // ["11", "compositional"],
-        // ["22", "compositional"],
         // ["12", "compositional"],
       ])
     })
 
-    $('.code-btn-left').hide()
-    $('.code-btn-right').hide()
+    $('.code-btn-bespoke').hide()
+    mp.lockInput()
+    this.instruct(`
+      Sometimes, you'll get a shape that's completely different from anything in the manual.
+    `)
+    await this.button()
     
     this.instruct(`
-      To make cracking codes easier, the machine has a _Smart Button_&trade; that automatically
-      searches for a valid code. Using the smart button is much faster than guessing randomly,
-      but it can still take a few tries. Give it a shot!
+      In these cases, you can use the blue and red Smart Buttons to search for each part of
+      a code. This will take around **${2*mp.nClickPartial} clicks** (${mp.nClickPartial} on each button).
+    `)
+    await this.button()
+    
+    $('.code-btn-bespoke').show().css('filter', 'brightness(1.0)')
+
+    this.instruct(`
+      Alternatively, you can use the _purple_ Smart Button, which searches for the entire
+      code at once. The purple button usually takes around **${mp.nClickBespoke} clicks**.
+    `)
+    await this.button()
+    
+    mp.unlockInput()
+    $('.code-btn-left').addClass('disabled')
+    $('.code-btn-right').addClass('disabled')
+    this.instruct(`
+      Try using the purple Smart Button to find a code!
     `)
     
-    $('.dial').css('pointer-events', 'none')
-    mp.dialContainer.on('click', (e) => {
-      logEvent("instruct.hint.blockdials")
-      alert_failure({
-        title: "Try using the Smart Button!",
-        html: "<em>The dials are disabled on this round of the instructions</em>",
-      })
-    })
     await mp.done
-    this.instruct(`You got it! Note that the purple Smart Button will usually find purple codes.`)
+    this.instruct(`You got it!`)
     await this.button()
     this.runNext()
   }
@@ -621,33 +608,33 @@ class MachineInstructions extends Instructions {
   // }
 
 
-  async stage_only_target() {
-    this.instruct(`
-      One last note.
-      _You can only create the shape currently on the screen._
-      If you enter a code for a different shape, nothing will happen.
+  // async stage_only_target() {
+  //   this.instruct(`
+  //     One last note.
+  //     _You can only create the shape currently on the screen._
+  //     If you enter a code for a different shape, nothing will happen.
       
-      See the example below and click continue when you're ready—_no need to click anything!_
-    `)
+  //     See the example below and click continue when you're ready—_no need to click anything!_
+  //   `)
 
-    let mp = this.getPuzzle("33", {
-      showManual: true,
-      manual: this.buildManual([
-        ["11", "compositional"],
-      ]),
-      initialCode: this.codes["11"].compositional
-    })
-    this.registerEventCallback((event) => {
-      if (event.event.startsWith("machine.enter") && mp.nTry == 10) {
-        alert_info({
-          title: 'FYI',
-          html: `You can move on from this screen whenever you'e ready!`,
-        })
-      }
-    })
-    await this.button()
-    this.runNext()
-  }
+  //   let mp = this.getPuzzle("33", {
+  //     showManual: true,
+  //     manual: this.buildManual([
+  //       ["11", "compositional"],
+  //     ]),
+  //     initialCode: this.codes["11"].compositional
+  //   })
+  //   this.registerEventCallback((event) => {
+  //     if (event.event.startsWith("machine.enter") && mp.nTry == 10) {
+  //       alert_info({
+  //         title: 'FYI',
+  //         html: `You can move on from this screen whenever you'e ready!`,
+  //       })
+  //     }
+  //   })
+  //   await this.button()
+  //   this.runNext()
+  // }
 
   async stage_new_machine() {
     let mp = new MachinePuzzle({

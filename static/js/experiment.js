@@ -34,7 +34,7 @@ async function runExperiment() {
   psiturk.recordUnstructuredData('params', PARAMS);
 
   logEvent('experiment.initialize', {CONDITION, PARAMS})
-  enforceScreenSize(1200, 750)
+  enforceScreenSize(1250, 750)
 
   if (PARAMS.maxTotalTries < 2 * PARAMS.nClickPartial * config.trials.length) {
     throw new Error("maxTotalTries is too low!")
