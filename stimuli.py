@@ -12,7 +12,7 @@ CODE_LENGTH = 4
 N_PART = 4
 SOLUTIONS_PER_TASK = 20
 N_MANUAL = 8
-CONFIG_DIR = 'code-pilot'
+CONFIG_DIR = 'static/json/code-pilot'
 N_CONFIG = 50
 MAXTRY_QUANTILE = 0.5
 MAIN_STIMULI_FILE = 'stimuli/oct31.json'
@@ -300,7 +300,13 @@ def generate_instructions():
 def generate_instructions():
     parts = parse_shapes(INSTRUCT_STIMULI_FILE)
     n_part = len(parts['left'])
-    task_code_mapping = TaskCodeGenerator(max_digit=4, n_part=n_part, solutions_per_task=2).generate()
+    for i in range(100):
+        # ensure that the instructions aren't ambiguous
+        task_code_mapping = TaskCodeGenerator(max_digit=4, n_part=n_part, solutions_per_task=2).generate()
+        special_code = next(code for code, kind in task_code_mapping['11'].items() if kind == 'bespoke')
+        if special_code[0:2] != special_code[2:4]:
+            break
+
     return {
         'params': {
             'width': 6,
@@ -366,11 +372,12 @@ json.dump(test_config(), open(f'static/json/test.json', 'w'))
 
 # %% --------
 
-# os.makedirs(f'static/json/{CONFIG_DIR}', exist_ok=True)
-# for i in range(N_CONFIG):
-#     config = generate_config(i)
-#     json.dump(config, open(f'static/json/{CONFIG_DIR}/{i}.json', 'w'))
-#     # print(f'wrote static/json/{CONFIG_DIR}/{i}.json')
+os.makedirs(CONFIG_DIR, exist_ok=True)
+for i in range(N_CONFIG):
+    config = generate_config(i)
+    json.dump(config, open(f'{CONFIG_DIR}/{i}.json', 'w'))
+    # print(f'wrote {CONFIG_DIR}/{i}.json')
 
+print(f'wrote {N_CONFIG} configs to {CONFIG_DIR}')
 
 

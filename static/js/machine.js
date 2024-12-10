@@ -440,6 +440,7 @@ class MachinePuzzle {
     // If the entry doesn't exist, add it to the manual
     if (!existingEntry) {
       this.manual.push(entry)
+      this.addExampleToManual(entry)
       this.logEvent('machine.manual.update', entry);
     }
   }
@@ -620,55 +621,59 @@ class MachinePuzzle {
 
     manualContainer.append(title)
 
-    const examplesContainer = $("<div>").css({
+    this.examplesContainer = $("<div>").css({
       display: "flex",
       "justify-content": "flex-start",
       "flex-wrap": "wrap",
     })
 
     this.manual.forEach((example) => {
-      const exampleDiv = $("<div>").css({
-        "text-align": "center",
-        margin: "10px",
-      })
-
-      const canvas = $("<canvas>").attr({
-        width: this.screenWidth * this.manualScale,
-        height: this.screenHeight * this.manualScale,
-      })
-
-      const ctx = canvas[0].getContext("2d")
-      this.drawShape(
-        ctx,
-        example.blockString,
-        example.compositional ? "compositional" : "bespoke",
-        true
-      )
-
-      const codeText = $("<p>").css({
-        "margin-top": "5px",
-        display: "flex",
-        "justify-content": "center",
-        "align-items": "center",
-        "font-weight": "bold",
-        "font-size": "30px",
-      })
-
-      assert(this.codeLength == 4, "codeLength is assumed to be 4 here")
-      const colors = example.compositional ? [1, 1, 2, 2] : [3, 3, 3, 3]
-      example.code.split("").forEach((digit, idx) => {
-        const digitSpan = $("<span>")
-          .text(digit)
-          .css("color", COLORS[colors[idx]])
-        codeText.append(digitSpan)
-      })
-
-      exampleDiv.append(canvas, codeText)
-      examplesContainer.append(exampleDiv)
+      this.addExampleToManual(example)
     })
 
-    manualContainer.append(examplesContainer)
+    manualContainer.append(this.examplesContainer)
     this.manualDiv.append(manualContainer) // Append to manualDiv instead of div
+  }
+
+  addExampleToManual(example) {
+    const exampleDiv = $("<div>").css({
+      "text-align": "center",
+      margin: "10px",
+    })
+
+    const canvas = $("<canvas>").attr({
+      width: this.screenWidth * this.manualScale,
+      height: this.screenHeight * this.manualScale,
+    })
+
+    const ctx = canvas[0].getContext("2d")
+    this.drawShape(
+      ctx,
+      example.blockString,
+      example.compositional ? "compositional" : "bespoke",
+      true
+    )
+
+    const codeText = $("<p>").css({
+      "margin-top": "5px",
+      display: "flex",
+      "justify-content": "center",
+      "align-items": "center",
+      "font-weight": "bold",
+      "font-size": "30px",
+    })
+
+    assert(this.codeLength == 4, "codeLength is assumed to be 4 here")
+    const colors = example.compositional ? [1, 1, 2, 2] : [3, 3, 3, 3]
+    example.code.split("").forEach((digit, idx) => {
+      const digitSpan = $("<span>")
+        .text(digit)
+        .css("color", COLORS[colors[idx]])
+      codeText.append(digitSpan)
+    })
+
+    exampleDiv.append(canvas, codeText)
+    this.examplesContainer.append(exampleDiv)
   }
 
   setLight(color) {

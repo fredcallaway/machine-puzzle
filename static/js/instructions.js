@@ -334,9 +334,13 @@ class MachineInstructions extends Instructions {
   }
 
   buildManual(pairs) {
-    return pairs.map(([task, type]) => ({
+    return pairs.map(([task, type]) => this.manualEntry(task, type))
+  }
+
+  manualEntry(task, type) {
+    return {
       task, blockString: this.shapes[task], compositional: type == "compositional", code: this.codes[task][type]
-    }))
+    }
   }
 
   async stage_intro() {
@@ -383,40 +387,6 @@ class MachineInstructions extends Instructions {
     this.runNext()
     // this.prompt.append('<b>Nice!</b>');
   }
-
-  async stage_compositional() {
-    let mp = this.getPuzzle("11", {
-      solutionType: "compositional",
-      manual: this.buildManual([
-        ["11", "bespoke"],
-        ["11", "compositional"],
-      ])
-    })
-    mp.buttonDiv.hide()
-
-    this.instruct(`
-      Each shape can be created by multiple codes. 
-      Try entering the new code from the manual
-      (we disabled ${this.codes["11"].bespoke}).
-    `)
-
-    this.registerEventCallback((event) => {
-      console.log('callback', event)
-      if (event.event.startsWith("machine.enter") && event.code == this.codes["11"].bespoke) {
-        alert_info({html: `We disabled ${this.codes["11"].bespoke}. Try the other code from the manual!`})
-      }
-    })
-
-    await this.eventPromise("machine.animationDone")
-    this.instruct(`
-      Some codes build the shape in two parts. Complete the code
-      to build the other half!
-    `)
-    await mp.done
-    this.instruct("Perfect!")
-    await this.button()
-    this.runNext()
-  }
   
   async stage_full() {
     let mp = this.getPuzzle("12", {
@@ -424,165 +394,57 @@ class MachineInstructions extends Instructions {
       solutionType: "compositional",
       manual: this.buildManual([
         ["11", "bespoke"],
-        ["11", "compositional"],
-        ["22", "compositional"],
       ]),
     })
     mp.buttonDiv.hide()
-    this.instruct(`
-      Here's a new shape. Try to crack its code using the manual.
 
-      _Hint: you might need to combine multiple codes!_
+
+    this.instruct(`
+      Here's a new shape. The manual doesn't have its code, but notice that
+      the left half matches the shape in the manual. 
+      Try entering **${this.codes["11"].bespoke.slice(0, 2)}** in the two leftmost dials.
     `)
+
+    await this.eventPromise((event) => {
+      return event.event.startsWith("machine.enter") && event.code.slice(0, 2) == this.codes["11"].bespoke.slice(0, 2)
+    })
 
     let color1 = (txt) => `<span style="font-weight: bold; color: ${COLORS[1]};">${txt}</span>`
     let color2 = (txt) => `<span style="font-weight: bold; color: ${COLORS[2]};">${txt}</span>`
     let color12 = (txt) => color1(txt.slice(0, 2)) + color2(txt.slice(2))
 
-    this.registerEventCallback((event) => {
-      if (event.event.startsWith("machine.enter")) {
-        if (event.code == this.codes["12"].compositional) {
-          return
-        }
-        let msg = {
-          5: `Focus on the shapes in the manual that are built from two pieces.`,
-          10: `Notice that the target shape has an O shape and a fork shape.`,
-        }[mp.nTry]
-        if (msg) {
-          logEvent(`instruct.hint.compositional.${mp.nTry}`)
-          saveData()
-          alert_info({
-            html: msg
-          })
-        }
-      }
-    })
+    this.instruct(`
+      Hmm... that didn't do anything. But look! There's a new code in the manual.
+      It makes the same shape, but its split into two parts 
+      (${color1(this.codes["11"].compositional.slice(0, 2))} and
+      ${color2(this.codes["11"].compositional.slice(2))}).
+      Try entering the blue part of the code.
+    `)
+    mp.addSolutionToManual(this.manualEntry("11", "compositional"))
+    await this.eventPromise("machine.animationDone")
+    
+    this.instruct(`
+      That's it! We added one more code to the manual. Use this code to complete the shape.
+    `)
+    mp.addSolutionToManual(this.manualEntry("22", "compositional"))
     await mp.done
     this.instruct(`
-      Well done! You can sometimes crack new codes
-      by combining two different codes from the manual.
-    `)
-    await this.button()
-    this.instruct(`
-      But take note! Only the blue and red codes can be combined.
-      The purple codes are unique and only make one shape.
-      `)
-      await this.button()
-      this.runNext()
-  }
-
-  async stage_forever() {
-    let mp = this.getPuzzle("33", {
-      nClickBespoke: 5,
-      manual: this.buildManual([
-        ["11", "bespoke"],
-        ["11", "compositional"],
-        ["22", "compositional"],
-        ["12", "compositional"],
-      ])
-    })
-    mp.buttonDiv.hide()
-    this.instruct(`
-      Sometimes the manual won't have a code for the shape you're trying to crack.
-      In this case, you'll have to figure it out yourself. Give it a shot!
-    `)
-
-    await this.eventPromise(
-      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 3
-    )
-
-    await alert_info({
-      title: "This is gonna take forever!",
-      html: "<em>Let's try a different approach...</em>",
-      confirmButtonText: 'OK',
-    })
-    this.runNext()
-  }
-
-  async stage_bespoke_button() {
-    let mp = this.getPuzzle("33", {
-      nClickBespoke: 5,
-      solutionType: "bespoke",
-      manual: this.buildManual([
-        ["11", "bespoke"],
-        ["11", "compositional"],
-        ["22", "compositional"],
-        ["12", "compositional"],
-      ])
-    })
-
-    $('.code-btn-left').hide()
-    $('.code-btn-right').hide()
-    
-    this.instruct(`
-      To make cracking codes easier, the machine has a _Smart Button_&trade; that automatically
-      searches for a valid code. Using the smart button is much faster than guessing randomly,
-      but it can still take a few tries. Give it a shot!
-    `)
-    
-    $('.dial').css('pointer-events', 'none')
-    mp.dialContainer.on('click', (e) => {
-      logEvent("instruct.hint.blockdials")
-      alert_failure({
-        title: "Try using the Smart Button!",
-        html: "<em>The dials are disabled on this round of the instructions</em>",
-      })
-    })
-    await mp.done
-    this.instruct(`You got it! Note that the purple Smart Button will usually find purple codes.`)
-    await this.button()
-    this.runNext()
-  }
-
-  async stage_comp_buttons() {
-    let mp = this.getPuzzle("33", {
-      solutionType: "compositional",
-      manual: this.buildManual([
-        ["11", "bespoke"],
-        ["11", "compositional"],
-        ["22", "compositional"],
-        ["12", "compositional"],
-        ["33", "bespoke"],
-      ])
-    })
-    $('')
-    $('.code-btn-bespoke').addClass('disabled')
-    
-    this.instruct(`
-      There are two additional Smart Buttons on the machine. These ones will only
-      search for one part of the code at a time. Try them out!
-    `)
-
-    $('.dial').css('pointer-events', 'none')
-    mp.dialContainer.on('click', (e) => {
-      logEvent("instruct.hint.blockdials")
-      alert_failure({
-        title: "Try using the Smart Buttons!",
-        html: "<em>The dials are disabled on this round of the instructions</em>",
-      })
-    })
-    
-    await this.eventPromise("machine.solution")
-    this.prompt.append("You solved half of the code! Now use the other Smart Button to finish it.")
-    await mp.done
-    this.instruct(`
-      That's it! The red and blue Smart Buttons will usually find red and blue codes.
-      However, this usually takes longer than searching for a purple code.
+      Well done!
     `)
     await this.button()
     this.runNext()
   }
 
   async stage_partial() {
-    let mp = this.getPuzzle("42", {
+    let mp = this.getPuzzle("32", {
       maxTryPartial: 5,
       manual: this.buildManual([
         ["11", "bespoke"],
         ["11", "compositional"],
         ["22", "compositional"],
         ["12", "compositional"],
-        ["33", "bespoke"],
-        ["33", "compositional"],
+        // ["33", "bespoke"],
+        // ["33", "compositional"],
       ]),
       solutionType: "compositional",
     })
@@ -653,6 +515,111 @@ class MachineInstructions extends Instructions {
       throw new Error("restart stage")  
     }
   }
+
+  // async stage_forever() {
+  //   let mp = this.getPuzzle("33", {
+  //     nClickBespoke: 5,
+  //     manual: this.buildManual([
+  //       // ["11", "compositional"],
+  //       // ["22", "compositional"],
+  //       // ["12", "compositional"],
+  //     ])
+  //   })
+  //   mp.buttonDiv.hide()
+  //   this.instruct(`
+  //     Sometimes the manual won't have a code for the shape you're trying to crack.
+  //     In this case, you'll have to figure it out yourself. Give it a shot!
+  //   `)
+
+  //   await this.eventPromise(
+  //     (event) => event.event.startsWith("machine.enter") && mp.nTry >= 3
+  //   )
+
+  //   await alert_info({
+  //     title: "This is gonna take forever!",
+  //     html: "<em>Let's try a different approach...</em>",
+  //     confirmButtonText: 'OK',
+  //   })
+  //   this.runNext()
+  // }
+
+  async stage_bespoke_button() {
+    let mp = this.getPuzzle("33", {
+      nClickBespoke: 5,
+      solutionType: "bespoke",
+      manual: this.buildManual([
+        // ["11", "bespoke"],
+        // ["11", "compositional"],
+        // ["22", "compositional"],
+        // ["12", "compositional"],
+      ])
+    })
+
+    $('.code-btn-left').hide()
+    $('.code-btn-right').hide()
+    
+    this.instruct(`
+      To make cracking codes easier, the machine has a _Smart Button_&trade; that automatically
+      searches for a valid code. Using the smart button is much faster than guessing randomly,
+      but it can still take a few tries. Give it a shot!
+    `)
+    
+    $('.dial').css('pointer-events', 'none')
+    mp.dialContainer.on('click', (e) => {
+      logEvent("instruct.hint.blockdials")
+      alert_failure({
+        title: "Try using the Smart Button!",
+        html: "<em>The dials are disabled on this round of the instructions</em>",
+      })
+    })
+    await mp.done
+    this.instruct(`You got it! Note that the purple Smart Button will usually find purple codes.`)
+    await this.button()
+    this.runNext()
+  }
+
+  // async stage_comp_buttons() {
+  //   let mp = this.getPuzzle("33", {
+  //     solutionType: "compositional",
+  //     manual: this.buildManual([
+  //       ["11", "bespoke"],
+  //       ["11", "compositional"],
+  //       ["22", "compositional"],
+  //       ["12", "compositional"],
+  //       ["33", "bespoke"],
+  //     ])
+  //   })
+  //   $('')
+  //   $('.code-btn-bespoke').addClass('disabled')
+    
+  //   this.instruct(`
+  //     There are two additional Smart Buttons on the machine. These ones will only
+  //     search for one part of the code at a time.
+      
+  //     You can use them to build a new code from scratch or to finish a code
+  //     that's already in the manual.
+  //   `)
+
+  //   $('.dial').css('pointer-events', 'none')
+  //   mp.dialContainer.on('click', (e) => {
+  //     logEvent("instruct.hint.blockdials")
+  //     alert_failure({
+  //       title: "Try using the Smart Buttons!",
+  //       html: "<em>The dials are disabled on this round of the instructions</em>",
+  //     })
+  //   })
+    
+  //   await this.eventPromise("machine.solution")
+  //   this.prompt.append("You solved half of the code! Now use the other Smart Button to finish it.")
+  //   await mp.done
+  //   this.instruct(`
+  //     That's it! The red and blue Smart Buttons will usually find red and blue codes.
+  //     However, this usually takes longer than searching for a purple code.
+  //   `)
+  //   await this.button()
+  //   this.runNext()
+  // }
+
 
   async stage_only_target() {
     this.instruct(`
