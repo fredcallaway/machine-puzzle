@@ -57,13 +57,6 @@ async function runExperiment() {
       height: 70,
       width: 1150,
       helpTitle: 'Feeling stuck?',
-      help: `
-        Check the manual to see if you have any usable information.
-        Remember that you can combine codes from shapes that are built
-        from the same parts as the one you're trying to crack. You 
-        can also search for the code by repeatedly clicking the smart buttons.
-        It should never take more than 20 clicks to find a valid code.
-      `,
     }).prependTo(DISPLAY)
 
     let totalTries = 0

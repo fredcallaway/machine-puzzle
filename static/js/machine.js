@@ -22,11 +22,15 @@ _11222_
 11___22
 `
 
-function sampleUniform(rng) {
-  if (typeof rng == 'number') {
-    return rng  
+function sampleInt(lo, hi) {
+  if (typeof lo == 'undefined') {
+    return lo  
   }
-  return Math.floor(Math.random() * (rng[1] - rng[0] + 1)) + rng[0]
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo
+}
+
+function intNoise(amt) {
+  return Math.floor(Math.random() * (amt * 2 + 1)) - amt
 }
 
 function randCode(maxDigit, codeLength, blocked='') {
@@ -61,7 +65,9 @@ class MachinePuzzle {
         initialCode: "random",
         nClickBespoke: 20,
         nClickPartial: 15,
+        nClickNoise: 1,
         buttonDelay: 1000, // delay after clicking next code button
+        solutionDelay: 2000, // delay after showing solution
         maxDigit: null, // max digit allowed on each dial
         codeLength: 4,
         blockSize: 40,
@@ -92,9 +98,9 @@ class MachinePuzzle {
     this.nTry = 0
     this.nDial = 0
     this.clicksLeft = {
-      bespoke: this.nClickBespoke,
-      left: this.nClickPartial,
-      right: this.nClickPartial,
+      bespoke: this.nClickBespoke + intNoise(1),
+      left: this.nClickPartial + intNoise(1),
+      right: this.nClickPartial + intNoise(1),
     }
     this.done = make_promise(); // promise to resolve when the task is completed
     this.partialSolution = false
@@ -479,9 +485,10 @@ class MachinePuzzle {
     // }
     // drawSquare(0, 0, true)
 
-    // await sleep(1000)
+    let t = Date.now()
     
-    const delay = 50;
+    const delay = this.solutionDelay / ((this.height+2) * (this.width+2))
+    // const delay = 40
     for (let y = 0; y < this.height+2; y++) {
       const xRange = y % 2 === 0 
         ? _.range(0, this.width +2)
@@ -494,7 +501,7 @@ class MachinePuzzle {
       }
     }
     this.animationCtx.clearRect(0, 0, this.screenWidth, this.screenHeight);
-    this.logEvent(`machine.animationDone`)
+    this.logEvent(`machine.animationDone`, {duration: Date.now() - t})
   }
 
   updateDialColors(solutionType) {

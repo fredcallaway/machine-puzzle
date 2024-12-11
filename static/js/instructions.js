@@ -429,16 +429,19 @@ class MachineInstructions extends Instructions {
       ]),
     })
     mp.buttonDiv.hide()
+    let first2 = this.codes["11"].bespoke.slice(0, 2)
+    // don't start with the code they're supposed to enter
+    mp.setCode(randCode(mp.maxDigit, mp.codeLength, (code) => code.startsWith(first2)))
 
 
     this.instruct(`
       Here's a new shape. The manual doesn't have its code, but notice that
       the left half matches the shape in the manual. 
-      Try entering **${this.codes["11"].bespoke.slice(0, 2)}** in the two leftmost dials.
+      Try entering **${first2}** in the two leftmost dials.
     `)
 
     await this.eventPromise((event) => {
-      return event.event.startsWith("machine.enter") && event.code.slice(0, 2) == this.codes["11"].bespoke.slice(0, 2)
+      return event.event.startsWith("machine.enter") && event.code.slice(0, 2) == first2
     })
 
     let color1 = (txt) => `<span style="font-weight: bold; color: ${COLORS[1]};">${txt}</span>`
@@ -565,77 +568,6 @@ class MachineInstructions extends Instructions {
     this.runNext()
   }
 
-  // async stage_comp_buttons() {
-  //   let mp = this.getPuzzle("33", {
-  //     solutionType: "compositional",
-  //     manual: this.buildManual([
-  //       ["11", "bespoke"],
-  //       ["11", "compositional"],
-  //       ["22", "compositional"],
-  //       ["12", "compositional"],
-  //       ["33", "bespoke"],
-  //     ])
-  //   })
-  //   $('')
-  //   $('.code-btn-bespoke').addClass('disabled')
-    
-  //   this.instruct(`
-  //     There are two additional Smart Buttons on the machine. These ones will only
-  //     search for one part of the code at a time.
-      
-  //     You can use them to build a new code from scratch or to finish a code
-  //     that's already in the manual.
-  //   `)
-
-  //   $('.dial').css('pointer-events', 'none')
-  //   mp.dialContainer.on('click', (e) => {
-  //     logEvent("instruct.hint.blockdials")
-  //     alert_failure({
-  //       title: "Try using the Smart Buttons!",
-  //       html: "<em>The dials are disabled on this round of the instructions</em>",
-  //     })
-  //   })
-    
-  //   await this.eventPromise("machine.solution")
-  //   this.prompt.append("You solved half of the code! Now use the other Smart Button to finish it.")
-  //   await mp.done
-  //   this.instruct(`
-  //     That's it! The red and blue Smart Buttons will usually find red and blue codes.
-  //     However, this usually takes longer than searching for a purple code.
-  //   `)
-  //   await this.button()
-  //   this.runNext()
-  // }
-
-
-  // async stage_only_target() {
-  //   this.instruct(`
-  //     One last note.
-  //     _You can only create the shape currently on the screen._
-  //     If you enter a code for a different shape, nothing will happen.
-      
-  //     See the example below and click continue when you're ready—_no need to click anything!_
-  //   `)
-
-  //   let mp = this.getPuzzle("33", {
-  //     showManual: true,
-  //     manual: this.buildManual([
-  //       ["11", "compositional"],
-  //     ]),
-  //     initialCode: this.codes["11"].compositional
-  //   })
-  //   this.registerEventCallback((event) => {
-  //     if (event.event.startsWith("machine.enter") && mp.nTry == 10) {
-  //       alert_info({
-  //         title: 'FYI',
-  //         html: `You can move on from this screen whenever you'e ready!`,
-  //       })
-  //     }
-  //   })
-  //   await this.button()
-  //   this.runNext()
-  // }
-
   async stage_new_machine() {
     let mp = new MachinePuzzle({
       ...this.mainParams,
@@ -670,13 +602,17 @@ class MachineInstructions extends Instructions {
         # You can only use the manual if it has the exact shape you're trying to crack.
           - True
           * False
-        # What do the Smart Buttons do?
-          - They reveal a valid code, letting you give up on the round
-          * They search for a valid code
-        # If you enter the code for a different shape, what will happen?
-          * Nothing will happen
-          - The machine will break and you'll have to start over
-          - The machine will add the code to the manual
+        # How many clicks does the purple Smart Button usually take?
+          - 3
+          - ${this.mainParams.nClickPartial}
+          * ${this.mainParams.nClickBespoke}
+          - There's no way to know
+        # How many clicks do the red and blue Smart Buttons usually take?
+          - 3
+          * ${this.mainParams.nClickPartial}
+          - ${this.mainParams.nClickBespoke}
+          - There's no way to know
+        
       `)
     await this.quiz.run($("<div>").appendTo(this.prompt))
     this.runNext()
