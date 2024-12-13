@@ -3,10 +3,25 @@ const PARAMS = {
   config_dir: "code-pilot",
   width: 6,
   height: 5,
-  nClickBespoke: 10,
-  nClickPartial: 7,
+  nClickBespoke: 15,
+  nClickPartial: 10,
+  solutionDelay: 2000,
   buttonDelay: 1000,
   maxTotalTries: 300,
+}
+
+
+const INSTRUCT_PARAMS = {
+  maxDigit: 6,
+  maxTries: 50,
+  // width: 6,
+  // height: 5,
+  buttonDelay: 300,
+  solutionDelay: PARAMS.solutionDelay * (5 / 7), // height difference
+  nClickBespoke: PARAMS.nClickBespoke,
+  nClickPartial: PARAMS.nClickPartial,
+  machineColor: "#ffe852",
+  suppressSuccess: true,
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'
@@ -39,6 +54,8 @@ async function runExperiment() {
   if (PARAMS.maxTotalTries < 2 * PARAMS.nClickPartial * config.trials.length) {
     throw new Error("maxTotalTries is too low!")
   }
+
+  _.extend(config.instructions.params, INSTRUCT_PARAMS)
 
   async function instructions() {
     logEvent('experiment.instructions')
