@@ -258,17 +258,17 @@ class Prolific(object):
             return n
         return self._studies(limit=n+1)[-(n+1)]['id']
 
-    def post_duplicate(self, study=0, no_check=False, **kws):
+    def post_duplicate(self, study=0, yes=False, force=False, **kws):
         """Post a duplicate of the given study using current fields in config.txt"""
         study_id = self.study_id(study)
 
-        if not no_check:
+        if not force:
             # check that changes are pushed
             try:
-                diff = subprocess.getoutput('git diff --stat heroku/master')
+                diff = subprocess.getoutput('GIT_PAGER=cat git diff --stat heroku/master')
             except:
                 try:
-                    diff = subprocess.getoutput('git diff --stat origin/master')
+                    diff = subprocess.getoutput('GIT_PAGER=cat git diff --stat origin/master')
                 except:
                     diff = ''
 
@@ -323,7 +323,7 @@ class Prolific(object):
         )
         print("STUDY LINK:", study_link)
 
-        confirm = 'y' if no_check else input(f'Go ahead? [y/N] ')
+        confirm = 'y' if yes else input(f'Go ahead? [y/N] ')
         if confirm.lower() == 'y' and new['total_cost'] > 20000:
             confirm = input("EXPENSIVE! Just to be sure, you want to spend", new['total_cost'], 'correct? [y/N] ')
         if confirm.lower() == 'y':
