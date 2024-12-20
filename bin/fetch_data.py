@@ -2,9 +2,6 @@
 
 import os
 import subprocess
-import logging
-import requests
-from requests.auth import HTTPBasicAuth
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import hashlib
 import json
