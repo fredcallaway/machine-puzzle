@@ -4,7 +4,7 @@ const PARAMS = {
   width: 6,
   height: 5,
   nClickBespoke: 40,
-  nClickPartial: 3,
+  nClickPartial: 24,
   solutionDelay: 4000,
   buttonDelay: 500,
   maxTotalTries: 400,
