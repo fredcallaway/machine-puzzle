@@ -102,6 +102,38 @@ async function runExperiment() {
     }
   }
 
+  async function survey() {
+    logEvent('experiment.instructionsSurvey')
+    DISPLAY.empty()
+    let div = $('<div>').appendTo(DISPLAY).addClass('text')
+
+    $('<p>').appendTo(div).html(markdown(`
+      # Feedback survey
+
+      We'd like to ask you a few questions about the instructions.
+    `))
+
+    const feedback = {
+      annoying: radio_buttons(div, `
+        Was it more annoying/frustrating or fun/engaging to figure out what to do by yourself?
+      `, ['very annoying', 'more annoying', 'neutral', 'more fun', 'very fun']),
+
+      hints: radio_buttons(div, `
+        If you got hints, did they come at an appropriate time?
+      `, ['too early', 'about right', 'too late', "I didn\'t get any hints"]),
+
+      feedback: text_box(div, `
+        Was there any specific part where you wish we had given more information?
+      `),
+
+      summary: text_box(div, `
+        Briefly summarize what you learned in the practice rounds.
+      `)
+    }
+    await button(div, 'submit').clicked
+    logEvent('instructionsSurvey.submitted', _.mapValues(feedback, x => x.val()))
+  }
+
   async function debrief() {
     logEvent('experiment.debrief')
     DISPLAY.empty()
@@ -149,6 +181,7 @@ async function runExperiment() {
 
   await runTimeline(
     instructions,
+    survey,
     main,
     debrief
   )
