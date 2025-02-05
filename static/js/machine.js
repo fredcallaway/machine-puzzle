@@ -619,12 +619,12 @@ class MachinePuzzle {
       "box-sizing": "border-box",
     })
 
-    const title = $("<h3>").text("Shape Manual").css({
-      "text-align": "left",
-      "margin-bottom": "10px",
-    })
+    // const title = $("<h3>").text("Shape Manual").css({
+    //   "text-align": "left",
+    //   "margin-bottom": "10px",
+    // })
 
-    manualContainer.append(title)
+    // manualContainer.append(title)
 
     this.examplesContainer = $("<div>").css({
       display: "flex",

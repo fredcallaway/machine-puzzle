@@ -22,7 +22,11 @@ class Instructions {
       "user-select": "none",
     })
 
-    let help = $("<button>")
+    this.helpText = `
+      Sorry, you're on your own! If you're really stuck, send us a message on Prolific.
+    `
+
+    this.btnHelp = $("<button>")
       .appendTo(this.div)
       .css({
         position: "absolute",
@@ -31,14 +35,11 @@ class Instructions {
       })
       .addClass("btn-help")
       .text("?")
+      .hide()
       .click(async () => {
         await Swal.fire({
           title: "Help",
-          html: `
-            Use the << and >> buttons to flip through the sections. You have
-            to follow all the instructions on a page before you can advance to the next one.
-            If you get stuck, try clicking << and then >> to start the section over.
-          `,
+          html: this.helpText,
           icon: "info",
           confirmButtonText: "Got it!",
         })
@@ -54,7 +55,7 @@ class Instructions {
       })
       .click(() => this.runPrev())
       .prop("disabled", true)
-      .appendTo(this.div)
+      // .appendTo(this.div)
 
     this.btnNext = $("<button>")
       .addClass("btn")
@@ -66,7 +67,7 @@ class Instructions {
       })
       .click(() => this.runNext())
       .prop("disabled", true)
-      .appendTo(this.div)
+      // .appendTo(this.div)
 
     this.prompt = $("<div>")
       .css({
@@ -101,6 +102,15 @@ class Instructions {
     return this
   }
 
+  showHelp(text) {
+    this.helpText = text
+    this.btnHelp.show()
+    this.btnHelp.addClass("btn-pulse")   
+    this.btnHelp.click(() => {
+      this.btnHelp.removeClass("btn-pulse")
+    })
+  }
+
   async run(display, stage) {
     if (display) this.attach(display)
     if (stage == undefined && urlParams.instruct) {
@@ -118,9 +128,15 @@ class Instructions {
     return promise
   }
 
+  
   registerEventCallback(callback) {
     this.eventCallbacks.push(callback)
     registerEventCallback(callback)
+  }
+  
+  async helpPromise(text, delay) {
+    await this.sleep(delay)
+    this.showHelp(text)
   }
 
   eventPromise(...args) {
@@ -159,16 +175,12 @@ class Instructions {
     btn.remove()
   }
 
-  instruct(md) {
-    let prog = this.stage ? `(${this.stage}/${this.stages.length})` : ""
-    this.message(`# Instructions ${prog}\n\n` + md)
-  }
-
   async runStage(n) {
     this.rejectPromises()
     this.cancelEventCallbacks()
     this._sleep?.reject()
     this.prompt.empty()
+    this.btnHelp.hide()
     this.content.empty()
     this.content.css({ opacity: 1 }) // just to be safe
     logEvent(`instructions.runStage.${n}`)
@@ -179,7 +191,7 @@ class Instructions {
     await this.stages[n - 1].bind(this)()
     if (this.stage == n) {
       // check to make sure we didn't already move forward
-      this.enableNext()
+      this.runNext()
     }
   }
 
@@ -213,89 +225,6 @@ class Instructions {
   }
 }
 
-function parseQuizText(text) {
-  const lines = text.trim().split("\n")
-  const questions = []
-  let currentQuestion = null
-
-  for (const line of lines) {
-    const trimmedLine = line.trim()
-    if (trimmedLine.startsWith("#")) {
-      if (currentQuestion) {
-        questions.push(currentQuestion)
-      }
-      currentQuestion = [trimmedLine.slice(1).trim(), [], null]
-    } else if (trimmedLine.startsWith("-") || trimmedLine.startsWith("*")) {
-      const option = trimmedLine.slice(1).trim()
-      currentQuestion[1].push(option)
-      if (trimmedLine.startsWith("*")) {
-        currentQuestion[2] = option
-      }
-    }
-  }
-
-  if (currentQuestion) {
-    questions.push(currentQuestion)
-  }
-
-  return questions
-}
-
-
-class Quiz {
-  constructor(questions) {
-    if (typeof questions == "string") {
-      questions = parseQuizText(questions)
-    }
-    this.questions = questions
-    // Ensure all questions have a correct answer
-    this.questions.forEach(q => {
-      if (!q[2]) {
-        throw new Error("Quiz question has no correct answer: " + q[0])
-      }
-    });
-    this.div = $("<div>")
-    this.done = make_promise()
-    this.correct = []
-    this.inputs = questions.map((q) => {
-      this.correct.push(q[2])
-      return radio_buttons(this.div, q[0], q[1])
-    })
-    this.button = $("<button>", { class: "btn btn-primary" })
-      .text("check answers")
-      .appendTo(this.div)
-  }
-
-  attach(div) {
-    div.empty()
-    this.div.appendTo(div)
-    // not sure why we need to rebind this
-    this.button.click(() => this.check())
-  }
-
-  run(div) {
-    this.attach(div)
-    return this.done
-  }
-
-  async check() {
-    let answers = this.inputs.map((i) => i.val())
-    logEvent("quiz.check", { answers, correct: this.correct })
-    let pass = _.every(_.zip(answers, this.correct), ([a, c]) => {
-      return a == c
-    })
-    if (pass) {
-      await alert_success()
-      this.done.resolve()
-    } else {
-      alert_failure({
-        title: "Try again",
-        html: "Click the arrows at the top of the screen to review the instructions if needed.",
-      })
-    }
-  }
-}
-
 class MachineInstructions extends Instructions {
   constructor({params, shapes, codes, mainParams}) {
     super({ contentWidth: 1200, promptHeight: 200 })
@@ -320,13 +249,6 @@ class MachineInstructions extends Instructions {
       task,
       solutions,
       blockString,
-      maxDigit: 6,
-      maxTries: 50,
-      buttonDelay: 300,
-      nClickBespoke: this.mainParams.nClickBespoke,
-      nClickPartial: this.mainParams.nClickPartial,
-      machineColor: "#ffe852",
-      suppressSuccess: true,
       ...opts,
     })
     mp.attach(this.content)
@@ -343,49 +265,33 @@ class MachineInstructions extends Instructions {
     }
   }
 
-  async stage_intro() {
-    let mp = this.getPuzzle("11", {
-      solutionType: "bespoke",
-      manual: this.buildManual([
-        ["11", "bespoke"]
-      ]),
-    })
-    mp.drawTarget("blank")
-    mp.buttonDiv.hide()
-    mp.manualDiv.hide()
-    mp.lockInput()
-
-    this.instruct(`
-      Welcome! In this experiment, you will be cracking codes using the machine below.
-    `)
-    await this.button()
-    
-    mp.drawTarget()
-    this.instruct(`
-      On each round, a shape will appear on the screen. 
-      Your job is to find a code that creates this shape.
-    `)
-    await this.button()
-
-    this.instruct(`
-      You can click on each dial to change its number.
-      As soon as you land on the right code, the shape will be created. 
-      Give it a shot!
-    `)
-    mp.unlockInput()
-    await this.eventPromise(
-      (event) => event.event.startsWith("machine.enter") && mp.nTry >= 3
-    )
-
-    await alert_info({
-      title: "This is gonna take forever!",
-      html: "<em>Let's try a different approach...</em>",
-      confirmButtonText: 'OK',
-    })
-    this.runNext()
+  async centerMessage(md) {
+    this.prompt.hide()
+    await text_continue(this.content, markdown(md)).promise()
+    this.prompt.show()
   }
-  
-  async stage_manual() {  
+
+  async stage_intro() {
+    await this.centerMessage(`
+      Welcome! In this experiment, you will crack codes to make different shapes.
+    `)
+    
+    await this.centerMessage(`
+      Unlike other studies you may have done, we will not be providing any instructions.
+    `)
+
+    await this.centerMessage(`
+      You will have to figure out how to progress through the study on your own.
+    `)
+
+    await this.centerMessage(`
+      Good luck. You'll need it!
+      
+      *ominous laughter*
+    `)
+  } 
+
+  async stage_bespoke() {  
     let mp = this.getPuzzle("11", {
       solutionType: "bespoke",
       manual: this.buildManual([
@@ -393,20 +299,21 @@ class MachineInstructions extends Instructions {
       ]),
     })
     mp.buttonDiv.hide()
-    mp.manualDiv.show()
-    this.instruct(`
-      To make things easier, you'll have a manual that provides codes
-      for some of the shapes you might have to build. Try entering the
-      code from the manual.
-    `)
-
+    this.helpPromise("Click on the dials to create the shape using the code in the manual.", 30000)
     await mp.done
-    this.instruct(`
-      Well done!
-    `)
-    await this.button()
-    this.runNext()
-    // this.prompt.append('<b>Nice!</b>');
+  }
+
+  async stage_compositional() {
+    let mp = this.getPuzzle("22", {
+      solutionType: "compositional",
+      manual: this.buildManual([
+        ["12", "compositional"],
+        ["21", "compositional"],
+      ]),
+    })
+    mp.buttonDiv.hide()
+    this.helpPromise("You need to combine the two codes in the manual to make the target shape.", 120000)
+    await mp.done
   }
 
   disableDials(mp) {
@@ -414,222 +321,71 @@ class MachineInstructions extends Instructions {
     mp.dialContainer.on('click', (e) => {
       logEvent("instruct.hint.blockdials")
       alert_failure({
-        title: "Try using the Smart Button!",
+        title: "Sorry",
         html: "<em>The dials are disabled on this round of the instructions</em>",
       })
     })
   }
   
-  async stage_two() {
-    let mp = this.getPuzzle("12", {
-      trialID: "instruct.compositional",
-      solutionType: "compositional",
-      manual: this.buildManual([
-        ["11", "bespoke"],
-      ]),
-    })
-    mp.buttonDiv.hide()
-    let first2 = this.codes["11"].bespoke.slice(0, 2)
-    // don't start with the code they're supposed to enter
-    mp.setCode(randCode(mp.maxDigit, mp.codeLength, (code) => code.startsWith(first2)))
-
-
-    this.instruct(`
-      Here's a new shape. The manual doesn't have its code, but notice that
-      the left half matches the shape in the manual. 
-      Try entering **${first2}** in the two leftmost dials.
-    `)
-
-    await this.eventPromise((event) => {
-      return event.event.startsWith("machine.enter") && event.code.slice(0, 2) == first2
-    })
-
-    let color1 = (txt) => `<span style="font-weight: bold; color: ${COLORS[1]};">${txt}</span>`
-    let color2 = (txt) => `<span style="font-weight: bold; color: ${COLORS[2]};">${txt}</span>`
-    let color12 = (txt) => color1(txt.slice(0, 2)) + color2(txt.slice(2))
-
-    mp.lockInput()
-    this.instruct(`
-      Hmm... that didn't seem to do anything.
-    `)
-    await this.button()
-    
-    mp.unlockInput()
-    this.instruct(`
-      We've added a new code to the manual.
-      It makes the same shape, but its split into two parts 
-      (${color1(this.codes["11"].compositional.slice(0, 2))} and
-      ${color2(this.codes["11"].compositional.slice(2))}).
-      Try entering the blue part of the code.
-    `)
-    mp.addSolutionToManual(this.manualEntry("11", "compositional"))
-
-    await this.eventPromise("machine.animationDone")
-    this.runNext()
-
-    // await this.eventPromise("machine.animationDone")
-    // this.instruct(`
-    //   That's it! We added one more code to the manual. Use this code to complete the shape.
-    // `)
-    // mp.addSolutionToManual(this.manualEntry("22", "compositional"))
-    // await mp.done
-    // this.instruct(`
-    //   Well done!
-    // `)
-    // await this.button()
-    // this.runNext()
-
-  }
-  
-  async stage_three() {
-    let mp = this.getPuzzle("12", {
-      trialID: "instruct.compositional",
-      solutionType: "compositional",
-      manual: this.buildManual([
-        ["11", "bespoke"],
-        ["11", "compositional"],
-      ]),
-    })
-    mp.setCode(mp.generateCode('left', 'correct'))
-    mp.showSolution('left', {skipAnimation: true})
-    mp.lockInput()
-    $('.code-btn-bespoke').hide()
-    mp.buttonDiv.hide()
-    this.instruct(`
-      Now what? You could search for the rest of the code manually, but that
-      could take a long time!
-    `)
-    await this.button()
-
-    mp.buttonDiv.show()
-    this.instruct(`
-      To make cracking codes easier, the machine has _Smart Buttons_&trade; that automatically
-      search for codes. Using the Smart Buttons is much faster than guessing randomly,
-      but it can still take a few tries: **around ${mp.nClickPartial} clicks**.
-    `)
-    await this.button()
-
-    mp.unlockInput()
-    this.disableDials(mp)
-    this.instruct(`
-      Try using the red Smart Button to complete the code!
-    `)
-    
-    await mp.done
-    this.instruct(`
-      Well done!
-    `)
-    await this.button()
-    this.runNext()
-  }
-
   async stage_bespoke_button() {
     let mp = this.getPuzzle("33", {
       solutionType: "bespoke",
       manual: this.buildManual([
-        ["11", "bespoke"],
-        ["11", "compositional"],
-        ["12", "compositional"],
-        // ["12", "compositional"],
       ])
     })
-
-    $('.code-btn-bespoke').hide()
-    mp.lockInput()
-    this.instruct(`
-      Sometimes, you'll get a shape that's completely different from anything in the manual.
-    `)
-    await this.button()
-    
-    this.instruct(`
-      In these cases, you can use the blue and red Smart Buttons to search for each part of
-      a code. This will take around **${2*mp.nClickPartial} clicks** (${mp.nClickPartial} on each button).
-    `)
-    await this.button()
-    
-    $('.code-btn-bespoke').show().css('filter', 'brightness(1.0)')
-
-    this.instruct(`
-      Alternatively, you can use the _purple_ Smart Button, which searches for the entire
-      code at once. The purple button usually takes around **${mp.nClickBespoke} clicks**.
-    `)
-    await this.button()
-    
-    mp.unlockInput()
-    $('.code-btn-left').addClass('disabled')
-    $('.code-btn-right').addClass('disabled')
-    this.instruct(`
-      Try using the purple Smart Button to find a code!
-    `)
-    
+    $('.code-btn-left').css('visibility', 'hidden')
+    $('.code-btn-right').css('visibility', 'hidden')
+    this.disableDials(mp)
     await mp.done
-    this.instruct(`You got it!`)
-    await this.button()
-    this.runNext()
+  }
+  
+  async stage_compositional_buttons() {
+    let mp = this.getPuzzle("44", {
+      solutionType: "compositional",
+      manual: this.buildManual([
+      ])
+    })
+    $('.code-btn-bespoke').hide()
+    // $('.code-btn-right').hide()
+    this.disableDials(mp)
+    await mp.done
   }
 
-  async stage_new_machine() {
-    let mp = new MachinePuzzle({
-      ...this.mainParams,
-    }).attach(this.content)
-    mp.drawTarget("blank")
-    mp.lockInput()
+  // async stage_new_machine() {
+  //   await this.centerMessage(`
+      
+  //   `)
 
-    this.instruct(`
-      For the rest of the study, you'll be working on this new machine.
-      It operates in the same way as the yellow machine, 
-      but its codes are much harder to crack!
-      To start you off, we've filled in your manual with some codes used by previous operators of this machine.
-    `)
-    await this.button()
-    this.runNext()
-  }
+  //   let mp = new MachinePuzzle({
+  //     ...this.mainParams,
+  //   }).attach(this.content)
+  //   mp.drawTarget("blank")
+  //   mp.lockInput()
 
-  async stage_quiz() {
-    this.instruct(`
-      Before moving on, let's make sure you understand how the machine works.
-      If you're not sure, you can navigate to the earlier screens with the 
-      buttons on the sides of the screen.
-    `)
+  
 
-    this.quiz =
-      this.quiz ??
-      // prettier-ignore
-      new Quiz(`
-        # There is only one code to make each shape.
-          - True
-          * False
-        # You can only use the manual if it has the exact shape you're trying to crack.
-          - True
-          * False
-        # How many clicks does the purple Smart Button usually take?
-          - 3
-          - ${this.mainParams.nClickPartial}
-          * ${this.mainParams.nClickBespoke}
-          - There's no way to know
-        # How many clicks do the red and blue Smart Buttons usually take?
-          - 3
-          * ${this.mainParams.nClickPartial}
-          - ${this.mainParams.nClickBespoke}
-          - There's no way to know
-        
-      `)
-    await this.quiz.run($("<div>").appendTo(this.prompt))
-    this.runNext()
-  }
+  //   this.message(`
+  //     For the rest of the study, you'll be working on this new machine.
+  //     It operates in the same way as the yellow machine, 
+  //     but its codes are much harder to crack!
+  //     To start you off, we've filled in your manual with some codes used by previous operators of this machine.
+  //   `)
+  //   await this.button()
+  //   this.runNext()
+  // }
 
   async stage_final() {
-    this.instruct(`
-      You've finished the instructions, and are ready to move onto the main phase of the experiment.
-
+    await this.centerMessage(`
+      You've finished the practice rounds and are ready to move onto the main phase of the experiment.
       There will be ${config.trials.length} rounds.
-      Try to complete them all as quickly as possible, using the manual as much as you can.
+      Try to complete them all as quickly as possible.
 
-      <div class="alert alert-danger">
+      <br>
+
+      <div class="alert alert-danger" style="text-align: left;">
         <b>Warning!</b><br>
-        Once you complete the instructions, <strong>you cannot refresh the page</strong>.
-        If you do, you will get an error message and you won't be able to complete the
-        study.
+        Once you continue past this screen, <strong>you cannot refresh the page</strong>.
+        If you do, you will get an error message and you won't be able to complete the study.
       </div>
     `)
     let question =

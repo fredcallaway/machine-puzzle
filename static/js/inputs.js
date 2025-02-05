@@ -1,3 +1,5 @@
+
+
 class Input {
   constructor() {
     this.div = $('<div>')
@@ -37,6 +39,42 @@ class Button extends Input {
   promise() {
     return this.clicked
   }
+}
+
+class TextContinue {
+  constructor(text, {textAlign='center'} = {}) {
+    this.div = $('<div>')
+
+    $('<div>')
+    .css({
+      margin: 'auto',
+      width: '800px',
+      // fontSize: '24px',
+      textAlign: textAlign,
+      position: 'relative',
+      display: 'block',
+      minHeight: '10vh',
+      marginTop: '10vh',
+    })
+    .html(text)
+    .appendTo(this.div)
+
+    this.button = new Button({text: 'continue', delay: 0}).appendTo(this.div)
+    this.button.promise().then(() => {
+      this.div.remove()
+    })
+  }
+  appendTo(div) {
+    this.div.appendTo(div)
+    return this
+  }
+  promise() {
+    return this.button.promise()
+  }
+}
+
+function text_continue(div, text) {
+  return new TextContinue(text).appendTo(div)
 }
 
 
@@ -211,6 +249,7 @@ function slider(div, prompt, opts) {
 
 
 function alert_success(opts = {}) {
+  console.log('alert_success')
   let flavor = _.sample([
     "you're on fire", "top-notch stuff", "absolutely brilliant",
     "out of this world", "phenomenal", "you've outdone yourself", "A+ work",

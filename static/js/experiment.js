@@ -21,7 +21,6 @@ const INSTRUCT_PARAMS = {
   nClickBespoke: PARAMS.nClickBespoke,
   nClickPartial: PARAMS.nClickPartial,
   machineColor: "#ffe852",
-  suppressSuccess: true,
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'

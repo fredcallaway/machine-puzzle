@@ -152,9 +152,9 @@
 }
 
 .btn-help {
-  background-color: #3fc3ee;
-  border: none; /* No border */
-  color: white; /* White text */
+  background-color: #3fc3ee !important;
+  color: white !important; /* White text */
+  border: none !important; /* No border */
   text-align: center; /* Centered text */
   display: inline-block; /* Inline-block element */
   font-size: 20px; /* Large text size */
@@ -190,11 +190,11 @@
 @keyframes pulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+    box-shadow: 0 0 0 0 #3fc3eedd;
   }
   50% {
     transform: scale(1);
-    box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+    box-shadow: 0 0 0 20px rgba(0, 123, 255, 0);
   }
   100% {
     transform: scale(1);
