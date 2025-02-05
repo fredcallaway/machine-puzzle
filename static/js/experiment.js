@@ -3,11 +3,12 @@ const PARAMS = {
   config_dir: "code-pilot",
   width: 6,
   height: 5,
-  nClickBespoke: 15,
-  nClickPartial: 10,
+  nClickBespoke: 40,
+  nClickPartial: 3,
   solutionDelay: 4000,
   buttonDelay: 500,
-  maxTotalTries: 300,
+  maxTotalTries: 400,
+  maxTries: 100,
 }
 
 

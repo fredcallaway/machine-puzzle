@@ -609,6 +609,12 @@ class MachinePuzzle {
       .css({
         width: this.contentWidth - this.machineWidth - 50 + "px",
       }).appendTo(this.div)
+      
+    // $("<h3>").text("Manual").css({
+    //   "text-align": "left",
+    //   "margin-bottom": "10px",
+    //   "margin-top": "-35px",
+    // }).appendTo(this.manualDiv)
 
     const manualContainer = $("<div>").addClass("manual-container").css({
       border: "2px solid black",
@@ -618,13 +624,6 @@ class MachinePuzzle {
       height: "100%",
       "box-sizing": "border-box",
     })
-
-    // const title = $("<h3>").text("Shape Manual").css({
-    //   "text-align": "left",
-    //   "margin-bottom": "10px",
-    // })
-
-    // manualContainer.append(title)
 
     this.examplesContainer = $("<div>").css({
       display: "flex",
@@ -667,6 +666,13 @@ class MachinePuzzle {
       "font-weight": "bold",
       "font-size": "30px",
     })
+    // codeText.css('visibility', 'hidden')
+    // exampleDiv.on('mouseenter', () => {
+    //   codeText.css('visibility', 'visible')
+    // })
+    // exampleDiv.on('mouseleave', () => {
+    //   codeText.css('visibility', 'hidden')
+    // })
 
     assert(this.codeLength == 4, "codeLength is assumed to be 4 here")
     const colors = example.compositional ? [1, 1, 2, 2] : [3, 3, 3, 3]

@@ -103,10 +103,12 @@ class Instructions {
   }
 
   showHelp(text) {
+    logEvent("instructions.showHelp", {stage: this.stageName()})
     this.helpText = text
     this.btnHelp.show()
     this.btnHelp.addClass("btn-pulse")   
     this.btnHelp.click(() => {
+      logEvent("instructions.viewHelp", {stage: this.stageName(), text})
       this.btnHelp.removeClass("btn-pulse")
     })
   }
@@ -234,6 +236,11 @@ class MachineInstructions extends Instructions {
     this.mainParams = mainParams
     window.instruct = this
   }
+
+  stageName(stage) {
+    stage = stage ?? this.stage
+    return this.stages[stage].name.replace("stage_", "instruct.")
+  }
     // Define the codes used in the instructions
 
   getPuzzle(task, opts = {}) {
@@ -245,7 +252,7 @@ class MachineInstructions extends Instructions {
     console.log(blockString, solutions)
     let mp = new MachinePuzzle({
       ...this.params,
-      trialID: this.stages[this.stage].name.replace("stage_", "instruct."),
+      trialID: this.stageName(),
       task,
       solutions,
       blockString,
@@ -333,10 +340,16 @@ class MachineInstructions extends Instructions {
       manual: this.buildManual([
       ])
     })
+    this.helpPromise("Keep clicking the purple button until something happens.", 60000)
+
     $('.code-btn-left').css('visibility', 'hidden')
     $('.code-btn-right').css('visibility', 'hidden')
     this.disableDials(mp)
     await mp.done
+
+    await this.centerMessage(`
+      That was really annoying wasn't it? If you think carefully, you won't need to do that very often.
+    `)
   }
   
   async stage_compositional_buttons() {
@@ -345,6 +358,7 @@ class MachineInstructions extends Instructions {
       manual: this.buildManual([
       ])
     })
+    this.helpPromise("Keep clicking the red and blue buttons until something happens.", 60000)
     $('.code-btn-bespoke').hide()
     // $('.code-btn-right').hide()
     this.disableDials(mp)
