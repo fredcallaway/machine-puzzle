@@ -5,8 +5,8 @@ const PARAMS = {
   height: 5,
   nClickBespoke: 15,
   nClickPartial: 10,
-  solutionDelay: 2000,
-  buttonDelay: 1000,
+  solutionDelay: 4000,
+  buttonDelay: 500,
   maxTotalTries: 300,
 }
 
