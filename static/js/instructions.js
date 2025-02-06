@@ -37,12 +37,7 @@ class Instructions {
       .text("?")
       .hide()
       .click(async () => {
-        await Swal.fire({
-          title: "Help",
-          html: this.helpText,
-          icon: "info",
-          confirmButtonText: "Got it!",
-        })
+        this.showHelp()
       })
 
     this.btnPrev = $("<button>")
@@ -96,21 +91,24 @@ class Instructions {
     this.eventCallbacks = []
   }
 
+  async showHelp(text) {
+    if (text) {
+      this.helpText = text
+    }
+    logEvent("instructions.showHelp", {stage: this.stageName(), text: this.helpText})
+    await Swal.fire({
+      title: "Hint",
+      html: this.helpText,
+      icon: "info",
+      confirmButtonText: "Got it!",
+    })
+    this.btnHelp.show()
+  }
+
   attach(display) {
     display.empty()
     this.div.appendTo(display)
     return this
-  }
-
-  showHelp(text) {
-    logEvent("instructions.showHelp", {stage: this.stageName()})
-    this.helpText = text
-    this.btnHelp.show()
-    this.btnHelp.addClass("btn-pulse")   
-    this.btnHelp.click(() => {
-      logEvent("instructions.viewHelp", {stage: this.stageName(), text})
-      this.btnHelp.removeClass("btn-pulse")
-    })
   }
 
   async run(display, stage) {
@@ -136,13 +134,34 @@ class Instructions {
     registerEventCallback(callback)
   }
   
-  async helpPromise(text, delay) {
-    await this.sleep(delay)
-    this.showHelp(text)
+  helpPromise(text, delaySeconds) {
+    let sleepPromise = this.sleep(delaySeconds * 1000)
+    let promise = this.makePromise()
+    sleepPromise.then(() => {
+      this.btnHelp.show()
+      console.log('enable help', text)
+      this.helpText = text
+      this.btnHelp.addClass("btn-pulse")   
+      this.btnHelp.on('click', () => {
+        this.btnHelp.removeClass("btn-pulse")
+        promise.resolve()
+      })
+    })
+    promise.catch(() => sleepPromise.reject())
+    return promise
   }
 
   eventPromise(...args) {
     return this.registerPromise(eventPromise(...args))
+  }
+
+  makePromise() {
+    return this.registerPromise(make_promise())
+  }
+
+  sleep(ms) {
+    // this allows us to cancel sleeps when the user flips to a new page
+    return this.registerPromise(sleep(ms))
   }
 
   rejectPromises() {
@@ -159,13 +178,6 @@ class Instructions {
     this.eventCallbacks = []
   }
 
-  sleep(ms) {
-    // this allows us to cancel sleeps when the user flips to a new page
-    this._sleep = make_promise()
-    sleep(ms).then(() => this._sleep.resolve())
-    return this._sleep
-  }
-
   message(md) {
     this.prompt.html(markdown(md))
   }
@@ -180,7 +192,6 @@ class Instructions {
   async runStage(n) {
     this.rejectPromises()
     this.cancelEventCallbacks()
-    this._sleep?.reject()
     this.prompt.empty()
     this.btnHelp.hide()
     this.content.empty()
@@ -274,6 +285,7 @@ class MachineInstructions extends Instructions {
 
   async centerMessage(md) {
     this.prompt.hide()
+    this.content.empty()
     await text_continue(this.content, markdown(md)).promise()
     this.prompt.show()
   }
@@ -287,9 +299,15 @@ class MachineInstructions extends Instructions {
       Unlike other studies you may have done, we will not be providing any instructions.
     `)
 
-    await this.centerMessage(`
-      You will have to figure out how to progress through the study on your own.
+    let help = this.helpPromise('Try clicking the continue button!', 2)
+    let msg = this.centerMessage(`
+      However, if you get stuck for too long, a hint button will appear.
     `)
+    $('.btn-primary').prop('disabled', true)
+    await help
+    $('.btn-primary').prop('disabled', false)
+    await msg
+    this.btnHelp.hide()
 
     await this.centerMessage(`
       Good luck. You'll need it!
@@ -306,8 +324,16 @@ class MachineInstructions extends Instructions {
       ]),
     })
     mp.buttonDiv.hide()
-    this.helpPromise("Click on the dials to create the shape using the code in the manual.", 30000)
-    await mp.done
+    mp.done.then(() => this.runNext())  // short circuit
+
+    let clicked = this.eventPromise("machine.select")
+    let help = this.helpPromise("Use the dials to enter the code for the shape on the machine's screen", 10)
+    await clicked
+    this.btnHelp.hide()
+    help.reject()
+
+    await this.helpPromise("Look at the code in the manual", 20)
+    await this.helpPromise("Use the dials to enter the code from the manual", 30)
   }
 
   async stage_compositional() {
@@ -319,8 +345,11 @@ class MachineInstructions extends Instructions {
       ]),
     })
     mp.buttonDiv.hide()
-    this.helpPromise("You need to combine the two codes in the manual to make the target shape.", 120000)
-    await mp.done
+    mp.done.then(() => this.runNext())  // short circuit
+
+    await this.helpPromise("Try entering the codes from the manual", 20)
+    await this.helpPromise("If part of the code changes color, it's already correct. Don't change it!", 40)
+    await this.helpPromise("Use the first half of one code and the second half of the other code.", 60)
   }
 
   disableDials(mp) {
@@ -329,7 +358,7 @@ class MachineInstructions extends Instructions {
       logEvent("instruct.hint.blockdials")
       alert_failure({
         title: "Sorry",
-        html: "<em>The dials are disabled on this round of the instructions</em>",
+        html: "<em>The dials are disabled on this round</em>",
       })
     })
   }
@@ -340,16 +369,19 @@ class MachineInstructions extends Instructions {
       manual: this.buildManual([
       ])
     })
-    this.helpPromise("Keep clicking the purple button until something happens.", 60000)
 
     $('.code-btn-left').css('visibility', 'hidden')
     $('.code-btn-right').css('visibility', 'hidden')
     this.disableDials(mp)
-    await mp.done
 
-    await this.centerMessage(`
-      That was really annoying wasn't it? If you think carefully, you won't need to do that very often.
-    `)
+    let clicked = this.eventPromise("machine.button.bespoke")
+    let help = this.helpPromise("Click on the purple button. You might have to click it many times.", 10)
+    await clicked
+    this.btnHelp.hide()
+    help.reject()
+    
+    this.helpPromise("Just keep clicking the purple button!", 30)
+    await mp.done
   }
   
   async stage_compositional_buttons() {
@@ -358,11 +390,13 @@ class MachineInstructions extends Instructions {
       manual: this.buildManual([
       ])
     })
-    this.helpPromise("Keep clicking the red and blue buttons until something happens.", 60000)
+    this.helpPromise("Keep clicking the red and blue buttons.", 60)
     $('.code-btn-bespoke').hide()
-    // $('.code-btn-right').hide()
     this.disableDials(mp)
     await mp.done
+    await this.centerMessage(`
+      Yeesh, that was a lot of clicking. If you think carefully, you won't need to do that very often.
+    `)
   }
 
   // async stage_new_machine() {

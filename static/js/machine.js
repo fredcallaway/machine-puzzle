@@ -265,6 +265,7 @@ class MachinePuzzle {
         select.val(this.initialCode[i]);
         select.on('change', () => {
             this.lastAction = `select.${i}`;
+            this.logEvent(`machine.select.${i}`)
             this.checkCode();
         });
 
@@ -415,6 +416,7 @@ class MachinePuzzle {
   async handleButton(kind) {
     await this.animateSearch(kind)
     this.lastAction = `nextCode.${kind}`
+    this.logEvent(`machine.button.${kind}`)
     this.clicksLeft[kind] -= 1
     this.setCode(this.getNextCode(kind))
     this.checkCode()
@@ -610,11 +612,12 @@ class MachinePuzzle {
         width: this.contentWidth - this.machineWidth - 50 + "px",
       }).appendTo(this.div)
       
-    // $("<h3>").text("Manual").css({
-    //   "text-align": "left",
-    //   "margin-bottom": "10px",
-    //   "margin-top": "-35px",
-    // }).appendTo(this.manualDiv)
+    $("<h3>").text("Manual").css({
+      "text-align": "left",
+      "margin-left": "10px",
+      "margin-bottom": "5px",
+      "margin-top": "-30px",
+    }).appendTo(this.manualDiv)
 
     const manualContainer = $("<div>").addClass("manual-container").css({
       border: "2px solid black",

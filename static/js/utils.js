@@ -231,9 +231,9 @@ delay = function(time, func) {
 };
 
 sleep = function(ms) {
-  return new Promise(function(resolve) {
-    return window.setTimeout(resolve, ms);
-  });
+  let promise = make_promise()
+  window.setTimeout(() => promise.resolve(), ms)
+  return promise
 };
 
 zip = function(...rows) {
