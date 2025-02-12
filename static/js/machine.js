@@ -1,12 +1,19 @@
+
+// https://coolors.co/6394e7-e6c73e-2ccb24
+const extractColors = (coolors) => coolors.split('/').pop().split("-").map(x => `#${x}`)
+
+
 const COLORS = [
   'lightgray',
-  '#548df0',
-  '#e96060',
-  '#b46cc6',
+  ...extractColors("https://coolors.co/de6240-e69d3e-1faac9"),
   '#000000',
 ]
+
+
+
 const COLOR_MAP = {
   'bespoke': COLORS[3],
+  // 'bespoke': COLORS[3],
   'left': COLORS[1],
   'right': COLORS[2],
 }
@@ -54,14 +61,12 @@ class MachinePuzzle {
       this,
       {
         task: "null",
-        solutions: {
-          1112: "compositional",
-          1121: "bespoke",
-        },
+        solutions: {},
         manual: null,
         blockString: testBlock, // default block
         probRandComp: 0.05,
         allowAccidentalSolution: false,
+        addSolutions: false,
         initialCode: "random",
         nClickBespoke: 20,
         nClickPartial: 15,
@@ -548,7 +553,9 @@ class MachinePuzzle {
     }
 
     if (solutionType == "compositional" || solutionType == "bespoke") {
-      this.addSolutionToManual(solutionType)
+      if (this.addSolutions) {
+        this.addSolutionToManual(solutionType)
+      }
       // party parrot
       $("<img>", { src: "static/img/parrot.gif", id: "parrot" })
         .css({

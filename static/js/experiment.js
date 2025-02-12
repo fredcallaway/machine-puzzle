@@ -1,11 +1,11 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
   config_dir: "code-pilot",
-  width: 6,
+  width: 8,
   height: 5,
-  nClickBespoke: 40,
-  nClickPartial: 24,
-  solutionDelay: 4000,
+  nClickBespoke: 35,
+  nClickPartial: 25,
+  solutionDelay: 6000,
   buttonDelay: 500,
   maxTotalTries: 400,
   maxTries: 100,
@@ -29,7 +29,8 @@ ERROR_EMAIL = 'fredcallaway@gmail.com'
 async function runExperiment() {
   if (urlParams.draw) {
     _.extend(PARAMS, urlParams)
-    new DrawingInterface(_.pick(PARAMS, 'width', 'height', 'blockSize', 'numScreens')).attach(DISPLAY)
+    console.log("👉", _.pick(PARAMS, ['width', 'height', 'blockSize', 'numScreens']))
+    new DrawingInterface(_.pick(PARAMS, ['width', 'height', 'blockSize', 'numScreens', 'storageKey'])).attach(DISPLAY)
     await make_promise()
   }
   let configFile = urlParams.test ? 
