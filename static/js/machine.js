@@ -53,6 +53,48 @@ function randCode(maxDigit, codeLength, blocked='') {
   throw new Error(`Could not find a code that is not blocked`)
 }
 
+class MachineWrapper {
+  constructor({params, shapes, codes}) {
+    this.params = _.cloneDeep(params)
+    this.shapes = shapes
+    this.codes = codes
+  }
+
+  getPuzzle(opts={}) {
+    let task = opts.task
+    opts.manual = this.buildManual(opts.manual)
+    assert(this.shapes[task], `unknown task: ${task}`)
+    let solutions = opts.solutionKind
+      ? { [this.codes[task][opts.solutionKind]]: opts.solutionKind }
+      : { 
+          [this.codes[task]["compositional"]]: "compositional",
+          [this.codes[task]["bespoke"]]: "bespoke",
+      }
+    let blockString = this.shapes[task]
+    let mp = new MachinePuzzle({
+      ...this.params,
+      task,
+      solutions,
+      blockString,
+      ...opts,
+    })
+    return mp
+  }
+
+  buildManual(pairs) {
+    if (!pairs) {
+      return []
+    }
+    return pairs.map(([task, kind]) => this.manualEntry(task, kind))
+  }
+
+  manualEntry(task, kind) {
+    return {
+      task, blockString: this.shapes[task], compositional: kind == "compositional", code: this.codes[task][kind]
+    }
+  }  
+}
+
 class MachinePuzzle {
   
   constructor(options = {}) {
@@ -103,9 +145,9 @@ class MachinePuzzle {
     this.nTry = 0
     this.nDial = 0
     this.clicksLeft = {
-      bespoke: this.nClickBespoke + intNoise(1),
-      left: this.nClickPartial + intNoise(1),
-      right: this.nClickPartial + intNoise(1),
+      bespoke: this.nClickBespoke + intNoise(0),
+      left: this.nClickPartial + intNoise(0),
+      right: this.nClickPartial + intNoise(0),
     }
     this.done = make_promise(); // promise to resolve when the task is completed
     this.partialSolution = false

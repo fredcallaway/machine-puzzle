@@ -11,7 +11,8 @@ class DrawingInterface {
     }
     window.D = this
 
-    Object.assign(this, defaults, options)
+    this.options = _.defaults(options, defaults)
+    Object.assign(this, this.options)
 
     this.div = $("<div>")
       .addClass("drawing-container")
@@ -37,6 +38,7 @@ class DrawingInterface {
   }
 
   initialize() {
+    Object.assign(this, this.options)
     this.div.empty()
     // this.storageKey = `gridState_${this.width}x${this.height}_${this.numScreens}screens`
     this.isDrawing = false
@@ -188,13 +190,13 @@ class DrawingInterface {
       .appendTo(this.buttonContainer)
 
     $("<button>")
-      .text("Clear All")
+      .text("Reset")
       .css({
         margin: "10px",
         padding: "5px 15px",
       })
       .click(() => {
-        this.clearAllGrids()
+        this.initialize()
       })
       .appendTo(this.buttonContainer)
 

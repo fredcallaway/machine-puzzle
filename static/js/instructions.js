@@ -239,12 +239,9 @@ class Instructions {
 }
 
 class MachineInstructions extends Instructions {
-  constructor({params, shapes, codes, mainParams}) {
+  constructor(wrapperParams) {
     super({ contentWidth: 1200, promptHeight: 200 })
-    this.params = _.cloneDeep(params)
-    this.shapes = shapes
-    this.codes = codes
-    this.mainParams = mainParams
+    this.wrapper = new MachineWrapper(wrapperParams)
     window.instruct = this
   }
 
@@ -255,33 +252,12 @@ class MachineInstructions extends Instructions {
     // Define the codes used in the instructions
 
   getPuzzle(task, opts = {}) {
-    assert(this.shapes[task], `unknown task: ${task}`)
-    let solutions = opts.solutionType
-      ? { [this.codes[task][opts.solutionType]]: opts.solutionType }
-      : {}
-    let blockString = this.shapes[task]
-    console.log(blockString, solutions)
-    let mp = new MachinePuzzle({
-      ...this.params,
-      trialID: this.stageName(),
-      task,
-      solutions,
-      blockString,
-      ...opts,
-    })
+    opts.trialID = this.stageName()
+    let mp = this.wrapper.getPuzzle(task, opts)
     mp.attach(this.content)
     return mp
   }
 
-  buildManual(pairs) {
-    return pairs.map(([task, type]) => this.manualEntry(task, type))
-  }
-
-  manualEntry(task, type) {
-    return {
-      task, blockString: this.shapes[task], compositional: type == "compositional", code: this.codes[task][type]
-    }
-  }
 
   async centerMessage(md) {
     this.prompt.hide()
@@ -317,11 +293,12 @@ class MachineInstructions extends Instructions {
   } 
 
   async stage_bespoke() {  
-    let mp = this.getPuzzle("11", {
-      solutionType: "bespoke",
-      manual: this.buildManual([
+    let mp = this.getPuzzle({
+      task: "11",
+      solutionKind: "bespoke",
+      manual: [
         ["11", "bespoke"]
-      ]),
+      ],
     })
     mp.buttonDiv.hide()
     mp.done.then(() => this.runNext())  // short circuit
@@ -337,12 +314,13 @@ class MachineInstructions extends Instructions {
   }
 
   async stage_compositional() {
-    let mp = this.getPuzzle("22", {
-      solutionType: "compositional",
-      manual: this.buildManual([
+    let mp = this.getPuzzle({
+      task: "22",
+      solutionKind: "compositional",
+      manual: [
         ["12", "compositional"],
         ["21", "compositional"],
-      ]),
+      ],
     })
     mp.buttonDiv.hide()
     mp.done.then(() => this.runNext())  // short circuit
@@ -364,10 +342,10 @@ class MachineInstructions extends Instructions {
   }
   
   async stage_bespoke_button() {
-    let mp = this.getPuzzle("33", {
-      solutionType: "bespoke",
-      manual: this.buildManual([
-      ])
+    let mp = this.getPuzzle({
+      task: "33",
+      solutionKind: "bespoke",
+      manual: [ ]
     })
 
     $('.code-btn-left').css('visibility', 'hidden')
@@ -385,10 +363,10 @@ class MachineInstructions extends Instructions {
   }
   
   async stage_compositional_buttons() {
-    let mp = this.getPuzzle("44", {
-      solutionType: "compositional",
-      manual: this.buildManual([
-      ])
+    let mp = this.getPuzzle({
+      task: "44",
+      solutionKind: "compositional",
+      manual: [ ]
     })
     this.helpPromise("Keep clicking the red and blue buttons.", 60)
     $('.code-btn-bespoke').hide()

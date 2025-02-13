@@ -1,7 +1,7 @@
 const PROLIFIC_CODE = 'CH2Q1VIL'
 const PARAMS = {
   config_dir: "code-pilot",
-  width: 8,
+  width: 7,
   height: 5,
   nClickBespoke: 35,
   nClickPartial: 25,
@@ -38,7 +38,7 @@ async function runExperiment() {
     `static/json/${PARAMS.config_dir}/${CONDITION}.json`
   try {
     config = await $.getJSON(configFile)
-    console.log('config', config)
+    console.log(configFile, config)
   } catch(err) {
     console.log("ERR HERE")
     throw new Error(`${configFile} does not exist`)
@@ -60,10 +60,7 @@ async function runExperiment() {
 
   async function instructions() {
     logEvent('experiment.instructions')
-    await new MachineInstructions({
-      ...config.instructions,
-      mainParams: PARAMS,
-    }).run(DISPLAY)
+  await new MachineInstructions(config.instructions).run(DISPLAY)
   }
 
   async function main() {
