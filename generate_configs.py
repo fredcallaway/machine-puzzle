@@ -10,7 +10,7 @@ MAX_DIGIT = 9
 CODE_LENGTH = 4
 N_MANUAL = 8
 CONFIG_DIR = 'static/json/code-pilot'
-N_CONFIG = 1
+N_CONFIG = 50
 MAIN_SHAPES = 'stimuli/5keys.json'  # keys
 INSTRUCT_SHAPES = 'stimuli/instruct4.json'
 PARAMS = {
@@ -72,14 +72,14 @@ class InformativeTrials:
             ['available', 'unavailable'], 
             ['exact', 'full', 'partial', 'none']
         ))
-        n_decoys = shuffled(range(6, 6 + 2 * 8, 2))
+        n_manual_options = shuffled(range(6, 6 + 8, 1))
         # all_tasks = shuffled(self.tasks)
         # decoy_tasks = all_tasks[len(trial_types):]
 
         picknot = lambda x: random.choice(self.half_tasks.replace(x, ''))
         trials = []
         
-        for (besp, comp), n_decoys in zip(trial_types, n_decoys):
+        for (besp, comp), n_manual in zip(trial_types, n_manual_options):
             task = random.choice(self.tasks)
             manual = []
             a,b = task
@@ -98,10 +98,13 @@ class InformativeTrials:
             
             assert self._check_conditions(manual, task, comp, besp)
 
-            for _ in range(n_decoys):
+            while len(manual) < n_manual:
                 for i in range(1000):
                     # add one decoy
-                    manual.append((random.choice(self.tasks), random.choice(['bespoke', 'compositional'])))
+                    new_entry = (random.choice(self.tasks), random.choice(['bespoke', 'compositional']))
+                    if new_entry in manual:
+                        continue
+                    manual.append(new_entry)
                     if self._check_conditions(manual, task, comp, besp):
                         break
                     else:
@@ -112,7 +115,9 @@ class InformativeTrials:
             
             random.shuffle(manual)
             codes = Codes(self.max_digit, self.code_length)
-            trials.append(Stimuli(self.shapes, codes).trial(task, manual))
+            concrete_trial = Stimuli(self.shapes, codes).trial(task, manual)
+            concrete_trial['trialID'] = f'{besp}-{comp}-{n_manual}'
+            trials.append(concrete_trial)
         
         random.shuffle(trials)
         return trials
@@ -166,5 +171,5 @@ if __name__ == '__main__':
         json.dump(config, open(f'{CONFIG_DIR}/{i}.json', 'w'))
         # print(f'wrote {CONFIG_DIR}/{i}.json')
 
-        print(f'wrote {N_CONFIG} configs to {CONFIG_DIR}')
+    print(f'wrote {N_CONFIG} configs to {CONFIG_DIR}')
 

@@ -21,9 +21,7 @@ class DrawingInterface {
         margin: "0 auto",
       })
 
-    // restore state from localStorage
     const state = localStorage.getItem(this.storageKey)
-    // const state = `{"right":[[[0,0,0,0,0,2],[0,0,0,2,2,2],[0,0,0,0,0,2]],[[0,0,0,0,2,2],[0,0,0,2,2,0],[0,0,0,0,2,2]],[[0,0,0,0,2,0],[0,0,0,2,2,2],[0,0,0,0,2,0]]],"left":[[[1,1,1,0,0,0],[1,0,1,0,0,0],[1,1,1,0,0,0]],[[1,1,1,0,0,0],[0,0,1,0,0,0],[1,1,1,0,0,0]],[[1,1,1,0,0,0],[1,1,1,0,0,0],[1,1,1,0,0,0]]]}`
     if (state) {
       try {
         this.loadState(state)
@@ -40,28 +38,23 @@ class DrawingInterface {
   initialize() {
     Object.assign(this, this.options)
     this.div.empty()
-    // this.storageKey = `gridState_${this.width}x${this.height}_${this.numScreens}screens`
     this.isDrawing = false
     this.isErasing = false
     this.currentScreen = null
     this.screenMatrix = null
 
-    this.screenMatrix = Array(this.numScreens + 1)
+    // Create numScreens x numScreens matrix
+    this.screenMatrix = Array(this.numScreens)
       .fill()
-      .map((_, i) =>
-        Array(this.numScreens + 1)
+      .map(() =>
+        Array(this.numScreens)
           .fill()
-          .map((_, j) => {
-            // Skip top-left corner
-            if (i === 0 && j === 0) return null
-
-            return {
-              grid: Array(this.height)
-                .fill()
-                .map(() => Array(this.width).fill(0)),
-              canvas: this.createCanvas(),
-            }
-          })
+          .map(() => ({
+            grid: Array(this.height)
+              .fill()
+              .map(() => Array(this.width).fill(0)),
+            canvas: this.createCanvas(),
+          }))
       )
     this.setupInterface()
     this.setupEventListeners()
@@ -79,27 +72,70 @@ class DrawingInterface {
     this.initialize()
     console.log("storageKey", this.storageKey)
 
-    // Restore top row (skip [0][0])
-    for (let j = 1; j <= this.numScreens; j++) {
-      if (state.right[j - 1]) {
-        this.screenMatrix[0][j].grid = state.right[j - 1]
-      }
-    }
-    // Restore left column (skip [0][0])
-    for (let i = 1; i <= this.numScreens; i++) {
-      if (state.left[i - 1]) {
-        this.screenMatrix[i][0].grid = state.left[i - 1]
+    // Load state into the new matrix format
+    for (let i = 0; i < this.numScreens; i++) {
+      for (let j = 0; j < this.numScreens; j++) {
+        const leftState = state.left[i]
+        const rightState = state.right[j]
+        
+        // Initialize empty grid
+        const grid = Array(this.height).fill().map(() => Array(this.width).fill(0))
+        
+        // Copy left side from row's left state
+        if (leftState) {
+          for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width/2; x++) {
+              grid[y][x] = leftState[y][x]
+            }
+          }
+        }
+        
+        // Copy right side from column's right state
+        if (rightState) {
+          for (let y = 0; y < this.height; y++) {
+            for (let x = this.width/2; x < this.width; x++) {
+              grid[y][x] = rightState[y][x]
+            }
+          }
+        }
+        
+        this.screenMatrix[i][j].grid = grid
       }
     }
     this.redrawAllGrids()
   }
 
-
   createStateString() {
-    return JSON.stringify({
-      right: this.screenMatrix[0].slice(1).map((screen) => screen.grid),
-      left: this.screenMatrix.slice(1).map((row) => row[0].grid),
-    })
+    const right = []
+    const left = []
+    
+    // For each row, collect left side state
+    for (let i = 0; i < this.numScreens; i++) {
+      const leftGrid = Array(this.height).fill().map(() => Array(this.width).fill(0))
+      // Take left side from first column (j=0)
+      const screen = this.screenMatrix[i][0]
+      for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width/2; x++) {
+          leftGrid[y][x] = screen.grid[y][x]
+        }
+      }
+      left.push(leftGrid)
+    }
+    
+    // For each column, collect right side state
+    for (let j = 0; j < this.numScreens; j++) {
+      const rightGrid = Array(this.height).fill().map(() => Array(this.width).fill(0))
+      // Take right side from first row (i=0)
+      const screen = this.screenMatrix[0][j]
+      for (let y = 0; y < this.height; y++) {
+        for (let x = this.width/2; x < this.width; x++) {
+          rightGrid[y][x] = screen.grid[y][x]
+        }
+      }
+      right.push(rightGrid)
+    }
+
+    return JSON.stringify({ right, left })
   }
 
   createCanvas() {
@@ -124,24 +160,18 @@ class DrawingInterface {
   setupInterface() {
     const gridContainer = $("<div>").css({
       display: "grid",
-      gridTemplateColumns: `repeat(${this.numScreens + 1}, auto)`,
+      gridTemplateColumns: `repeat(${this.numScreens}, auto)`,
       gap: "10px",
       justifyContent: "center",
     })
 
     // Create grid cells
-    for (let i = 0; i < this.numScreens + 1; i++) {
-      for (let j = 0; j < this.numScreens + 1; j++) {
+    for (let i = 0; i < this.numScreens; i++) {
+      for (let j = 0; j < this.numScreens; j++) {
         const cell = $("<div>").css({
           position: "relative",
         })
-
-        // Skip top-left corner
-        if (!(i === 0 && j === 0)) {
-          const screen = this.screenMatrix[i][j]
-          screen.canvas.appendTo(cell)
-        }
-
+        this.screenMatrix[i][j].canvas.appendTo(cell)
         gridContainer.append(cell)
       }
     }
@@ -222,11 +252,8 @@ class DrawingInterface {
       }
     })
 
-    // Add listeners to all screens except top-left
-    for (let i = 0; i < this.numScreens + 1; i++) {
-      for (let j = 0; j < this.numScreens + 1; j++) {
-        if (i === 0 && j === 0) continue
-
+    for (let i = 0; i < this.numScreens; i++) {
+      for (let j = 0; j < this.numScreens; j++) {
         const screen = this.screenMatrix[i][j]
         screen.canvas
           .on("mousedown.drawing", (e) => this.startDrawing(e, i, j))
@@ -259,11 +286,22 @@ class DrawingInterface {
 
     const { x, y } = this.getGridCoordinates(e)
     const { row, col } = this.currentScreen
-    const currentGrid = this.screenMatrix[row][col].grid
-    const colorIdx = row == 0 ? 2 : col == 0 ? 1 : 0
-
+    
     if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-      currentGrid[y][x] = this.isErasing ? 0 : colorIdx
+      const newValue = this.isErasing ? 0 : (x >= this.width/2 ? 2 : 1)
+      
+      // For left side (x < width/2), sync across the row
+      if (x < this.width/2) {
+        for (let j = 0; j < this.numScreens; j++) {
+          this.screenMatrix[row][j].grid[y][x] = newValue
+        }
+      }
+      // For right side (x >= width/2), sync across the column
+      else {
+        for (let i = 0; i < this.numScreens; i++) {
+          this.screenMatrix[i][col].grid[y][x] = newValue
+        }
+      }
     }
     this.redrawAllGrids()
   }
@@ -280,21 +318,6 @@ class DrawingInterface {
     const screen = this.screenMatrix[row][col]
     if (!screen.grid) throw new Error(`Screen ${row},${col} not found`)
     const ctx = screen.canvas[0].getContext("2d")
-
-    // For middle rows, combine top and bottom screens
-    if (row > 0 && col > 0) {
-      const topGrid = this.screenMatrix[0][col].grid
-      const leftGrid = this.screenMatrix[row][0].grid
-      for (let y = 0; y < this.height; y++) {
-        for (let x = 0; x < this.width; x++) {
-          screen.grid[y][x] =
-            topGrid[y][x] && leftGrid[y][x]
-              ? 4
-              : topGrid[y][x] || leftGrid[y][x]
-        }
-      }
-      // pretty print
-    }
 
     // Clear the full canvas
     ctx.clearRect(
@@ -336,7 +359,7 @@ class DrawingInterface {
       for (let x = 0; x < this.width; x++) {
         let k = screen.grid[y][x]
         if (k !== 0) {
-          if (row == 0 || col == 0 || this.showColors) {
+          if (this.showColors) {
             ctx.fillStyle = COLORS[k]
           } else {
             ctx.fillStyle = k == 4 ? "black" : COLORS[3]
@@ -356,9 +379,8 @@ class DrawingInterface {
     console.log("saving state")
     localStorage.setItem(this.storageKey, this.createStateString())
 
-    for (let i = 0; i < this.numScreens + 1; i++) {
-      for (let j = 0; j < this.numScreens + 1; j++) {
-        if (i === 0 && j === 0) continue
+    for (let i = 0; i < this.numScreens; i++) {
+      for (let j = 0; j < this.numScreens; j++) {
         this.redrawGrid(i, j)
       }
     }
