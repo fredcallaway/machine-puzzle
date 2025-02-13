@@ -461,9 +461,9 @@ class MachinePuzzle {
   }
   
   async handleButton(kind) {
+    this.logEvent(`machine.button.${kind}`)
     await this.animateSearch(kind)
     this.lastAction = `nextCode.${kind}`
-    this.logEvent(`machine.button.${kind}`)
     this.clicksLeft[kind] -= 1
     this.setCode(this.getNextCode(kind))
     this.checkCode()

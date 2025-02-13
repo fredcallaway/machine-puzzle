@@ -13,15 +13,15 @@ const PARAMS = {
 
 
 const INSTRUCT_PARAMS = {
-  maxDigit: 6,
+  maxDigit: 9,
   maxTries: 50,
   // width: 6,
   // height: 5,
-  buttonDelay: 300,
+  buttonDelay: PARAMS.buttonDelay,
   solutionDelay: PARAMS.solutionDelay * (5 / 7), // height difference
   nClickBespoke: PARAMS.nClickBespoke,
   nClickPartial: PARAMS.nClickPartial,
-  machineColor: "#ffe852",
+  // machineColor: "#ffe852",
 }
 
 ERROR_EMAIL = 'fredcallaway@gmail.com'

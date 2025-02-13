@@ -138,7 +138,7 @@ class InformativeTrials:
         elif left or right:
             return target_comp == 'partial'
         else:
-            return target_comp == 'none'        
+            return target_comp == 'none'
 
 def generate_config(i):
     random.seed(i)
